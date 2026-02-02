@@ -51,7 +51,7 @@
                                 <h3 class="section-title">
                                     <PaperClipOutlined /> Attachments
                                     <span class="count-badge" v-if="issue.images?.length > 0">{{ issue.images.length
-                                    }}</span>
+                                        }}</span>
                                 </h3>
 
                                 <div class="image-grid" v-if="issue.images && issue.images.length > 0">
@@ -91,7 +91,8 @@
                                         <div class="upload-wrapper">
                                             <a-upload list-type="picture-card" :file-list="fileList"
                                                 @preview="handlePreview" @change="handleChange"
-                                                :before-upload="() => false" class="custom-upload">
+                                                accept="image/png, image/jpeg, image/jpg" :before-upload="beforeUpload"
+                                                class="custom-upload">
                                                 <div v-if="fileList.length < 5">
                                                     <CloudUploadOutlined class="upload-icon" />
                                                     <div class="upload-text">Upload</div>
@@ -103,6 +104,7 @@
                                             <img alt="example" style="width: 100%" :src="previewImage" />
                                         </a-modal>
                                     </a-form-item>
+
                                 </a-form>
                             </div>
 
@@ -156,7 +158,7 @@
                                     <div class="info-row">
                                         <span class="label">Urgency</span>
                                         <a-tag :color="issue.urgency?.color" class="tag-pill">{{ issue.urgency?.name
-                                        }}</a-tag>
+                                            }}</a-tag>
                                     </div>
                                 </div>
                             </a-card>
@@ -178,7 +180,7 @@ import {
     CloudUploadOutlined, ExperimentOutlined,
     CheckCircleFilled, CloseCircleFilled, PaperClipOutlined // อย่าลืม import Icon
 } from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+import { message, Upload } from 'ant-design-vue';
 
 function getBase64(file) {
     return new Promise((resolve, reject) => {
@@ -232,6 +234,21 @@ export default {
             this.previewTitle = file.name || file.url.substring(file.url.lastIndexOf('/') + 1);
         },
         handleChange({ fileList }) { this.fileList = fileList; },
+
+        beforeUpload(file) {
+            // เช็คว่าเป็นไฟล์รูปภาพหรือไม่ (jpeg, png, etc.)
+            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
+
+            if (!isImage) {
+                message.error('อัปโหลดได้เฉพาะไฟล์รูปภาพเท่านั้น!');
+                // Return Upload.LIST_IGNORE เพื่อไม่ให้ไฟล์ที่ผิดไปโผล่ใน list (สำหรับ Ant Design Vue 3.x)
+                // หรือ return false ถ้าใช้เวอร์ชั่นเก่า แต่ไฟล์อาจจะยังโชว์สีแดง
+                return Upload.LIST_IGNORE || false;
+            }
+
+            // Return false เพื่อหยุดการ Auto Upload (เพื่อให้คุณกดปุ่ม Submit เองทีหลัง)
+            return false;
+        },
 
         async getAuthProfile() {
             try {

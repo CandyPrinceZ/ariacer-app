@@ -129,7 +129,7 @@ import {
   BugOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
   DeleteOutlined, SendOutlined, ReloadOutlined
 } from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+import { message, Upload } from 'ant-design-vue';
 
 export default {
   name: "ReportBugFull",
@@ -223,18 +223,31 @@ export default {
         this.dropdownLoading = false;
       }
     },
-    beforeUpload() { return false; },
+    beforeUpload(file) {
+      const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
+      if (!isImage) {
+        message.error('อัปโหลดได้เฉพาะไฟล์รูปภาพ (JPG/PNG) เท่านั้น');
+        return Upload.LIST_IGNORE;
+      }
+      return false; // กัน Auto Upload
+    },
     handleUploadChange(info) {
       let list = [...info.fileList];
+
+      // จำกัดจำนวนไฟล์
       if (list.length > this.maxFiles) {
-        message.warning(`Max ${this.maxFiles} files allowed`);
+        message.warning(`อัปโหลดได้สูงสุด ${this.maxFiles} รูป`);
         list = list.slice(0, this.maxFiles);
       }
-      list.forEach((f) => {
-        if (f.originFileObj && !f.thumbUrl) {
-          f.thumbUrl = URL.createObjectURL(f.originFileObj);
+
+      // สร้าง URL สำหรับแสดงรูปตัวอย่าง (เพราะเราปิด show-upload-list)
+      list = list.map(file => {
+        if (file.originFileObj && !file.thumbUrl) {
+          file.thumbUrl = URL.createObjectURL(file.originFileObj);
         }
+        return file;
       });
+
       this.fileList = list;
     },
     removeFile(file) {
@@ -249,22 +262,22 @@ export default {
     // --- NEW: ฟังก์ชันดึง URL ล่าสุดจาก Backend ---
     async getDynamicWebhook() {
       try {
-         const token = localStorage.getItem('token');
-         // ยิงไปที่ API ที่เราสร้างไว้ใน Backend (configController)
-         const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
-             headers: { Authorization: `Bearer ${token}` }
-         });
-         return res.data.url;
+        const token = localStorage.getItem('token');
+        // ยิงไปที่ API ที่เราสร้างไว้ใน Backend (configController)
+        const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        return res.data.url;
       } catch (error) {
-         console.error("Failed to get webhook url", error);
-         throw new Error("Unable to fetch webhook URL");
+        console.error("Failed to get webhook url", error);
+        throw new Error("Unable to fetch webhook URL");
       }
     },
 
     async uploadImageToDiscord(fileObj, webhookUrl) {
       const formData = new FormData();
       formData.append('file', fileObj);
-      
+
       // ใช้ webhookUrl ที่ส่งเข้ามา (ซึ่งเป็นตัวล่าสุดเสมอ)
       const response = await axios.post(webhookUrl, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -283,21 +296,21 @@ export default {
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
         let imageUrls = [];
-        
+
         // ถ้ามีรูป ต้องไปดึง URL Webhook ล่าสุดมาก่อน
         if (this.fileList.length > 0) {
           message.loading({ content: 'Fetching upload server...', key: 'up', duration: 0 });
-          
+
           // 1. ดึง URL ล่าสุด
           const currentWebhookUrl = await this.getDynamicWebhook();
 
           message.loading({ content: 'Uploading images...', key: 'up', duration: 0 });
-          
+
           // 2. ส่ง URL นั้นไปให้ฟังก์ชัน upload
           imageUrls = await Promise.all(
             this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, currentWebhookUrl))
           );
-          
+
           message.success({ content: 'Images uploaded', key: 'up', duration: 2 });
         }
 
