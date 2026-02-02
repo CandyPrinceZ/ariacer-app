@@ -380,9 +380,6 @@ export default {
     border-bottom: 1px solid #e2e8f0;
     padding: 16px 0;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    position: sticky;
-    top: 0;
-    z-index: 100;
 }
 
 .header-inner {
