@@ -43,14 +43,6 @@
         <router-link :to="{ name: 'usermanagement' }">User Management</router-link>
       </a-menu-item>
 
-      <a-sub-menu key="settings">
-        <template #icon>
-          <SettingOutlined />
-        </template>
-        <template #title>Settings</template>
-        <a-menu-item key="setting-general">General</a-menu-item>
-        <a-menu-item key="setting-security">Security</a-menu-item>
-      </a-sub-menu>
 
     </a-menu>
   </a-layout-sider>
@@ -63,7 +55,6 @@ import {
   DashboardOutlined,
   BugOutlined,
   TeamOutlined,
-  SettingOutlined,
   HddOutlined,
   PieChartOutlined
 } from '@ant-design/icons-vue';
@@ -74,7 +65,6 @@ export default defineComponent({
     DashboardOutlined,
     BugOutlined,
     TeamOutlined,
-    SettingOutlined,
     HddOutlined,
     PieChartOutlined
   },
