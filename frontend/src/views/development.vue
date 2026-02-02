@@ -162,7 +162,7 @@ export default {
           width: 90,
           align: 'center',
           fixed: 'left',
-          customRender: ({ text }) => text ? `#${text}` : '-'
+          customRender: ({ text }) => text ? `${text}` : '-'
         },
         {
           title: 'หัวข้อ (Title)',

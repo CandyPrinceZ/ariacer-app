@@ -12,8 +12,8 @@ exports.createIssue = async (req, res) => {
 
     if (inputImages) {
       if (Array.isArray(inputImages)) {
-        issueData.images = inputImages.map(url => ({ url: url }));
-      } else if (typeof inputImages === 'string') {
+        issueData.images = inputImages.map((url) => ({ url: url }));
+      } else if (typeof inputImages === "string") {
         issueData.images = [{ url: inputImages }];
       }
     }
@@ -25,7 +25,7 @@ exports.createIssue = async (req, res) => {
       "type",
       "urgency",
       "status",
-      "reporter"
+      "reporter",
     ]);
 
     res.status(201).json(populatedIssue);
@@ -35,28 +35,23 @@ exports.createIssue = async (req, res) => {
   }
 };
 
-// --- 2. Get All Issues (รองรับ Filter) ---
 exports.getIssues = async (req, res) => {
   try {
     const { status, assignee, unassigned } = req.query;
     let query = {};
 
-    // Filter: ตามสถานะ
     if (status) {
-      query.status_code = status; // หรือ query.status แล้วแต่ Schema
+      query.status_code = status;
     }
 
-    // Filter: งานของฉัน (Assignee)
     if (assignee) {
       query.assignee = assignee;
     }
 
-    // Filter: งานที่ยังไม่มีเจ้าของ (Unassigned)
     if (unassigned === "true") {
-      query.assignee = { $in: [null, ""] }; // หาที่ assignee เป็น null หรือ string ว่าง
+      query.assignee = { $in: [null, ""] };
     }
 
-    // ค้นหาและ Populate ข้อมูลที่เชื่อมโยง (Join Tables)
     const issues = await Issue.find(query)
       .populate("type", "name code") // map เอาแค่ชื่อ Type
       .populate("urgency", "name color code") // map เอาชื่อและความเร่งด่วน
@@ -87,7 +82,7 @@ exports.getIssueById = async (req, res) => {
     }
 
     if (!issue) {
-      issue = await Issue.findOne({ id: req.params.id }) 
+      issue = await Issue.findOne({ id: req.params.id })
         .populate("type")
         .populate("urgency")
         .populate("status")
@@ -101,7 +96,6 @@ exports.getIssueById = async (req, res) => {
     }
 
     res.json(issue);
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -110,13 +104,15 @@ exports.getIssuesByAssignee = async (req, res) => {
   try {
     const assigneeId = req.params.assigneeId;
 
-    const issues = await Issue.find({ assignee: assigneeId })
+    let issues = await Issue.find({ assignee: assigneeId })
       .populate("type", "name code")
       .populate("urgency", "name color code")
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name")
       .populate("assignee", "username user_name role_name")
       .sort({ createdAt: -1 });
+
+    issues = issues.filter((issue) => issue.status?.code !== "success");
 
     res.json(issues);
   } catch (error) {

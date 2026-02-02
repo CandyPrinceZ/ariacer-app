@@ -53,7 +53,7 @@
                     <template #bodyCell="{ column, record }">
 
                         <template v-if="column.key === 'id'">
-                            <span class="id-badge">#{{ record.id }}</span>
+                            <span class="id-badge">{{ record.id }}</span>
                         </template>
 
                         <template v-if="column.key === 'name'">

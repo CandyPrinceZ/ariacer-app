@@ -29,9 +29,20 @@ const issueSchema = new mongoose.Schema(
       default: null,
     },
 
+    remarks_images: [
+      {
+        url: { type: String },
+      },
+    ],
+
     assignee: {
-      type: mongoose.Schema.Types.ObjectId, 
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Auth",
+      default: null,
+    },
+
+    note: {
+      type: String,
       default: null,
     },
 

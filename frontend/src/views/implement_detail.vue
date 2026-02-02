@@ -1,130 +1,173 @@
 <template>
-    <a-layout style="min-height: 100vh; background: #fdfdfd;">
+    <a-layout style="min-height: 100vh; background: #f0f2f5;">
 
-        <div class="detail-header">
-            <div class="header-content">
-                <a-button @click="$router.go(-1)" type="text" class="back-btn">
-                    <ArrowLeftOutlined /> Back to List
-                </a-button>
-
-                <div class="header-main">
-                    <div class="title-group">
-                        <span class="id-tag">#{{ issue.id }}</span>
-                        <h1 class="page-title">{{ issue.name }}</h1>
-                    </div>
-                    <a-tag color="orange" class="status-pill">
-                        <ExperimentOutlined /> UNDER TESTING
-                    </a-tag>
-                </div>
+        <div v-if="loading" class="loading-overlay">
+            <div class="loading-content">
+                <a-spin size="large" />
+                <p>Processing...</p>
             </div>
         </div>
 
-        <div class="detail-content">
-            <a-row :gutter="32">
+        <div class="page-container">
 
-                <a-col :xs="24" :lg="16" :xl="18">
-
-                    <div class="section-box">
-                        <div class="section-header">
-                            <FileTextOutlined class="section-icon" />
-                            <h3>Requirement Detail</h3>
-                        </div>
-                        <div class="section-body">
-                            <p class="desc-text">{{ issue.detail || 'No description provided.' }}</p>
+            <div class="detail-header">
+                <div class="header-inner">
+                    <div class="header-left">
+                        <a-button @click="$router.go(-1)" type="text" class="back-btn">
+                            <template #icon>
+                                <ArrowLeftOutlined />
+                            </template> Back to List
+                        </a-button>
+                        <div class="title-wrapper">
+                            <div class="id-badge">#{{ issue.id || '...' }}</div>
+                            <h1 class="task-title">{{ issue.name }}</h1>
                         </div>
                     </div>
-
-                    <div class="section-box">
-                        <div class="section-header">
-                            <CodeOutlined class="section-icon" />
-                            <h3>Assigned Developer</h3>
+                    <div class="header-right">
+                        <div class="status-badge testing">
+                            <ExperimentOutlined />
+                            <span>UNDER TESTING</span>
                         </div>
-                        <div class="section-body">
-                            <div class="dev-card">
-                                <a-avatar size="64" style="background-color: #3b82f6; font-size: 24px;">
-                                    {{ (issue.assignee?.user_name || 'D')[0]?.toUpperCase() }}
-                                </a-avatar>
-                                <div class="dev-info">
-                                    <h4 class="dev-name">{{ issue.assignee?.user_name || 'Unassigned' }}</h4>
-                                    <span class="dev-role">Responsible Developer</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-content">
+                <a-row :gutter="24">
+
+                    <a-col :xs="24" :lg="17" :xl="18">
+                        <a-card :bordered="false" class="main-card">
+
+                            <div class="card-section">
+                                <h3 class="section-title">
+                                    <FileTextOutlined /> Requirement Detail
+                                </h3>
+                                <div class="desc-box">
+                                    {{ issue.detail || 'No description provided.' }}
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="section-box">
-                        <div class="section-header">
-                            <AuditOutlined class="section-icon" />
-                            <h3>Test Result & Feedback</h3>
-                        </div>
-                        <div class="section-body">
-                            <a-form layout="vertical">
-                                <a-form-item label="Comment / Bug Report (หากไม่ผ่าน)">
-                                    <a-textarea v-model:value="qcComment" :rows="5"
-                                        placeholder="ระบุจุดที่พบปัญหา หรือสิ่งที่ต้องแก้ไข..."
-                                        class="clean-textarea" />
-                                </a-form-item>
+                            <div class="card-section mt-6">
+                                <h3 class="section-title">
+                                    <PaperClipOutlined /> Attachments
+                                    <span class="count-badge" v-if="issue.images?.length > 0">{{ issue.images.length
+                                    }}</span>
+                                </h3>
 
-                                <a-form-item label="Evidence Image (หลักฐาน)">
-                                    <a-upload class="upload-zone">
-                                        <div class="upload-content">
-                                            <CloudUploadOutlined class="upload-icon" />
-                                            <p>Click to Upload Screenshot</p>
-                                        </div>
-                                    </a-upload>
-                                </a-form-item>
-                            </a-form>
-                        </div>
-                    </div>
-
-                </a-col>
-
-                <a-col :xs="24" :lg="8" :xl="6">
-                    <div class="sticky-panel">
-                        <div class="action-card">
-                            <div class="action-header">
-                                <h3>Testing Actions</h3>
-                            </div>
-                            <div class="action-body">
-
-                                <div class="buttons-grid">
-                                    <a-popconfirm title="Confirm System Pass?" ok-text="Yes, Pass"
-                                        cancel-text="Check again" @confirm="submitResult('pass')">
-                                        <button class="btn-main pass">
-                                            <CheckCircleFilled /> PASS
-                                        </button>
-                                    </a-popconfirm>
-
-                                    <a-popconfirm title="Reject & Return to Dev?" ok-text="Yes, Reject" cancel-text="No"
-                                        ok-type="danger" @confirm="submitResult('fail')">
-                                        <button class="btn-main fail">
-                                            <CloseCircleFilled /> FAIL
-                                        </button>
-                                    </a-popconfirm>
-                                </div>
-
-                                <div class="divider"></div>
-
-                                <div class="meta-list">
-                                    <div class="meta-item">
-                                        <span class="label">Type</span>
-                                        <span class="value">{{ issue.type?.name || '-' }}</span>
+                                <div class="image-grid" v-if="issue.images && issue.images.length > 0">
+                                    <div v-for="img in issue.images" :key="img._id" class="img-wrapper">
+                                        <a-image :src="img.url" class="img-preview" />
                                     </div>
-                                    <div class="meta-item">
+                                </div>
+                                <div v-else class="empty-state small">
+                                    <p>No attachments available</p>
+                                </div>
+                            </div>
+
+                            <div class="card-section mt-6">
+                                <h3 class="section-title">
+                                    <CodeOutlined /> Note From Developer
+                                </h3>
+                                <div class="desc-box note">
+                                    {{ issue.note || 'No note provided.' }}
+                                </div>
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="card-section">
+                                <h3 class="section-title highlight">
+                                    <AuditOutlined /> Test Result & Feedback
+                                </h3>
+
+                                <a-form layout="vertical" class="testing-form">
+                                    <a-form-item label="Comment / Bug Report (จำเป็นหากไม่ผ่าน)">
+                                        <a-textarea v-model:value="qcComment" :rows="5"
+                                            placeholder="ระบุจุดที่พบปัญหา หรือสิ่งที่ต้องแก้ไข..."
+                                            class="custom-textarea" />
+                                    </a-form-item>
+
+                                    <a-form-item label="Evidence Image (หลักฐาน)">
+                                        <div class="upload-wrapper">
+                                            <a-upload list-type="picture-card" :file-list="fileList"
+                                                @preview="handlePreview" @change="handleChange"
+                                                :before-upload="() => false" class="custom-upload">
+                                                <div v-if="fileList.length < 5">
+                                                    <CloudUploadOutlined class="upload-icon" />
+                                                    <div class="upload-text">Upload</div>
+                                                </div>
+                                            </a-upload>
+                                        </div>
+                                        <a-modal :visible="previewVisible" :title="previewTitle" :footer="null"
+                                            @cancel="handleCancel">
+                                            <img alt="example" style="width: 100%" :src="previewImage" />
+                                        </a-modal>
+                                    </a-form-item>
+                                </a-form>
+                            </div>
+
+                        </a-card>
+                    </a-col>
+
+                    <a-col :xs="24" :lg="7" :xl="6">
+                        <div class="sticky-sidebar">
+
+                            <a-card :bordered="false" class="side-card action-card mb-4">
+                                <h4 class="side-title">Testing Actions</h4>
+                                <div class="action-body">
+                                    <div class="buttons-grid">
+                                        <a-popconfirm title="Confirm System Pass?" ok-text="Yes, Pass"
+                                            cancel-text="Check again" @confirm="submitResult('pass')">
+                                            <button class="btn-main pass" :disabled="loading">
+                                                <CheckCircleFilled /> PASS
+                                            </button>
+                                        </a-popconfirm>
+
+                                        <a-popconfirm title="Reject & Return to Dev?" ok-text="Yes, Reject"
+                                            cancel-text="No" ok-type="danger" @confirm="submitResult('fail')">
+                                            <button class="btn-main fail" :disabled="loading">
+                                                <CloseCircleFilled /> FAIL
+                                            </button>
+                                        </a-popconfirm>
+                                    </div>
+                                </div>
+                            </a-card>
+
+                            <a-card :bordered="false" class="side-card mb-4">
+                                <h4 class="side-title">Responsible Developer</h4>
+                                <div class="dev-profile">
+                                    <a-avatar :size="48" style="background-color: #3b82f6; font-size: 18px;">
+                                        {{ (issue.assignee?.user_name || 'D')[0]?.toUpperCase() }}
+                                    </a-avatar>
+                                    <div class="dev-details">
+                                        <h4 class="dev-name">{{ issue.assignee?.user_name || 'Unassigned' }}</h4>
+                                        <span class="dev-role">Developer</span>
+                                    </div>
+                                </div>
+                            </a-card>
+
+                            <a-card :bordered="false" class="side-card info-card">
+                                <h4 class="side-title">Ticket Info</h4>
+                                <div class="info-list">
+                                    <div class="info-row">
+                                        <span class="label">Type</span>
+                                        <span class="val-text">{{ issue.type?.name || '-' }}</span>
+                                    </div>
+                                    <div class="info-row">
                                         <span class="label">Urgency</span>
                                         <a-tag :color="issue.urgency?.color" class="tag-pill">{{ issue.urgency?.name
-                                            }}</a-tag>
+                                        }}</a-tag>
                                     </div>
                                 </div>
+                            </a-card>
 
-                            </div>
                         </div>
-                    </div>
-                </a-col>
+                    </a-col>
 
-            </a-row>
+                </a-row>
+            </div>
+
         </div>
-
     </a-layout>
 </template>
 
@@ -133,31 +176,63 @@ import axios from 'axios';
 import {
     ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
     CloudUploadOutlined, ExperimentOutlined,
-    CheckCircleFilled, CloseCircleFilled
+    CheckCircleFilled, CloseCircleFilled, PaperClipOutlined // อย่าลืม import Icon
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
+
+function getBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+}
 
 export default {
     name: 'ImplementDetail',
     components: {
         ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
-        CloudUploadOutlined, ExperimentOutlined,
+        CloudUploadOutlined, ExperimentOutlined, PaperClipOutlined,
         CheckCircleFilled, CloseCircleFilled
     },
     data() {
         return {
+            loading: false,
             issue: {},
             qcComment: '',
             statusOptions: [],
             authProfile: null,
+            fileList: [],
+            previewVisible: false,
+            previewImage: '',
+            previewTitle: '',
         };
     },
     async mounted() {
-        await this.getAuthProfile();
-        await this.fetchIssue();
-        await this.fetchStatuses();
+        this.loading = true;
+        try {
+            await this.getAuthProfile();
+            await this.fetchIssue();
+            await this.fetchStatuses();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            this.loading = false;
+        }
     },
     methods: {
+        handleCancel() { this.previewVisible = false; },
+        async handlePreview(file) {
+            if (!file.url && !file.preview) {
+                file.preview = await getBase64(file.originFileObj);
+            }
+            this.previewImage = file.url || file.preview;
+            this.previewVisible = true;
+            this.previewTitle = file.name || file.url.substring(file.url.lastIndexOf('/') + 1);
+        },
+        handleChange({ fileList }) { this.fileList = fileList; },
+
         async getAuthProfile() {
             try {
                 const token = localStorage.getItem('token');
@@ -166,9 +241,7 @@ export default {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 this.authProfile = res.data;
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         },
         async fetchIssue() {
             const id = this.$route.params.id;
@@ -183,14 +256,32 @@ export default {
         async fetchStatuses() {
             const token = localStorage.getItem('token');
             try {
-                // ดึง Status ทั้งหมดมาเตรียมไว้
                 const res = await axios.get(import.meta.env.VITE_API_URL + '/items/statuses', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 this.statusOptions = res.data;
             } catch (e) { console.error(e); }
         },
-
+        async getDynamicWebhook() {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                return res.data.url;
+            } catch (error) {
+                console.error("Failed to get webhook url", error);
+                throw new Error("Unable to fetch webhook URL");
+            }
+        },
+        async uploadImageToDiscord(fileObj, webhookUrl) {
+            const formData = new FormData();
+            formData.append('file', fileObj);
+            const response = await axios.post(webhookUrl, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            return response.data.attachments[0].url;
+        },
         async submitResult(result) {
             const token = localStorage.getItem('token');
             let targetStatus = null;
@@ -208,33 +299,49 @@ export default {
                 msg = 'Testing Failed. Returned to Developer.';
             }
 
-            if (targetStatus) {
-                try {
-                    const payload = {
-                        status: targetStatus._id,
-                        remarks: this.qcComment,
-                    };
+            if (!targetStatus) {
+                message.error('Target Status not found');
+                return;
+            }
 
-                    if (targetStatus.code === 'rejected') {
-                        payload.assignee = null;
-                    }
+            this.loading = true;
 
-                    if (this.authProfile && this.authProfile._id) {
-                        payload.tester = this.authProfile._id;
-                    }
-
-                    await axios.put(import.meta.env.VITE_API_URL + `/issues/${this.issue._id}`, payload, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-
-                    message.success(msg);
-                    this.$router.push('/implement');
-                } catch (e) {
-                    console.error(e);
-                    message.error('Error updating status');
+            try {
+                let imageUrls = [];
+                if (this.fileList.length > 0) {
+                    message.loading({ content: 'Uploading images...', key: 'up' });
+                    const currentWebhookUrl = await this.getDynamicWebhook();
+                    imageUrls = await Promise.all(
+                        this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, currentWebhookUrl))
+                    );
+                    message.success({ content: 'Images uploaded!', key: 'up' });
                 }
-            } else {
-                message.error('ไม่พบสถานะปลายทาง (Target Status not found)');
+
+                const payload = {
+                    status: targetStatus._id,
+                    remarks: this.qcComment || '-',
+                    remarks_images: imageUrls.map(url => ({ url: url })),
+                };
+
+                if (targetStatus.code === 'rejected') {
+                    payload.assignee = null;
+                }
+                if (this.authProfile && this.authProfile._id) {
+                    payload.tester = this.authProfile._id;
+                }
+
+                await axios.put(import.meta.env.VITE_API_URL + `/issues/${this.issue._id}`, payload, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                message.success(msg);
+                this.$router.push('/implement');
+
+            } catch (e) {
+                console.error(e);
+                message.error('Error: ' + (e.message || 'Unknown error'));
+            } finally {
+                this.loading = false;
             }
         }
     }
@@ -242,228 +349,268 @@ export default {
 </script>
 
 <style scoped>
-/* Header - Full Width */
-.detail-header {
-    background: #fff;
-    padding: 24px 0;
-    border-bottom: 1px solid #f1f5f9;
-    margin-bottom: 40px;
+/* 1. Global & Layout */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(4px);
 }
 
-.header-content {
-    width: 100%;
-    /* เต็มจอ */
-    padding: 0 40px;
-    /* Padding ซ้ายขวา */
+.loading-content {
+    text-align: center;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.page-container {
+    padding-bottom: 60px;
+}
+
+/* 2. Header */
+.detail-header {
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 16px 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .back-btn {
-    padding-left: 0;
-    color: #94a3b8;
-    font-weight: 500;
+    padding: 0;
+    color: #64748b;
+    font-size: 14px;
+    width: fit-content;
 }
 
 .back-btn:hover {
     color: #3b82f6;
 }
 
-.header-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 16px;
-}
-
-.title-group {
+.title-wrapper {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
-.id-tag {
-    background: #eff6ff;
-    color: #3b82f6;
+.id-badge {
+    background: #f1f5f9;
+    color: #475569;
     padding: 4px 10px;
     border-radius: 8px;
-    font-weight: 600;
     font-size: 14px;
-    letter-spacing: 0.5px;
-}
-
-.page-title {
-    margin: 0;
-    font-size: 28px;
     font-weight: 700;
-    color: #1e293b;
-    letter-spacing: -0.5px;
-}
-
-.status-pill {
-    border-radius: 30px;
-    padding: 6px 16px;
-    font-weight: 600;
-    font-size: 12px;
-    border: none;
     letter-spacing: 0.5px;
 }
 
-/* Content Layout - Full Width */
-.detail-content {
-    width: 100%;
-    /* เต็มจอ */
-    padding: 0 40px 80px;
-    /* Padding ซ้ายขวาเท่ากับ Header */
+.task-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.2;
 }
 
-/* Section Box Style (Clean Card) */
-.section-box {
-    background: #fff;
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #475569;
+}
+
+.status-badge.testing {
+    background: #ffedd5;
+    color: #f97316;
+}
+
+/* 3. Content Area */
+.detail-content {
+    max-width: 1400px;
+    margin: 32px auto 0;
+    padding: 0 24px;
+}
+
+/* 4. Cards */
+.main-card,
+.side-card {
     border-radius: 16px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
-    border: 1px solid #f1f5f9;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     overflow: hidden;
-    margin-bottom: 24px;
+    border: 1px solid #f1f5f9;
     transition: transform 0.2s;
 }
 
-.section-box:hover {
+.side-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.section-header {
-    padding: 20px 24px;
-    border-bottom: 1px solid #f8fafc;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+/* 5. Sections */
+.card-section {
+    position: relative;
 }
 
-.section-icon {
-    color: #3b82f6;
-    font-size: 18px;
-}
-
-.section-header h3 {
-    margin: 0;
+.section-title {
     font-size: 16px;
     font-weight: 600;
     color: #334155;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.section-body {
-    padding: 24px;
+.section-title.highlight {
+    color: #0f172a;
+    font-size: 18px;
 }
 
-/* Text Content */
-.desc-text {
+.count-badge {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+.desc-box {
+    background: #fdfdfd;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #f1f5f9;
     color: #475569;
-    line-height: 1.8;
+    line-height: 1.7;
     white-space: pre-wrap;
     font-size: 15px;
 }
 
-/* Developer Card Style */
-.dev-card {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background: #f8fafc;
+.desc-box.note {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+}
+
+.divider {
+    height: 1px;
+    background: #f1f5f9;
+    margin: 32px 0;
+}
+
+/* ✅ Image Grid Styles */
+.image-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.img-wrapper {
+    aspect-ratio: 16/9;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+}
+
+:deep(.img-preview) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.empty-state.small {
     padding: 20px;
-    border-radius: 12px;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 8px;
+    color: #94a3b8;
+    border: 1px dashed #e2e8f0;
 }
 
-.dev-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.dev-name {
-    font-size: 18px;
-    font-weight: 700;
-    color: #1e293b;
-    margin: 0;
-}
-
-.dev-role {
-    font-size: 14px;
-    color: #64748b;
-    margin-top: 4px;
-}
-
-/* Form Elements */
-.clean-textarea {
+/* 6. Form Elements */
+.custom-textarea {
     border-radius: 12px;
     border-color: #e2e8f0;
     padding: 16px;
     font-size: 15px;
-    background: #fdfdfd;
-    resize: none;
+    background: #fff;
 }
 
-.clean-textarea:focus {
+.custom-textarea:focus {
     border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.upload-zone {
-    width: 100%;
-    display: block;
-}
-
-.upload-content {
-    border: 2px dashed #e2e8f0;
+.upload-wrapper :deep(.ant-upload.ant-upload-select-picture-card) {
     border-radius: 12px;
-    padding: 40px;
-    text-align: center;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: 0.3s;
+    border: 2px dashed #e2e8f0;
     background: #fdfdfd;
+    transition: all 0.3s;
 }
 
-.upload-content:hover {
+.upload-wrapper :deep(.ant-upload.ant-upload-select-picture-card:hover) {
     border-color: #3b82f6;
-    color: #3b82f6;
     background: #eff6ff;
 }
 
 .upload-icon {
-    font-size: 32px;
-    display: block;
-    margin-bottom: 12px;
+    font-size: 24px;
+    color: #94a3b8;
+    margin-bottom: 8px;
 }
 
-/* Sticky Right Panel */
-.sticky-panel {
+.upload-text {
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* 7. Sidebar */
+.sticky-sidebar {
     position: sticky;
-    top: 24px;
+    top: 100px;
 }
 
-.action-card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-}
-
-.action-header {
-    padding: 20px 24px;
-    background: #1e293b;
-    color: #fff;
-}
-
-.action-header h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-}
-
-.action-body {
+.side-card {
     padding: 24px;
 }
 
+.side-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+}
+
+/* Buttons */
 .buttons-grid {
     display: grid;
     gap: 16px;
@@ -472,7 +619,7 @@ export default {
 .btn-main {
     border: none;
     padding: 16px;
-    border-radius: 10px;
+    border-radius: 12px;
     font-weight: 700;
     font-size: 16px;
     cursor: pointer;
@@ -480,79 +627,107 @@ export default {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: 0.2s;
+    transition: all 0.2s;
     width: 100%;
     color: #fff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.btn-main:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 
 .btn-main.pass {
     background: #22c55e;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
 }
 
-.btn-main.pass:hover {
+.btn-main.pass:hover:not(:disabled) {
     background: #16a34a;
     transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(34, 197, 94, 0.3);
 }
 
 .btn-main.fail {
     background: #ef4444;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-.btn-main.fail:hover {
+.btn-main.fail:hover:not(:disabled) {
     background: #dc2626;
     transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(239, 68, 68, 0.3);
 }
 
-.divider {
-    height: 1px;
-    background: #f1f5f9;
-    margin: 24px 0;
+/* Developer Profile & Info */
+.dev-profile {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
-.meta-list {
+.dev-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.dev-name {
+    margin: 0;
+    font-weight: 600;
+    color: #0f172a;
+    font-size: 16px;
+}
+
+.dev-role {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.info-list {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-.meta-item {
+.info-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 14px;
 }
 
-.meta-item .label {
+.info-row .label {
     color: #64748b;
-    font-weight: 500;
 }
 
-.meta-item .value {
-    font-weight: 600;
+.val-text {
+    font-weight: 500;
     color: #1e293b;
 }
 
 .tag-pill {
+    border: none;
+    padding: 2px 10px;
     border-radius: 6px;
     font-weight: 600;
-    border: none;
-    padding: 4px 10px;
 }
 
-/* Responsive Adjustments */
+.mt-6 {
+    margin-top: 24px;
+}
+
+.mb-4 {
+    margin-bottom: 24px;
+}
+
 @media (max-width: 992px) {
-    .sticky-panel {
-        position: static;
-        margin-top: 32px;
+    .header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
     }
 
-    .header-content,
-    .detail-content {
-        padding: 0 20px;
+    .sticky-sidebar {
+        margin-top: 24px;
     }
-
-    /* ลด Padding ในจอเล็ก */
 }
 </style>
