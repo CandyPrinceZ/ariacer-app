@@ -4,7 +4,7 @@
       <div class="header-inner">
         <div class="header-title">
           <BugOutlined class="title-icon" />
-          <span>Report A Bug</span>
+          <span>Report Issues</span>
         </div>
         <p class="header-subtitle">แจ้งปัญหาการใช้งานเพื่อให้ทีมพัฒนาตรวจสอบและแก้ไข</p>
       </div>

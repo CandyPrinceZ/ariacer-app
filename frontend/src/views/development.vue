@@ -57,7 +57,7 @@
 
                 <template v-if="column.key === 'action'">
                   <a-button type="primary" size="small" ghost class="action-btn-claim" @click="goToDetail(record._id)">
-                    รับงาน
+                    Claim Task
                     <RightOutlined />
                   </a-button>
                 </template>
