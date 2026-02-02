@@ -33,7 +33,7 @@ const router = createRouter({
           path: 'user_management',
           name: 'usermanagement',
           component: () => import('../views/user_management.vue'),
-          meta: { roles: ['Administrator', 'Developer'] },
+          meta: { roles: ['Administrator'] },
         },
         {
           path: 'development',
