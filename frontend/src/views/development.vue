@@ -107,10 +107,10 @@
                 <template v-if="column.key === 'action'">
                   <a-button v-if="record.status?.code === 'success'" type="primary" size="small" class="action-btn-manage" @click="goToDetail(record._id)"
                     disabled>
-                    <EditOutlined /> จัดการ
+                    <EditOutlined /> Manage Task
                   </a-button>
                   <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record._id)">
-                    <EditOutlined /> จัดการ
+                    <EditOutlined /> Manage Task
                   </a-button>
                 </template>
 
