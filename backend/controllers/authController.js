@@ -159,13 +159,19 @@ exports.getUsers = async (req, res) => {
 exports.getUserByRole = async (req, res) => {
   try {
     const targetRole = req.params.role;
-    const requesterRole = req.user.role_code; 
+    const requesterRole = req.user.role_code;
+
+    // 👇 เพิ่ม 2 บรรทัดนี้เพื่อเช็คค่าใน Terminal
+    console.log("Target Role:", targetRole);
+    console.log("Requester Role:", requesterRole);
 
     if (requesterRole === "admin") {
+      // ค้นหาทั้ง Admin และ Role เป้าหมาย
       const users = await Auth.find({ role_code: { $in: ['admin', targetRole] } })
         .select("-password")
         .sort({ user_name: 1 });
         
+      console.log("Found Users (Admin Mode):", users.length); // เช็คว่าเจอกี่คน
       return res.json(users);
     }
 
@@ -173,6 +179,7 @@ exports.getUserByRole = async (req, res) => {
       .select("-password")
       .sort({ user_name: 1 });
 
+    console.log("Found Users (Normal Mode):", users.length);
     res.json(users);
   } catch (error) {
     console.error("Error get user by role:", error);
