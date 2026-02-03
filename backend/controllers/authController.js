@@ -156,6 +156,29 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+exports.getUserByRole = async (req, res) => {
+  try {
+    const targetRole = req.params.role;
+    const requesterRole = req.user.role_code; 
+
+    if (requesterRole === "admin") {
+      const users = await Auth.find({ role_code: { $in: ['admin', targetRole] } })
+        .select("-password")
+        .sort({ user_name: 1 });
+        
+      return res.json(users);
+    }
+
+    const users = await Auth.find({ role_code: targetRole })
+      .select("-password")
+      .sort({ user_name: 1 });
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error get user by role:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 
 exports.updateUserByAdmin = async (req, res) => {
   const { _id, user_name, role_code, role_name, password } = req.body;
@@ -295,16 +318,3 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// getUserByRole
-exports.getUserByRole = async (req, res) => {
-  try {
-    const users = await Auth.find({ role_code: req.params.role_code }).select(
-      "-password",
-    );
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-

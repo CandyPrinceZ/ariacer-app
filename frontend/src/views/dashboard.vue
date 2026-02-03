@@ -1,5 +1,5 @@
 <template>
-  <a-layout style="min-height: 100vh; background: #f8f9fa;">
+  <a-layout style="min-height: 100vh; background: #f8f9fa; margin: -20px">
     <div class="dashboard-header">
       <div class="header-content">
         <div>

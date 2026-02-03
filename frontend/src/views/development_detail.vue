@@ -16,7 +16,7 @@
             <a-button @click="goBack" type="text" class="back-btn">
               <template #icon>
                 <ArrowLeftOutlined />
-              </template> Back
+              </template> Back to List
             </a-button>
             <div class="title-wrapper">
               <div class="id-badge">#{{ issue.id || '...' }}</div>
@@ -93,7 +93,7 @@
                   <UserOutlined /> Developer Note
                 </h3>
                 <div class="note-input-wrapper">
-                  <a-textarea v-model:value="form.note" placeholder="Add a note or comment for this task..." :rows="4"
+                  <a-textarea v-model:value="form.note" placeholder="Add a note or comment for this task..." :rows="6"
                     class="custom-textarea" />
                   <div class="input-hint">Note will be saved automatically when you claim or update status.</div>
                 </div>
@@ -124,8 +124,8 @@
                   <div class="assignee-card">
                     <div class="assignee-header">
                       <div class="avatar-wrapper">
-                        <a-avatar :size="52"
-                          :style="{ backgroundColor: stringToColor(issue.assignee.user_name), fontSize: '20px' }">
+                        <a-avatar :size="56"
+                          :style="{ backgroundColor: stringToColor(issue.assignee.user_name), fontSize: '22px' }">
                           {{ (issue.assignee.user_name || 'U')[0] }}
                         </a-avatar>
                       </div>
@@ -144,7 +144,7 @@
                             <ExperimentOutlined spin />
                           </div>
                           <h4>Under QA Review</h4>
-                          <p>You cannot update status while QA is testing.</p>
+                          <p>Status cannot be updated while testing.</p>
                         </div>
                       </div>
 
@@ -255,7 +255,6 @@ export default {
     goBack() { this.$router.go(-1); },
     formatDate(date) { return date ? dayjs(date).format('D MMM YYYY, HH:mm') : '-'; },
 
-    // UI Helpers
     getStatusColor(code) { return code || 'default'; },
     getStatusIcon(code) {
       const map = { inProgress: 'SyncOutlined', success: 'CheckCircleOutlined', rejected: 'CloseCircleOutlined', testing: 'AlertOutlined', upserver: 'CloudUploadOutlined' };
@@ -273,7 +272,6 @@ export default {
       return '#' + '00000'.substring(0, 6 - c.length) + c;
     },
 
-    // API Calls
     async getAuthProfile() {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -284,7 +282,7 @@ export default {
       const token = localStorage.getItem('token');
       const res = await axios.get(import.meta.env.VITE_API_URL + `/issues/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       this.issue = res.data;
-      this.form.note = this.issue.note || ''; // Default empty string
+      this.form.note = this.issue.note || '';
       if (this.issue.status?._id) this.selectedStatus = this.issue.status._id;
     },
     async fetchDropdownStatusOptions() {
@@ -336,7 +334,12 @@ export default {
 </script>
 
 <style scoped>
-/* --- 1. Global & Layout --- */
+/* 1. Global & Layout - FULL WIDTH FIX */
+.page-container {
+  width: 100%;
+  padding-bottom: 60px;
+}
+
 .loading-overlay {
   position: fixed;
   top: 0;
@@ -357,22 +360,23 @@ export default {
   font-weight: 500;
 }
 
-.page-container {
-  padding-bottom: 60px;
-}
-
-/* --- 2. Header --- */
+/* 2. Header - Full Width */
 .detail-header {
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
-  padding: 16px 0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  padding: 20px 0;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
 }
 
 .header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
+  width: 100%;
+  /* Ensure full width */
+  padding: 0 32px;
+  /* Add side padding */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -402,8 +406,8 @@ export default {
 }
 
 .id-badge {
-  background: #f1f5f9;
-  color: #475569;
+  background: #eff6ff;
+  color: #3b82f6;
   padding: 4px 10px;
   border-radius: 8px;
   font-size: 14px;
@@ -462,29 +466,30 @@ export default {
   color: #ca8a04;
 }
 
-/* --- 3. Content Area --- */
+/* 3. Content Area - Full Width & Spacing */
 .detail-content {
-  max-width: 1400px;
-  margin: 32px auto 0;
-  padding: 0 24px;
+  width: 100%;
+  padding: 32px 32px 0;
+  /* Padding around content */
 }
 
-/* --- 4. Cards --- */
+/* 4. Cards */
 .main-card,
 .side-card {
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   border: 1px solid #f1f5f9;
   transition: transform 0.2s;
+  background: #fff;
 }
 
 .side-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
 }
 
-/* --- 5. Alerts --- */
+/* 5. Alerts */
 .custom-alert {
   padding: 20px;
   border-radius: 12px;
@@ -547,7 +552,7 @@ export default {
   object-fit: cover;
 }
 
-/* --- 6. Sections --- */
+/* 6. Sections */
 .card-section {
   position: relative;
 }
@@ -572,19 +577,19 @@ export default {
 
 .desc-box {
   background: #fdfdfd;
-  padding: 20px;
+  padding: 24px;
   border-radius: 12px;
-  border: 1px solid #f1f5f9;
-  color: #475569;
-  line-height: 1.7;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  line-height: 1.8;
   white-space: pre-wrap;
   font-size: 15px;
 }
 
-/* --- 7. Images --- */
+/* 7. Images */
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
 }
 
@@ -623,7 +628,7 @@ export default {
   color: #cbd5e1;
 }
 
-/* --- 8. Inputs --- */
+/* 8. Inputs */
 .custom-textarea {
   border-radius: 12px;
   border-color: #e2e8f0;
@@ -645,7 +650,7 @@ export default {
   text-align: right;
 }
 
-/* --- 9. Sidebar --- */
+/* 9. Sidebar & Actions */
 .sticky-sidebar {
   position: sticky;
   top: 100px;
@@ -664,7 +669,7 @@ export default {
   margin-bottom: 20px;
 }
 
-/* State: Unassigned */
+/* Unassigned */
 .unassigned-state {
   text-align: center;
   padding: 10px 0;
@@ -698,7 +703,7 @@ export default {
   margin-bottom: 24px;
 }
 
-/* State: Assignee Card */
+/* Assignee */
 .assignee-header {
   display: flex;
   align-items: center;
@@ -727,7 +732,7 @@ export default {
   line-height: 1.2;
 }
 
-/* State: Locked (Testing) */
+/* Status Logic */
 .status-locked {
   background: #fff7ed;
   border: 1px dashed #fdba74;
@@ -755,7 +760,6 @@ export default {
   margin: 0;
 }
 
-/* Status Updater */
 .divider {
   height: 1px;
   background: #f1f5f9;
@@ -876,7 +880,6 @@ export default {
   border: 1px solid #f1f5f9;
 }
 
-/* Utilities */
 .mt-6 {
   margin-top: 24px;
 }
@@ -891,6 +894,11 @@ export default {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+    padding: 0 20px;
+  }
+
+  .detail-content {
+    padding: 20px;
   }
 
   .sticky-sidebar {

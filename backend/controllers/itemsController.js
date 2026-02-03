@@ -8,7 +8,7 @@ exports.getRoles = async (req, res) => {
     const roles = await role.find();
     const formattedRoles = roles.map((r) => {
       return {
-        _id: r._id, // ✅ เพิ่มบรรทัดนี้
+        _id: r._id,
         i: r.i,
         name: r.name,
         code: r.code

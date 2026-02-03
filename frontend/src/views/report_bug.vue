@@ -55,7 +55,34 @@
                   placeholder="ระบุรายละเอียด, ขั้นตอนการเกิดปัญหา (Steps to reproduce), หรือสิ่งที่คาดหวัง" :rows="12"
                   show-count :maxlength="2000" class="modern-textarea" />
               </a-form-item>
-            </a-card>
+
+              <div class="assign-dev-box">
+                <div class="assign-header">
+                  <span class="label">
+                    <UserAddOutlined /> กำหนดผู้พัฒนาเอง (Assign Developer)
+                  </span>
+                  <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
+                </div>
+
+                <transition name="slide-fade">
+                  <div v-if="form.isCustomDeveloper" class="assign-body">
+                    <a-select v-model:value="form.developer" show-search placeholder="ค้นหาชื่อผู้พัฒนา..."
+                      option-filter-prop="label" :loading="dropdownLoading" size="large" class="modern-select" style="width: 100%;">
+                      <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id" :label="dev.user_name">
+                        <div class="dev-option-item">
+                          <a-avatar size="small" :style="{ backgroundColor: stringToColor(dev.user_name) }">
+                            {{ dev.user_name?.[0]?.toUpperCase() }}
+                          </a-avatar>
+                          <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name }}</span>
+                        </div>
+                      </a-select-option>
+                    </a-select>
+
+                    <span class="helper-text">หากไม่ระบุ ระบบจะส่งแจ้งเตือนไปยังกลุ่ม Dev กลาง</span>
+                  </div>
+                </transition>
+              </div>
+              </a-card>
           </a-col>
 
           <a-col :xs="24" :lg="9" :xl="8">
@@ -94,7 +121,7 @@
 
                 <div class="action-area">
                   <div class="reporter-info" v-if="Authprofile">
-                    <span>ผู้แจ้ง:</span>
+                    <span>ผู้แจ้ง : </span>
                     <strong>{{ Authprofile.user_name || 'Unknown' }}</strong>
                   </div>
 
@@ -127,7 +154,7 @@
 import axios from 'axios';
 import {
   BugOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-  DeleteOutlined, SendOutlined, ReloadOutlined
+  DeleteOutlined, SendOutlined, ReloadOutlined, UserAddOutlined // ✅ Added UserAddOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload } from 'ant-design-vue';
 
@@ -135,7 +162,7 @@ export default {
   name: "ReportBugFull",
   components: {
     BugOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-    DeleteOutlined, SendOutlined, ReloadOutlined
+    DeleteOutlined, SendOutlined, ReloadOutlined, UserAddOutlined
   },
   data() {
     return {
@@ -147,11 +174,14 @@ export default {
       Authprofile: {},
       issues: [],
       urgencies: [],
+      developers: [],
       form: {
         title: '',
         priority: undefined,
         bugType: undefined,
         description: '',
+        isCustomDeveloper: false,
+        developer: undefined
       },
     };
   },
@@ -185,6 +215,15 @@ export default {
     await this.fetchDropdowns();
   },
   methods: {
+    stringToColor(str) {
+      if (!str) return '#1890ff';
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+      return '#' + '00000'.substring(0, 6 - c.length) + c;
+    },
     getColorWithOpacity(color, opacity) {
       const colorMap = {
         'red': '255, 77, 79',
@@ -210,12 +249,14 @@ export default {
       try {
         const Token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${Token}` } };
-        const [resType, resUrgency] = await Promise.all([
+        const [resType, resUrgency, resUserdev] = await Promise.all([
           axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
-          axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config)
+          axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
+          axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config)
         ]);
         this.issues = Array.isArray(resType.data) ? resType.data : (resType.data?.data || []);
         this.urgencies = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
+        this.developers = Array.isArray(resUserdev.data) ? resUserdev.data : (resUserdev.data?.data || []);
       } catch (e) {
         console.error(e);
         message.error('Load Failed');
@@ -259,7 +300,6 @@ export default {
       this.preview.open = true;
     },
 
-    // --- NEW: ฟังก์ชันดึง URL ล่าสุดจาก Backend ---
     async getDynamicWebhook() {
       try {
         const token = localStorage.getItem('token');
@@ -324,6 +364,10 @@ export default {
           images: imageUrls
         };
 
+        if (this.form.isCustomDeveloper && this.form.developer) {
+          payload.assignee = this.form.developer;
+        }
+
         const res = await axios.post(import.meta.env.VITE_API_URL + '/issues', payload, config);
 
         message.success('Bug reported successfully! ID: ' + (res.data.id || ''));
@@ -336,7 +380,7 @@ export default {
       }
     },
     onReset() {
-      this.form = { title: '', priority: undefined, bugType: undefined, description: '' };
+      this.form = { title: '', priority: undefined, bugType: undefined, description: '', isCustomDeveloper: false, developer: undefined };
       this.fileList = [];
     }
   }
@@ -545,6 +589,73 @@ export default {
   font-size: 13px;
   color: #8c8c8c;
   margin-bottom: 8px;
+}
+
+/* --- NEW: Assign Dev Box Styles --- */
+.assign-dev-box {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.assign-dev-box:hover {
+  border-color: #d1d5db;
+}
+
+.assign-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.assign-header .label {
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assign-body {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+.dev-option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.helper-text {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Animations */
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 
 /* Mobile Adjustments */
