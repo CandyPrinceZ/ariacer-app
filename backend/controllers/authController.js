@@ -1,4 +1,5 @@
 const Auth = require("../models/auth");
+const Issue = require("../models/issue");
 const jwt = require("jsonwebtoken");
 
 // ฟังก์ชันสร้าง Token
@@ -167,10 +168,12 @@ exports.getUserByRole = async (req, res) => {
 
     if (requesterRole === "admin") {
       // ค้นหาทั้ง Admin และ Role เป้าหมาย
-      const users = await Auth.find({ role_code: { $in: ['admin', targetRole] } })
+      const users = await Auth.find({
+        role_code: { $in: ["admin", targetRole] },
+      })
         .select("-password")
         .sort({ user_name: 1 });
-        
+
       console.log("Found Users (Admin Mode):", users.length); // เช็คว่าเจอกี่คน
       return res.json(users);
     }
@@ -193,36 +196,48 @@ exports.updateUserByAdmin = async (req, res) => {
   try {
     const user = await Auth.findById(_id);
 
-    if (user) {
-      user.user_name = user_name || user.user_name;
-
-      if (role_code) {
-        user.role_code = role_code;
-      }
-
-      if (role_name) {
-        user.role_name = role_name;
-      }
-
-      if (password && password.length >= 6) {
-        user.password = password;
-      }
-
-      const updatedUser = await user.save();
-
-      res.json({
-        _id: updatedUser._id,
-        user_id: updatedUser.user_id,
-        user_name: updatedUser.user_name,
-        username: updatedUser.username,
-        role_code: updatedUser.role_code,
-        role_name: updatedUser.role_name,
-        updatedAt: updatedUser.updatedAt,
-      });
-    } else {
-      res.status(404).json({ message: "User not found" });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    user.user_name = user_name || user.user_name;
+
+    if (role_code && role_code !== user.role_code) {
+      
+      const activeIssue = await Issue.findOne({
+        assignee: user._id,
+      }).populate('status');
+
+      console.log("Checking User:", user.user_name);
+      console.log("Found Issue:", activeIssue);
+
+      if (activeIssue && activeIssue.status && activeIssue.status.code !== 'success') {
+         return res.status(400).json({
+           message: `Cannot change role. User has active issue: ${activeIssue.name}`
+         });
+      }
+
+      user.role_code = role_code;
+      user.role_name = role_name;
+    }
+
+    if (password && password.length >= 6) {
+      user.password = password; 
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      _id: updatedUser._id,
+      user_id: updatedUser.user_id,
+      user_name: updatedUser.user_name,
+      role_code: updatedUser.role_code,
+      role_name: updatedUser.role_name,
+      updatedAt: updatedUser.updatedAt,
+    });
+
   } catch (error) {
+    console.error(error); 
     res.status(500).json({ message: error.message });
   }
 };
@@ -306,19 +321,19 @@ exports.getUsers = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const targetUserId = req.params.user_id;
+    const targetUserIdString = req.params.user_id;
 
-    if (req.user && req.user.user_id === targetUserId) {
-      return res
-        .status(400)
-        .json({ message: "You cannot delete your own account" });
-    }
+    const userToDelete = await Auth.findOne({ user_id: targetUserIdString });
 
-    const deletedUser = await Auth.findOneAndDelete({ user_id: targetUserId });
-
-    if (!deletedUser) {
+    if (!userToDelete) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    if (req.user.id === userToDelete._id.toString()) {
+      return res.status(400).json({ message: "You cannot delete your own account" });
+    }
+
+    await Auth.findByIdAndDelete(userToDelete._id);
 
     res.json({ message: "User deleted successfully" });
   } catch (error) {
