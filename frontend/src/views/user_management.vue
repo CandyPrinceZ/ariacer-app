@@ -16,52 +16,51 @@
                 </div>
             </div>
         </div>
+        <br>
 
-        <div class="page-content">
-            <a-card :bordered="false" class="main-card">
+        <a-card :bordered="false" class="main-card">
 
-                <div class="table-toolbar">
-                    <a-input v-model:value="searchText" placeholder="Search by username or name..."
-                        style="width: 100%; max-width: 400px;" allow-clear size="large">
-                        <template #prefix>
-                            <SearchOutlined class="text-muted" />
-                        </template>
-                    </a-input>
-                </div>
-
-                <a-table :columns="columns" :data-source="filteredUsers" :loading="loading" rowKey="_id"
-                    :pagination="{ pageSize: 10, showSizeChanger: true }" size="middle" :scroll="{ x: 1000 }">
-                    <template #bodyCell="{ column, record }">
-                        <template v-if="column.key === 'role'">
-                            <a-tag :color="getRoleColor(record.role_code)" class="role-tag">
-                                {{ formatRoleName(record) }}
-                            </a-tag>
-                        </template>
-
-                        <template v-if="column.key === 'created_at'">
-                            <span class="text-date">{{ formatDate(record.createdAt || record.created_at) }}</span>
-                        </template>
-
-                        <template v-if="column.key === 'action'">
-                            <a-space>
-                                <a-tooltip title="Edit User">
-                                    <a-button type="primary" ghost size="small" shape="circle"
-                                        @click="openEditModal(record)">
-                                        <EditOutlined />
-                                    </a-button>
-                                </a-tooltip>
-                                <a-tooltip title="Delete User">
-                                    <a-button type="primary" danger ghost size="small" shape="circle"
-                                        @click="handleDelete(record)">
-                                        <DeleteOutlined />
-                                    </a-button>
-                                </a-tooltip>
-                            </a-space>
-                        </template>
+            <div class="table-toolbar">
+                <a-input v-model:value="searchText" placeholder="Search by username or name..."
+                    style="width: 100%; max-width: 400px;" allow-clear size="large">
+                    <template #prefix>
+                        <SearchOutlined class="text-muted" />
                     </template>
-                </a-table>
-            </a-card>
-        </div>
+                </a-input>
+            </div>
+
+            <a-table :columns="columns" :data-source="filteredUsers" :loading="loading" rowKey="_id"
+                :pagination="{ pageSize: 10, showSizeChanger: true }" size="middle" :scroll="{ x: 1000 }">
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'role'">
+                        <a-tag :color="getRoleColor(record.role_code)" class="role-tag">
+                            {{ formatRoleName(record) }}
+                        </a-tag>
+                    </template>
+
+                    <template v-if="column.key === 'created_at'">
+                        <span class="text-date">{{ formatDate(record.createdAt || record.created_at) }}</span>
+                    </template>
+
+                    <template v-if="column.key === 'action'">
+                        <a-space>
+                            <a-tooltip title="Edit User">
+                                <a-button type="primary" ghost size="small" shape="circle"
+                                    @click="openEditModal(record)">
+                                    <EditOutlined />
+                                </a-button>
+                            </a-tooltip>
+                            <a-tooltip title="Delete User">
+                                <a-button type="primary" danger ghost size="small" shape="circle"
+                                    @click="handleDelete(record)">
+                                    <DeleteOutlined />
+                                </a-button>
+                            </a-tooltip>
+                        </a-space>
+                    </template>
+                </template>
+            </a-table>
+        </a-card>
 
         <a-modal v-model:open="modal.visible" :title="modal.mode === 'create' ? 'Create New User' : 'Edit User'"
             @ok="handleModalSubmit" :confirmLoading="modal.loading" width="500px" centered class="user-modal">
@@ -362,7 +361,6 @@ export default {
 </script>
 
 <style scoped>
-
 /* Page Header */
 .page-header {
     background: #fff;
@@ -394,14 +392,6 @@ export default {
 .create-btn {
     box-shadow: 0 4px 10px rgba(24, 144, 255, 0.2);
     font-weight: 500;
-}
-
-/* Content Area - Full Width */
-.page-content {
-    padding: 24px;
-    /* Padding รอบๆ ตาราง */
-    width: 100%;
-    /* บังคับเต็มจอ */
 }
 
 .main-card {

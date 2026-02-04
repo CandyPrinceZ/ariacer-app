@@ -1,5 +1,5 @@
 <template>
-    <a-layout style="min-height: 100vh; background: #f4f7fa;">
+    <a-layout style="min-height: 100vh; background: #f0f2f5;">
         <div class="page-header">
             <div class="header-content">
                 <div>
@@ -8,84 +8,82 @@
                 </div>
             </div>
         </div>
+        <br>
 
-        <a-layout-content style="padding: 24px; max-width: 1600px; margin: 0 auto; width: 100%;">
+        <a-row :gutter="[20, 20]" class="mb-4">
+            <a-col :xs="24" :sm="8">
+                <a-card :bordered="false" class="stat-card icon-orange-bg">
+                    <a-statistic title="Ready to Test" :value="readyToTestTasks.length" suffix="Tasks">
+                        <template #prefix>
+                            <ExperimentOutlined />
+                        </template>
+                    </a-statistic>
+                </a-card>
+            </a-col>
+            <a-col :xs="24" :sm="8">
+                <a-card :bordered="false" class="stat-card icon-green-bg">
+                    <a-statistic title="Passed Today" :value="passedCount" suffix="Tasks">
+                        <template #prefix>
+                            <CheckCircleOutlined />
+                        </template>
+                    </a-statistic>
+                </a-card>
+            </a-col>
+            <a-col :xs="24" :sm="8">
+                <a-card :bordered="false" class="stat-card icon-red-bg">
+                    <a-statistic title="Returned (Bugs)" :value="returnedCount" suffix="Tasks">
+                        <template #prefix>
+                            <RollbackOutlined />
+                        </template>
+                    </a-statistic>
+                </a-card>
+            </a-col>
+        </a-row>
 
-            <a-row :gutter="[20, 20]" class="mb-4">
-                <a-col :xs="24" :sm="8">
-                    <a-card :bordered="false" class="stat-card icon-orange-bg">
-                        <a-statistic title="Ready to Test" :value="readyToTestTasks.length" suffix="Tasks">
-                            <template #prefix>
+        <a-card :bordered="false" class="main-card">
+            <template #title>
+                <span style="font-size: 16px; font-weight: 600;">
+                    <UnorderedListOutlined /> รายการรอทดสอบ (Waiting for QA)
+                </span>
+            </template>
+
+            <a-table :dataSource="readyToTestTasks" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
+                :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }">
+                <template #bodyCell="{ column, record }">
+
+                    <template v-if="column.key === 'id'">
+                        <span class="id-badge">{{ record.id }}</span>
+                    </template>
+
+                    <template v-if="column.key === 'name'">
+                        <span style="font-weight: 500; color: #1f1f1f; font-size: 15px;">{{ record.name }}</span>
+                        <div class="dev-info" v-if="record.assignee">
+                            Dev: {{ record.assignee.user_name }}
+                        </div>
+                    </template>
+
+                    <template v-if="column.key === 'status'">
+                        <a-tag color="orange">
+                            <template #icon>
                                 <ExperimentOutlined />
                             </template>
-                        </a-statistic>
-                    </a-card>
-                </a-col>
-                <a-col :xs="24" :sm="8">
-                    <a-card :bordered="false" class="stat-card icon-green-bg">
-                        <a-statistic title="Passed Today" :value="passedCount" suffix="Tasks">
-                            <template #prefix>
-                                <CheckCircleOutlined />
-                            </template>
-                        </a-statistic>
-                    </a-card>
-                </a-col>
-                <a-col :xs="24" :sm="8">
-                    <a-card :bordered="false" class="stat-card icon-red-bg">
-                        <a-statistic title="Returned (Bugs)" :value="returnedCount" suffix="Tasks">
-                            <template #prefix>
-                                <RollbackOutlined />
-                            </template>
-                        </a-statistic>
-                    </a-card>
-                </a-col>
-            </a-row>
-
-            <a-card :bordered="false" class="main-card">
-                <template #title>
-                    <span style="font-size: 16px; font-weight: 600;">
-                        <UnorderedListOutlined /> รายการรอทดสอบ (Waiting for QA)
-                    </span>
-                </template>
-
-                <a-table :dataSource="readyToTestTasks" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
-                    :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }">
-                    <template #bodyCell="{ column, record }">
-
-                        <template v-if="column.key === 'id'">
-                            <span class="id-badge">{{ record.id }}</span>
-                        </template>
-
-                        <template v-if="column.key === 'name'">
-                            <span style="font-weight: 500; color: #1f1f1f; font-size: 15px;">{{ record.name }}</span>
-                            <div class="dev-info" v-if="record.assignee">
-                                Dev: {{ record.assignee.user_name }}
-                            </div>
-                        </template>
-
-                        <template v-if="column.key === 'status'">
-                            <a-tag color="orange">
-                                <template #icon>
-                                    <ExperimentOutlined />
-                                </template>
-                                READY TO TEST
-                            </a-tag>
-                        </template>
-
-                        <template v-if="column.key === 'urgency'">
-                            <a-tag :color="record.urgency?.color">{{ record.urgency?.name }}</a-tag>
-                        </template>
-
-                        <template v-if="column.key === 'action'">
-                            <a-button type="primary" ghost size="small" @click="goToTestDetail(record._id)">
-                                <AuditOutlined /> Start Testing
-                            </a-button>
-                        </template>
-
+                            READY TO TEST
+                        </a-tag>
                     </template>
-                </a-table>
-            </a-card>
-        </a-layout-content>
+
+                    <template v-if="column.key === 'urgency'">
+                        <a-tag :color="record.urgency?.color">{{ record.urgency?.name }}</a-tag>
+                    </template>
+
+                    <template v-if="column.key === 'action'">
+                        <a-button type="primary" ghost size="small" @click="goToTestDetail(record._id)">
+                            <AuditOutlined /> Start Testing
+                        </a-button>
+                    </template>
+
+                </template>
+            </a-table>
+        </a-card>
     </a-layout>
 </template>
 

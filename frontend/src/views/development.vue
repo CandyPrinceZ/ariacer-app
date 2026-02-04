@@ -6,121 +6,119 @@
         <p class="page-subtitle">จัดการงานพัฒนาและติดตามสถานะ Issue ของคุณ</p>
       </div>
     </div>
+    <br>
 
-    <a-layout-content style="padding: 24px; margin: 0 auto; width: 100%; max-width: 1600px;">
+    <a-card :bordered="false" class="main-card">
+      <a-tabs v-model:activeKey="activeTab" @change="fetchIssues" type="card" :tabBarGutter="10">
 
-      <a-card :bordered="false" class="main-card">
-        <a-tabs v-model:activeKey="activeTab" @change="fetchIssues" type="card" :tabBarGutter="10">
+        <a-tab-pane key="1">
+          <template #tab>
+            <span>
+              <AppstoreAddOutlined /> งานที่รอคนรับ
+              <a-badge :count="unassignedIssues.length" :offset="[10, -5]" class="custom-badge" color="#1890ff"
+                v-if="unassignedIssues.length > 0" />
+            </span>
+          </template>
 
-          <a-tab-pane key="1">
-            <template #tab>
-              <span>
-                <AppstoreAddOutlined /> งานที่รอคนรับ
-                <a-badge :count="unassignedIssues.length" :offset="[10, -5]" class="custom-badge" color="#1890ff"
-                  v-if="unassignedIssues.length > 0" />
-              </span>
-            </template>
+          <a-alert v-if="unassignedIssues.length > 0" message="Available Tasks"
+            description="งานเหล่านี้ยังไม่มีผู้รับผิดชอบ คุณสามารถกด 'รับงาน' เพื่อเริ่มดำเนินการได้ทันที" type="info"
+            show-icon class="mb-4" />
 
-            <a-alert v-if="unassignedIssues.length > 0" message="Available Tasks"
-              description="งานเหล่านี้ยังไม่มีผู้รับผิดชอบ คุณสามารถกด 'รับงาน' เพื่อเริ่มดำเนินการได้ทันที" type="info"
-              show-icon class="mb-4" />
+          <a-table :dataSource="unassignedIssues" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
+            size="middle" :locale="{ emptyText: 'ไม่มีงานที่รอคนรับในขณะนี้' }">
+            <template #bodyCell="{ column, record }">
 
-            <a-table :dataSource="unassignedIssues" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
-              size="middle" :locale="{ emptyText: 'ไม่มีงานที่รอคนรับในขณะนี้' }">
-              <template #bodyCell="{ column, record }">
-
-                <template v-if="column.key === 'type'">
-                  <div class="type-cell">
-                    <a-tooltip :title="`ระดับความเร่งด่วน: ${record.urgency?.name}`">
-                      <a-tag :color="record.urgency?.color" class="urgency-tag">
-                        {{ record.urgency?.name }}
-                      </a-tag>
-                    </a-tooltip>
-                    <span class="type-text">{{ record.type?.name || '-' }}</span>
-                  </div>
-                </template>
-
-                <template v-if="column.key === 'status'">
-                  <a-tag :color="getStatusColor(record.status?.code)" style="border: 0; background-color: #fff7e6;">
-                    <template #icon>
-                      <ClockCircleOutlined />
-                    </template>
-                    <span>{{ record.status?.name.toUpperCase() || 'UNKNOWN' }}</span>
-                  </a-tag>
-                </template>
-
-                <template v-if="column.key === 'createdAt'">
-                  <span class="date-text">
-                    {{ formatDate(record.createdAt) }}
-                  </span>
-                </template>
-
-                <template v-if="column.key === 'action'">
-                  <a-button type="primary" size="small" ghost class="action-btn-claim" @click="goToDetail(record._id)">
-                    Claim Task
-                    <RightOutlined />
-                  </a-button>
-                </template>
-              </template>
-            </a-table>
-          </a-tab-pane>
-
-          <a-tab-pane key="2">
-            <template #tab>
-              <span>
-                <CodeOutlined /> งานของฉัน
-                <a-badge :count="myIssues.length" :offset="[10, -5]" color="#52c41a" v-if="myIssues.length > 0" />
-              </span>
-            </template>
-
-            <a-empty v-if="myIssues.length === 0" description="คุณยังไม่มีงานที่รับผิดชอบในขณะนี้">
-              <a-button type="primary" @click="activeTab = '1'">ไปที่หน้ารับงาน</a-button>
-            </a-empty>
-
-            <a-table v-else :dataSource="myIssues" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }">
-              <template #bodyCell="{ column, record }">
-
-                <template v-if="column.key === 'type'">
-                  <div class="type-cell">
+              <template v-if="column.key === 'type'">
+                <div class="type-cell">
+                  <a-tooltip :title="`ระดับความเร่งด่วน: ${record.urgency?.name}`">
                     <a-tag :color="record.urgency?.color" class="urgency-tag">
                       {{ record.urgency?.name }}
                     </a-tag>
-                    <span class="type-text">{{ record.type?.name || '-' }}</span>
-                  </div>
-                </template>
-
-                <template v-if="column.key === 'status'">
-                  <a-tag :color="getStatusColor(record.status?.code)" class="status-tag">
-                    <template #icon>
-                      <SyncOutlined v-if="record.status?.code === 'inProgress'" spin />
-                      <CheckCircleOutlined v-else-if="record.status?.code === 'success'" />
-                      <FieldTimeOutlined v-else />
-                    </template>
-                    {{ (record.status?.name || 'Unknown').toUpperCase() }}
-                  </a-tag>
-                </template>
-
-                <template v-if="column.key === 'createdAt'">
-                  <span class="date-text">{{ formatDate(record.createdAt) }}</span>
-                </template>
-
-                <template v-if="column.key === 'action'">
-                  <a-button v-if="record.status?.code === 'success'" type="primary" size="small"
-                    class="action-btn-manage" @click="goToDetail(record)" disabled>
-                    <EditOutlined /> Manage Task
-                  </a-button>
-                  <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record)">
-                    <EditOutlined /> Manage Task
-                  </a-button>
-                </template>
-
+                  </a-tooltip>
+                  <span class="type-text">{{ record.type?.name || '-' }}</span>
+                </div>
               </template>
-            </a-table>
-          </a-tab-pane>
 
-        </a-tabs>
-      </a-card>
-    </a-layout-content>
+              <template v-if="column.key === 'status'">
+                <a-tag :color="getStatusColor(record.status?.code)" style="border: 0; background-color: #fff7e6;">
+                  <template #icon>
+                    <ClockCircleOutlined />
+                  </template>
+                  <span>{{ record.status?.name.toUpperCase() || 'UNKNOWN' }}</span>
+                </a-tag>
+              </template>
+
+              <template v-if="column.key === 'createdAt'">
+                <span class="date-text">
+                  {{ formatDate(record.createdAt) }}
+                </span>
+              </template>
+
+              <template v-if="column.key === 'action'">
+                <a-button type="primary" size="small" ghost class="action-btn-claim" @click="goToDetail(record._id)">
+                  Claim Task
+                  <RightOutlined />
+                </a-button>
+              </template>
+            </template>
+          </a-table>
+        </a-tab-pane>
+
+        <a-tab-pane key="2">
+          <template #tab>
+            <span>
+              <CodeOutlined /> งานของฉัน
+              <a-badge :count="myIssues.length" :offset="[10, -5]" color="#52c41a" v-if="myIssues.length > 0" />
+            </span>
+          </template>
+
+          <a-empty v-if="myIssues.length === 0" description="คุณยังไม่มีงานที่รับผิดชอบในขณะนี้">
+            <a-button type="primary" @click="activeTab = '1'">ไปที่หน้ารับงาน</a-button>
+          </a-empty>
+
+          <a-table v-else :dataSource="myIssues" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }">
+            <template #bodyCell="{ column, record }">
+
+              <template v-if="column.key === 'type'">
+                <div class="type-cell">
+                  <a-tag :color="record.urgency?.color" class="urgency-tag">
+                    {{ record.urgency?.name }}
+                  </a-tag>
+                  <span class="type-text">{{ record.type?.name || '-' }}</span>
+                </div>
+              </template>
+
+              <template v-if="column.key === 'status'">
+                <a-tag :color="getStatusColor(record.status?.code)" class="status-tag">
+                  <template #icon>
+                    <SyncOutlined v-if="record.status?.code === 'inProgress'" spin />
+                    <CheckCircleOutlined v-else-if="record.status?.code === 'success'" />
+                    <FieldTimeOutlined v-else />
+                  </template>
+                  {{ (record.status?.name || 'Unknown').toUpperCase() }}
+                </a-tag>
+              </template>
+
+              <template v-if="column.key === 'createdAt'">
+                <span class="date-text">{{ formatDate(record.createdAt) }}</span>
+              </template>
+
+              <template v-if="column.key === 'action'">
+                <a-button v-if="record.status?.code === 'success'" type="primary" size="small" class="action-btn-manage"
+                  @click="goToDetail(record)" disabled>
+                  <EditOutlined /> Manage Task
+                </a-button>
+                <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record)">
+                  <EditOutlined /> Manage Task
+                </a-button>
+              </template>
+
+            </template>
+          </a-table>
+        </a-tab-pane>
+
+      </a-tabs>
+    </a-card>
   </a-layout>
 </template>
 

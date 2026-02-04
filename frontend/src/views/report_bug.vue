@@ -9,139 +9,139 @@
         <p class="header-subtitle">แจ้งปัญหาการใช้งานเพื่อให้ทีมพัฒนาตรวจสอบและแก้ไข</p>
       </div>
     </div>
+    <br>
 
-    <div class="page-content">
-      <a-form layout="vertical" :model="form" class="h-100">
-        <a-row :gutter="[24, 24]" class="h-100">
+    <a-form layout="vertical" :model="form" class="h-100">
+      <a-row :gutter="[24, 24]" class="h-100">
 
-          <a-col :xs="24" :lg="15" :xl="16">
-            <a-card :bordered="false" class="main-card h-100">
+        <a-col :xs="24" :lg="15" :xl="16">
+          <a-card :bordered="false" class="main-card h-100">
+            <template #title>
+              <span class="card-title">
+                <FormOutlined /> รายละเอียดปัญหา
+              </span>
+            </template>
+
+            <a-form-item label="หัวข้อปัญหา (Subject)" required>
+              <a-input v-model:value="form.title" placeholder="สรุปปัญหาใน 1 ประโยค" size="large"
+                class="modern-input" />
+            </a-form-item>
+
+            <a-row :gutter="16">
+              <a-col :span="12">
+                <a-form-item label="ประเภท (Category)" required>
+                  <a-select v-model:value="form.bugType" placeholder="เลือกประเภท" :options="issueTypeOptions"
+                    :loading="dropdownLoading" size="large" class="modern-select" />
+                </a-form-item>
+              </a-col>
+
+              <a-col :span="12">
+                <a-form-item label="ความเร่งด่วน (Priority)" required>
+                  <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
+                    class="custom-select" :class="{ 'has-priority': form.priority }">
+                    <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
+                      <div class="priority-option">
+                        <span class="dot" :style="{ background: opt.color }"></span>
+                        <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label }}</span>
+                      </div>
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
+              </a-col>
+            </a-row>
+
+            <a-form-item label="คำอธิบายเพิ่มเติม (Description)">
+              <a-textarea v-model:value="form.description"
+                placeholder="ระบุรายละเอียด, ขั้นตอนการเกิดปัญหา (Steps to reproduce), หรือสิ่งที่คาดหวัง" :rows="12"
+                show-count :maxlength="2000" class="modern-textarea" />
+            </a-form-item>
+
+            <div class="assign-dev-box">
+              <div class="assign-header">
+                <span class="label">
+                  <UserAddOutlined /> กำหนดผู้พัฒนาเอง (Assign Developer)
+                </span>
+                <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
+              </div>
+
+              <transition name="slide-fade">
+                <div v-if="form.isCustomDeveloper" class="assign-body">
+                  <a-select v-model:value="form.developer" show-search placeholder="ค้นหาชื่อผู้พัฒนา..."
+                    option-filter-prop="label" :loading="dropdownLoading" size="large" class="modern-select"
+                    style="width: 100%;">
+                    <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id" :label="dev.user_name">
+                      <div class="dev-option-item">
+                        <a-avatar size="small" :style="{ backgroundColor: stringToColor(dev.user_name) }">
+                          {{ dev.user_name?.[0]?.toUpperCase() }}
+                        </a-avatar>
+                        <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name }}</span>
+                      </div>
+                    </a-select-option>
+                  </a-select>
+
+                  <span class="helper-text">หากไม่ระบุ ระบบจะส่งแจ้งเตือนไปยังกลุ่ม Dev กลาง</span>
+                </div>
+              </transition>
+            </div>
+          </a-card>
+        </a-col>
+
+        <a-col :xs="24" :lg="9" :xl="8">
+          <div class="sticky-side">
+
+            <a-card :bordered="false" class="main-card">
               <template #title>
                 <span class="card-title">
-                  <FormOutlined /> รายละเอียดปัญหา
+                  <CameraOutlined /> หลักฐาน (Screenshot)
                 </span>
               </template>
 
-              <a-form-item label="หัวข้อปัญหา (Subject)" required>
-                <a-input v-model:value="form.title" placeholder="สรุปปัญหาใน 1 ประโยค" size="large"
-                  class="modern-input" />
-              </a-form-item>
-
-              <a-row :gutter="16">
-                <a-col :span="12">
-                  <a-form-item label="ประเภท (Category)" required>
-                    <a-select v-model:value="form.bugType" placeholder="เลือกประเภท" :options="issueTypeOptions"
-                      :loading="dropdownLoading" size="large" class="modern-select" />
-                  </a-form-item>
-                </a-col>
-
-                <a-col :span="12">
-                  <a-form-item label="ความเร่งด่วน (Priority)" required>
-                    <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
-                      class="custom-select" :class="{ 'has-priority': form.priority }">
-                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
-                        <div class="priority-option">
-                          <span class="dot" :style="{ background: opt.color }"></span>
-                          <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label }}</span>
-                        </div>
-                      </a-select-option>
-                    </a-select>
-                  </a-form-item>
-                </a-col>
-              </a-row>
-
-              <a-form-item label="คำอธิบายเพิ่มเติม (Description)">
-                <a-textarea v-model:value="form.description"
-                  placeholder="ระบุรายละเอียด, ขั้นตอนการเกิดปัญหา (Steps to reproduce), หรือสิ่งที่คาดหวัง" :rows="12"
-                  show-count :maxlength="2000" class="modern-textarea" />
-              </a-form-item>
-
-              <div class="assign-dev-box">
-                <div class="assign-header">
-                  <span class="label">
-                    <UserAddOutlined /> กำหนดผู้พัฒนาเอง (Assign Developer)
-                  </span>
-                  <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
-                </div>
-
-                <transition name="slide-fade">
-                  <div v-if="form.isCustomDeveloper" class="assign-body">
-                    <a-select v-model:value="form.developer" show-search placeholder="ค้นหาชื่อผู้พัฒนา..."
-                      option-filter-prop="label" :loading="dropdownLoading" size="large" class="modern-select" style="width: 100%;">
-                      <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id" :label="dev.user_name">
-                        <div class="dev-option-item">
-                          <a-avatar size="small" :style="{ backgroundColor: stringToColor(dev.user_name) }">
-                            {{ dev.user_name?.[0]?.toUpperCase() }}
-                          </a-avatar>
-                          <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name }}</span>
-                        </div>
-                      </a-select-option>
-                    </a-select>
-
-                    <span class="helper-text">หากไม่ระบุ ระบบจะส่งแจ้งเตือนไปยังกลุ่ม Dev กลาง</span>
+              <div class="upload-wrapper">
+                <a-upload-dragger v-model:fileList="fileList" :before-upload="beforeUpload" :multiple="true"
+                  accept="image/*" :show-upload-list="false" class="clean-dragger" @change="handleUploadChange">
+                  <div class="dragger-content">
+                    <p class="icon-wrap">
+                      <CloudUploadOutlined />
+                    </p>
+                    <p class="text-primary">คลิกหรือลากไฟล์รูปภาพ</p>
+                    <p class="text-secondary">รองรับ JPG, PNG (Max 5)</p>
                   </div>
-                </transition>
+                </a-upload-dragger>
+
+                <div class="image-grid" v-if="fileList.length">
+                  <div class="img-item" v-for="file in fileList" :key="file.uid">
+                    <img :src="file.thumbUrl || file.url" @click="openPreview(file)" />
+                    <div class="img-overlay" @click.stop="removeFile(file)">
+                      <DeleteOutlined />
+                    </div>
+                  </div>
+                </div>
               </div>
-              </a-card>
-          </a-col>
 
-          <a-col :xs="24" :lg="9" :xl="8">
-            <div class="sticky-side">
+              <a-divider style="margin: 24px 0;" />
 
-              <a-card :bordered="false" class="main-card">
-                <template #title>
-                  <span class="card-title">
-                    <CameraOutlined /> หลักฐาน (Screenshot)
-                  </span>
-                </template>
-
-                <div class="upload-wrapper">
-                  <a-upload-dragger v-model:fileList="fileList" :before-upload="beforeUpload" :multiple="true"
-                    accept="image/*" :show-upload-list="false" class="clean-dragger" @change="handleUploadChange">
-                    <div class="dragger-content">
-                      <p class="icon-wrap">
-                        <CloudUploadOutlined />
-                      </p>
-                      <p class="text-primary">คลิกหรือลากไฟล์รูปภาพ</p>
-                      <p class="text-secondary">รองรับ JPG, PNG (Max 5)</p>
-                    </div>
-                  </a-upload-dragger>
-
-                  <div class="image-grid" v-if="fileList.length">
-                    <div class="img-item" v-for="file in fileList" :key="file.uid">
-                      <img :src="file.thumbUrl || file.url" @click="openPreview(file)" />
-                      <div class="img-overlay" @click.stop="removeFile(file)">
-                        <DeleteOutlined />
-                      </div>
-                    </div>
-                  </div>
+              <div class="action-area">
+                <div class="reporter-info" v-if="Authprofile">
+                  <span>ผู้แจ้ง : </span>
+                  <strong>{{ Authprofile.user_name || 'Unknown' }}</strong>
                 </div>
 
-                <a-divider style="margin: 24px 0;" />
+                <a-button type="primary" block size="large" class="submit-btn" :loading="submitting" @click="onSubmit">
+                  <SendOutlined /> ส่งแจ้งปัญหา
+                </a-button>
 
-                <div class="action-area">
-                  <div class="reporter-info" v-if="Authprofile">
-                    <span>ผู้แจ้ง : </span>
-                    <strong>{{ Authprofile.user_name || 'Unknown' }}</strong>
-                  </div>
+                <a-button type="text" block class="reset-btn" @click="onReset">
+                  <ReloadOutlined /> ล้างข้อมูล
+                </a-button>
+              </div>
 
-                  <a-button type="primary" block size="large" class="submit-btn" :loading="submitting"
-                    @click="onSubmit">
-                    <SendOutlined /> ส่งแจ้งปัญหา
-                  </a-button>
+            </a-card>
 
-                  <a-button type="text" block class="reset-btn" @click="onReset">
-                    <ReloadOutlined /> ล้างข้อมูล
-                  </a-button>
-                </div>
+          </div>
+        </a-col>
+      </a-row>
+    </a-form>
 
-              </a-card>
-
-            </div>
-          </a-col>
-        </a-row>
-      </a-form>
-    </div>
 
     <a-modal v-model:open="preview.open" :title="null" :footer="null" centered width="800px" class="preview-modal">
       <img :src="preview.src" style="width: 100%; border-radius: 4px;" />
@@ -430,10 +430,6 @@ export default {
   font-size: 14px;
 }
 
-.page-content {
-  padding: 24px 40px;
-}
-
 /* Cards */
 .main-card {
   border-radius: 12px;
@@ -656,12 +652,5 @@ export default {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
-}
-
-/* Mobile Adjustments */
-@media (max-width: 992px) {
-  .page-content {
-    padding: 16px;
-  }
 }
 </style>
