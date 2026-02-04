@@ -105,10 +105,10 @@
 
               <template v-if="column.key === 'action'">
                 <a-button v-if="record.status?.code === 'success'" type="primary" size="small" class="action-btn-manage"
-                  @click="goToDetail(record)" disabled>
+                  @click="goToManageDetail(record)" disabled>
                   <EditOutlined /> Manage Task
                 </a-button>
-                <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record)">
+                <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToManageDetail(record)">
                   <EditOutlined /> Manage Task
                 </a-button>
               </template>
@@ -251,13 +251,16 @@ export default {
       };
       return map[code] || 'default';
     },
-    async goToDetail(record) {
+    goToDetail(issueId) {
+      this.$router.push(`/development/detail/${issueId}`);
+    },
+    async goToManageDetail(record) {
       this.loading = true;
       try {
         const token = localStorage.getItem('token');
         if (!token) return;
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        if (record && record.status && record.status.code === 'reported') {
+        if (record.status.code === 'reported') {
           const resStatus = await axios.get(import.meta.env.VITE_API_URL + `/items/statuses`, config);
           const statusOptions = resStatus.data;
           const targetStatus = statusOptions.find(s => s.code === 'received' || s.name.toLowerCase().includes('progress'));
