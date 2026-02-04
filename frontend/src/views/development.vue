@@ -105,11 +105,11 @@
                 </template>
 
                 <template v-if="column.key === 'action'">
-                  <a-button v-if="record.status?.code === 'success'" type="primary" size="small" class="action-btn-manage" @click="goToDetail(record._id)"
-                    disabled>
+                  <a-button v-if="record.status?.code === 'success'" type="primary" size="small"
+                    class="action-btn-manage" @click="goToDetail(record)" disabled>
                     <EditOutlined /> Manage Task
                   </a-button>
-                  <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record._id)">
+                  <a-button v-else type="primary" size="small" class="action-btn-manage" @click="goToDetail(record)">
                     <EditOutlined /> Manage Task
                   </a-button>
                 </template>
@@ -154,6 +154,7 @@ export default {
     return {
       activeTab: '1',
       user: null,
+      loading: false,
       columns: [
         {
           title: 'ID',
@@ -242,7 +243,7 @@ export default {
     getStatusColor(code) {
       const map = {
         reported: 'warning',
-        recived: 'default',
+        received: 'default',
         inProgress: 'processing', // สีฟ้า
         finished: 'cyan',
         testing: 'warning',       // สีส้ม
@@ -252,8 +253,27 @@ export default {
       };
       return map[code] || 'default';
     },
-    goToDetail(id) {
-      this.$router.push(`/development/detail/${id}`);
+    async goToDetail(record) {
+      this.loading = true;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        if (record && record.status && record.status.code === 'reported') {
+          const resStatus = await axios.get(import.meta.env.VITE_API_URL + `/items/statuses`, config);
+          const statusOptions = resStatus.data;
+          const targetStatus = statusOptions.find(s => s.code === 'received' || s.name.toLowerCase().includes('progress'));
+          const payload = {
+            status: targetStatus._id,
+          };
+          await axios.put(import.meta.env.VITE_API_URL + `/issues/${record._id}`, payload, config);
+        }
+        this.$router.push(`/development/detail/${record._id}`);
+      } catch (error) {
+        console.error('Error navigating to detail:', error);
+      } finally {
+        this.loading = false;
+      }
     },
     formatDate(date) {
       if (!date) return '-';

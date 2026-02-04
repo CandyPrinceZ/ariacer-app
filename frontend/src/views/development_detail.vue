@@ -295,7 +295,7 @@ export default {
 
       this.actionLoading = true;
       try {
-        const targetStatus = this.statusOptions.find(s => s.code === 'recived' || s.name.toLowerCase().includes('progress'));
+        const targetStatus = this.statusOptions.find(s => s.code === 'received' || s.name.toLowerCase().includes('progress'));
         const statusIdToUse = targetStatus ? targetStatus._id : this.issue.status?._id;
         const token = localStorage.getItem('token');
 

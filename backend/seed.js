@@ -14,7 +14,7 @@ const seedData = async () => {
 
     const statuses = [
       { _id: "65b000000000000000000001", name: "Reported", code: "reported", for: "None" },
-      { _id: "65b000000000000000000002", name: "Received", code: "recived", for: "dev" },
+      { _id: "65b000000000000000000002", name: "Received", code: "received", for: "dev" },
       { _id: "65b000000000000000000003", name: "In Progress", code: "inProgress", for: "dev" },
       { _id: "65b000000000000000000004", name: "Testing", code: "testing", for: "imp" },
       { _id: "65b000000000000000000005", name: "Finished", code: "finished", for: "dev" },

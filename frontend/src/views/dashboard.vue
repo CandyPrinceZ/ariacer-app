@@ -149,12 +149,12 @@ export default {
   data() {
     return {
       stats: {
-        total: 0, reported: 0, recived: 0, inProgress: 0,
+        total: 0, reported: 0, received: 0, inProgress: 0,
         finished: 0, upserver: 0, testing: 0, success: 0
       },
       statusCards: [
         { key: 'reported', label: 'Reported', icon: 'AlertOutlined', colorClass: 'icon-red', hexColor: '#ff4d4f', textColor: '#ff4d4f' },
-        { key: 'recived', label: 'Received', icon: 'InboxOutlined', colorClass: 'icon-gray', hexColor: '#8c8c8c', textColor: '#595959' },
+        { key: 'received', label: 'Received', icon: 'InboxOutlined', colorClass: 'icon-gray', hexColor: '#8c8c8c', textColor: '#595959' },
         { key: 'inProgress', label: 'In Progress', icon: 'SyncOutlined', colorClass: 'icon-blue', hexColor: '#1890ff', textColor: '#1890ff' },
         { key: 'finished', label: 'Finished', icon: 'CheckSquareOutlined', colorClass: 'icon-cyan', hexColor: '#13c2c2', textColor: '#13c2c2' },
         { key: 'upserver', label: 'Up Server', icon: 'CloudUploadOutlined', colorClass: 'icon-purple', hexColor: '#722ed1', textColor: '#722ed1' },
@@ -179,7 +179,7 @@ export default {
           {
             label: 'Issues',
             data: [
-              this.stats.reported, this.stats.recived, this.stats.inProgress,
+              this.stats.reported, this.stats.received, this.stats.inProgress,
               this.stats.finished, this.stats.upserver, this.stats.testing
             ],
             backgroundColor: [
@@ -250,7 +250,7 @@ export default {
     calculateStats(issues) {
       const counts = {
         total: issues.length,
-        reported: 0, recived: 0, inProgress: 0, finished: 0,
+        reported: 0, received: 0, inProgress: 0, finished: 0,
         upserver: 0, testing: 0, success: 0
       };
 
@@ -271,7 +271,7 @@ export default {
       // รองรับทั้ง Object และ String (เผื่อไว้)
       const code = status?.code || status;
       const map = {
-        reported: 'error', recived: 'default', inProgress: 'processing', rejected: 'error',
+        reported: 'error', received: 'default', inProgress: 'processing', rejected: 'error',
         finished: 'cyan', upserver: 'purple', testing: 'warning', success: 'success',
       };
       return map[code] || 'default';
@@ -279,7 +279,7 @@ export default {
     getStatusIcon(status) {
       const code = status?.code || status;
       const map = {
-        reported: 'AlertOutlined', recived: 'InboxOutlined', inProgress: 'SyncOutlined', rejected: 'AlertOutlined',
+        reported: 'AlertOutlined', received: 'InboxOutlined', inProgress: 'SyncOutlined', rejected: 'AlertOutlined',
         finished: 'CheckSquareOutlined', upserver: 'CloudUploadOutlined', testing: 'ExperimentOutlined', success: 'CheckCircleOutlined',
       };
       return map[code] || null;
