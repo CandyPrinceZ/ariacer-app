@@ -33,6 +33,7 @@
             <a-select-option value="UPDATE_USER">Update User</a-select-option>
             <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
             <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
+            <a-select-option value="UPDATE_ISSUE">Update Issue</a-select-option>
             <a-select-option value="REGISTER">Register</a-select-option>
           </a-select>
         </div>

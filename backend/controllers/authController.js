@@ -10,7 +10,7 @@ const generateToken = (id, role) => {
   });
 };
 
-// --- Register ---
+// --- Register (Create User) ---
 exports.register = async (req, res) => {
   const { username, password, user_name, role_name, role_code } = req.body;
 
@@ -24,22 +24,42 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    const user = await Auth.create({
+    const newUserObj = {
       username,
       password,
       user_name,
       role_name,
       role_code,
-    });
+    };
 
-    saveLog(req, user, "REGISTER", "New user registered", { user_id: user.user_id });
+    if (req.user) {
+        newUserObj.createdBy = req.user._id; 
+    }
+
+    const user = await Auth.create(newUserObj);
+
+    let actor = user;
+    let action = "REGISTER";
+    let detail = "New user self-registered";
+
+    if (req.user) {
+      actor = req.user; 
+      action = "CREATE_USER";
+      detail = `Admin (${req.user.user_name}) created user: ${user.username}`;
+    }
+
+    saveLog(req, actor, action, detail, { 
+      new_user_id: user._id,
+      new_username: user.username 
+    });
 
     res.status(201).json({
       _id: user._id,
       user_id: user.user_id,
       username: user.username,
-      token: generateToken(user._id, user.role_name),
+      message: "User created successfully"
     });
+
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
