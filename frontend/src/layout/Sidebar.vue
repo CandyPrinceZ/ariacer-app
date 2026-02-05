@@ -8,6 +8,7 @@
     </div>
 
     <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" class="custom-menu">
+      
       <a-menu-item key="dashboard">
         <template #icon>
           <DashboardOutlined />
@@ -29,22 +30,29 @@
         <router-link :to="{ name: 'development' }">Development</router-link>
       </a-menu-item>
 
-      <a-menu-item key="implementation">
+      <a-menu-item key="Implement">
         <template #icon>
           <PieChartOutlined />
         </template>
-        <router-link :to="{ name: 'Implement' }">Implementation</router-link> 
+        <router-link :to="{ name: 'Implement' }">Implementation</router-link>
       </a-menu-item>
 
-      <a-menu-item key="users">
+      <a-menu-item key="usermanagement">
         <template #icon>
           <TeamOutlined />
         </template>
         <router-link :to="{ name: 'usermanagement' }">User Management</router-link>
       </a-menu-item>
 
+      <a-menu-item key="system-logs">
+        <template #icon>
+          <SafetyCertificateOutlined />
+        </template>
+        <router-link :to="{ name: 'system-logs' }">System Logs</router-link>
+      </a-menu-item>
 
     </a-menu>
+
   </a-layout-sider>
 </template>
 
@@ -56,7 +64,8 @@ import {
   BugOutlined,
   TeamOutlined,
   HddOutlined,
-  PieChartOutlined
+  PieChartOutlined,
+  SafetyCertificateOutlined // ✅ เพิ่มไอคอนนี้เข้ามา
 } from '@ant-design/icons-vue';
 
 export default defineComponent({
@@ -66,13 +75,15 @@ export default defineComponent({
     BugOutlined,
     TeamOutlined,
     HddOutlined,
-    PieChartOutlined
+    PieChartOutlined,
+    SafetyCertificateOutlined // ✅ Register Component
   },
   setup() {
     const route = useRoute();
     const collapsed = ref(false);
     const selectedKeys = ref([]);
 
+    // Watch Route เพื่อเปลี่ยนสีเมนูให้ตรงหน้า
     watch(
       () => route.name,
       (newRouteName) => {
@@ -122,6 +133,7 @@ export default defineComponent({
   margin: 0;
 }
 
+/* Override Ant Design Styles for Dark Theme */
 :deep(.ant-layout-sider-children),
 :deep(.ant-menu.ant-menu-dark),
 :deep(.ant-menu-dark .ant-menu-sub),

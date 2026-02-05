@@ -1,9 +1,11 @@
 const Issue = require("../models/issue");
 const IssueType = require("../models/issue_type");
 const Urgency = require("../models/urgency");
-const User = require("../models/auth"); // ถ้ามี Model User ให้ Import มาด้วย
+const User = require("../models/auth");
 const mongoose = require("mongoose");
+const { saveLog } = require("../services/logger"); // ตรวจสอบ path ให้ถูกต้อง
 
+// --- Create Issue ---
 exports.createIssue = async (req, res) => {
   try {
     let issueData = { ...req.body };
@@ -21,12 +23,18 @@ exports.createIssue = async (req, res) => {
     const newIssue = new Issue(issueData);
     const savedIssue = await newIssue.save();
 
-    const populatedIssue = await savedIssue.populate([
-      "type",
-      "urgency",
-      "status",
-      "reporter",
-    ]);
+    // Populate ข้อมูลเพื่อให้ Log สวยงาม
+    const populatedIssue = await Issue.findById(savedIssue._id)
+      .populate("type", "name")
+      .populate("urgency", "name")
+      .populate("status", "name")
+      .populate("reporter", "user_name");
+
+    // ✅ Log: Create Issue
+    saveLog(req, req.user, "CREATE_ISSUE", `Issue ${populatedIssue.name} created`, {
+      issue_id: populatedIssue._id,
+      issue_name: populatedIssue.name,
+    });
 
     res.status(201).json(populatedIssue);
   } catch (error) {
@@ -35,13 +43,17 @@ exports.createIssue = async (req, res) => {
   }
 };
 
+// --- Get All Issues ---
 exports.getIssues = async (req, res) => {
   try {
     const { status, assignee, unassigned } = req.query;
     let query = {};
 
     if (status) {
-      query.status_code = status;
+      // ระวังเรื่องการส่ง status เป็น ID หรือ Code
+      // ถ้า Frontend ส่ง ID มา ใช้ query.status = status ได้เลย
+      // แต่ถ้าส่ง Code อาจต้องไปหา ID จาก Table Status ก่อน (ขึ้นอยู่กับ DB Design)
+      query.status = status; 
     }
 
     if (assignee) {
@@ -53,13 +65,13 @@ exports.getIssues = async (req, res) => {
     }
 
     const issues = await Issue.find(query)
-      .populate("type", "name code") // map เอาแค่ชื่อ Type
-      .populate("urgency", "name color code") // map เอาชื่อและความเร่งด่วน
-      .populate("status", "name code") // map สถานะ
+      .populate("type", "name code")
+      .populate("urgency", "name color code")
+      .populate("status", "name code")
       .populate("tester", "username user_name role_name")
       .populate("reporter", "username user_name role_name")
       .populate("assignee", "username user_name role_name")
-      .sort({ createdAt: -1 }); // เรียงจากใหม่ไปเก่า
+      .sort({ createdAt: -1 });
 
     res.json(issues);
   } catch (error) {
@@ -67,12 +79,15 @@ exports.getIssues = async (req, res) => {
   }
 };
 
+// --- Get Issue By ID ---
 exports.getIssueById = async (req, res) => {
   try {
     let issue;
+    const id = req.params.id;
 
-    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
-      issue = await Issue.findById(req.params.id)
+    // หาด้วย _id (ObjectId)
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      issue = await Issue.findById(id)
         .populate("type")
         .populate("urgency")
         .populate("status")
@@ -81,8 +96,9 @@ exports.getIssueById = async (req, res) => {
         .populate("tester", "username user_name role_name");
     }
 
+    // ถ้าไม่เจอ หรือไม่ใช่ ObjectId ให้หาด้วย id (Custom ID)
     if (!issue) {
-      issue = await Issue.findOne({ id: req.params.id })
+      issue = await Issue.findOne({ id: id }) // เช็คชื่อ field ใน DB ว่าเป็น 'id' หรือ 'issue_id'
         .populate("type")
         .populate("urgency")
         .populate("status")
@@ -100,6 +116,8 @@ exports.getIssueById = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// --- Get Issues by Assignee (Active Only) ---
 exports.getIssuesByAssignee = async (req, res) => {
   try {
     const assigneeId = req.params.assigneeId;
@@ -107,12 +125,13 @@ exports.getIssuesByAssignee = async (req, res) => {
     let issues = await Issue.find({ assignee: assigneeId })
       .populate("type", "name code")
       .populate("urgency", "name color code")
-      .populate("status", "name code")
+      .populate("status", "name code") // ต้อง populate เพื่อเช็ค code ด้านล่าง
       .populate("reporter", "username user_name role_name")
       .populate("assignee", "username user_name role_name")
       .sort({ createdAt: -1 });
 
-    issues = issues.filter((issue) => issue.status?.code !== "success");
+    // Filter งานที่ยังไม่เสร็จ (Success) ออก
+    issues = issues.filter((issue) => issue.status && issue.status.code !== "success");
 
     res.json(issues);
   } catch (error) {
@@ -120,6 +139,7 @@ exports.getIssuesByAssignee = async (req, res) => {
   }
 };
 
+// --- Get Unassigned Issues ---
 exports.getUnassignedIssues = async (req, res) => {
   try {
     const issues = await Issue.find({ assignee: null })
@@ -135,49 +155,88 @@ exports.getUnassignedIssues = async (req, res) => {
   }
 };
 
+// --- Update Issue ---
 exports.updateIssue = async (req, res) => {
   try {
-    // ค้นหาและอัปเดต (validate ก่อน save)
+    const issueId = req.params.id;
+    let issueToUpdate;
+
+    // 1. หา Issue เก่าก่อน (เพื่อเปรียบเทียบค่าเก่าสำหรับ Log)
+    if (mongoose.Types.ObjectId.isValid(issueId)) {
+      issueToUpdate = await Issue.findById(issueId);
+    } 
+    if (!issueToUpdate) {
+      issueToUpdate = await Issue.findOne({ id: issueId });
+    }
+
+    if (!issueToUpdate) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    // เก็บสถานะเก่าไว้ Log
+    const oldStatus = issueToUpdate.status; 
+    const oldAssignee = issueToUpdate.assignee;
+
+    // 2. อัปเดตข้อมูล
     const updatedIssue = await Issue.findByIdAndUpdate(
-      req.params.id,
-      req.body, // รับค่า status, assignee, etc. มาจาก Frontend
-      { new: true, runValidators: true },
+      issueToUpdate._id,
+      req.body,
+      { new: true, runValidators: true }
     )
       .populate("type")
       .populate("urgency")
-      .populate("status");
+      .populate("status")
+      .populate("assignee", "user_name");
 
-    if (!updatedIssue) {
-      // ลองหาด้วย Custom ID กรณี Frontend ส่งมาเป็น IS-001
-      const updatedIssueCustom = await Issue.findOneAndUpdate(
-        { issue_id: req.params.id },
-        req.body,
-        { new: true, runValidators: true },
-      ).populate("type status urgency");
+    // ✅ Log: Update Issue
+    let logDetail = `Updated issue: ${updatedIssue.name}`;
+    let metadata = { issue_id: updatedIssue._id };
 
-      if (!updatedIssueCustom)
-        return res.status(404).json({ message: "Issue not found" });
-      return res.json(updatedIssueCustom);
+    // เช็คว่ามีการเปลี่ยนสถานะไหม
+    if (req.body.status && req.body.status.toString() !== oldStatus?.toString()) {
+       logDetail += ` (Status changed to ${updatedIssue.status?.name})`;
+       metadata.old_status = oldStatus;
+       metadata.new_status = updatedIssue.status?._id;
     }
+
+    // เช็คว่ามีการ Assign งานไหม
+    if (req.body.assignee && req.body.assignee.toString() !== oldAssignee?.toString()) {
+       logDetail += ` (Assigned to ${updatedIssue.assignee?.user_name})`;
+       metadata.assignee = updatedIssue.assignee?._id;
+    }
+
+    saveLog(req, req.user, "UPDATE_ISSUE", logDetail, metadata);
 
     res.json(updatedIssue);
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(400).json({ message: error.message });
   }
 };
 
+// --- Delete Issue ---
 exports.deleteIssue = async (req, res) => {
   try {
-    const deletedIssue = await Issue.findByIdAndDelete(req.params.id);
+    const issueId = req.params.id;
+    let deletedIssue;
+
+    if (mongoose.Types.ObjectId.isValid(issueId)) {
+      deletedIssue = await Issue.findByIdAndDelete(issueId);
+    } 
+    
+    if (!deletedIssue) {
+      deletedIssue = await Issue.findOneAndDelete({ id: issueId });
+    }
 
     if (!deletedIssue) {
-      const deletedCustom = await Issue.findOneAndDelete({
-        issue_id: req.params.id,
-      });
-      if (!deletedCustom)
-        return res.status(404).json({ message: "Issue not found" });
-      return res.json({ message: "Issue deleted successfully" });
+      return res.status(404).json({ message: "Issue not found" });
     }
+
+    // ✅ Log: Delete Issue
+    saveLog(req, req.user, "DELETE_ISSUE", `Deleted issue: ${deletedIssue.name}`, {
+      issue_id: deletedIssue._id,
+      issue_custom_id: deletedIssue.id
+    });
 
     res.json({ message: "Issue deleted successfully" });
   } catch (error) {
