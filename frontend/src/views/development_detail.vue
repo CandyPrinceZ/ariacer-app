@@ -1,5 +1,5 @@
 <template>
-  <a-layout style="min-height: 100vh; background: #f0f2f5;">
+  <a-layout style="min-height: 100vh; background: #f0f2f5; margin: -20px">
 
     <div v-if="loading" class="loading-overlay">
       <div class="loading-content">
@@ -33,7 +33,7 @@
       </div>
 
       <div class="detail-content">
-        <a-row :gutter="24">
+        <a-row :gutter="4">
 
           <a-col :xs="24" :lg="17" :xl="18">
 
@@ -104,7 +104,7 @@
           <a-col :xs="24" :lg="7" :xl="6">
             <div class="sticky-sidebar">
 
-              <a-card :bordered="false" class="side-card action-card mb-4">
+              <a-card :bordered="false" class="side-card action-card mb-1">
 
                 <div v-if="!issue.assignee">
                   <div class="unassigned-state">
@@ -366,7 +366,6 @@ export default {
   border-bottom: 1px solid #e2e8f0;
   padding: 20px 0;
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
-  position: sticky;
   top: 0;
   z-index: 100;
   width: 100%;
@@ -469,7 +468,7 @@ export default {
 /* 3. Content Area - Full Width & Spacing */
 .detail-content {
   width: 100%;
-  padding: 32px 32px 0;
+  padding: 6px 4px 0;
   /* Padding around content */
 }
 
@@ -884,8 +883,8 @@ export default {
   margin-top: 24px;
 }
 
-.mb-4 {
-  margin-bottom: 24px;
+.mb-1 {
+  margin-bottom: 4px;
 }
 
 /* Responsive */
