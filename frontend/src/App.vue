@@ -1,7 +1,15 @@
-<script setup></script>
-
 <template>
-  <RouterView />
+  <div id="app">
+    <router-view />
+  </div>
 </template>
 
-<style scoped></style>
+<script>
+export default {
+  name: 'App',
+}
+</script>
+
+<style>
+/* CSS ของคุณ... */
+</style>

@@ -9,11 +9,13 @@ const {
   updateIssue,
   deleteIssue,
   getIssuesforTester,
+  getIssuesByHighUrgency,
 } = require("../controllers/issueController");
 const { protect } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createIssue); // POST /api/issues
 router.get("/", protect, getIssues); // GET  /api/issues
+router.get("/high-urgency", protect, getIssuesByHighUrgency); // GET  /api/issues/high-urgency
 router.get("/unassigned", protect, getUnassignedIssues); // GET  /api/issues/unassigned
 router.get("/assigned/:assigneeId", protect, getIssuesByAssignee); // GET  /api/issues/assigned/:assigneeId
 router.get("/:id", protect, getIssueById); // GET  /api/issues/123

@@ -75,6 +75,7 @@ export default {
         
         // Example: Save token and redirect
         localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user_id', response.data._id);
         localStorage.setItem('user_role', response.data.role);
         this.$router.push('/dashboard');
 

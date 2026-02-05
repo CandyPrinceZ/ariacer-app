@@ -4,7 +4,7 @@ const Urgency = require("../models/urgency");
 const Status = require("../models/status");
 const User = require("../models/auth");
 const mongoose = require("mongoose");
-const { saveLog } = require("../services/logger"); // ตรวจสอบ path ให้ถูกต้อง
+const { saveLog } = require("../services/logger"); 
 
 // --- Create Issue ---
 exports.createIssue = async (req, res) => {
@@ -24,18 +24,22 @@ exports.createIssue = async (req, res) => {
     const newIssue = new Issue(issueData);
     const savedIssue = await newIssue.save();
 
-    // Populate ข้อมูลเพื่อให้ Log สวยงาม
     const populatedIssue = await Issue.findById(savedIssue._id)
       .populate("type", "name")
       .populate("urgency", "name")
       .populate("status", "name")
       .populate("reporter", "user_name");
 
-    // ✅ Log: Create Issue
-    saveLog(req, req.user, "CREATE_ISSUE", `Issue ${populatedIssue.name} created`, {
-      issue_id: populatedIssue._id,
-      issue_name: populatedIssue.name,
-    });
+    saveLog(
+      req,
+      req.user,
+      "CREATE_ISSUE",
+      `Issue ${populatedIssue.name} created`,
+      {
+        issue_id: populatedIssue._id,
+        issue_name: populatedIssue.name,
+      },
+    );
 
     res.status(201).json(populatedIssue);
   } catch (error) {
@@ -54,7 +58,7 @@ exports.getIssues = async (req, res) => {
       // ระวังเรื่องการส่ง status เป็น ID หรือ Code
       // ถ้า Frontend ส่ง ID มา ใช้ query.status = status ได้เลย
       // แต่ถ้าส่ง Code อาจต้องไปหา ID จาก Table Status ก่อน (ขึ้นอยู่กับ DB Design)
-      query.status = status; 
+      query.status = status;
     }
 
     if (assignee) {
@@ -99,7 +103,7 @@ exports.getIssueById = async (req, res) => {
 
     // ถ้าไม่เจอ หรือไม่ใช่ ObjectId ให้หาด้วย id (Custom ID)
     if (!issue) {
-      issue = await Issue.findOne({ id: id }) // เช็คชื่อ field ใน DB ว่าเป็น 'id' หรือ 'issue_id'
+      issue = await Issue.findOne({ id: id }) 
         .populate("type")
         .populate("urgency")
         .populate("status")
@@ -132,10 +136,52 @@ exports.getIssuesByAssignee = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Filter งานที่ยังไม่เสร็จ (Success) ออก
-    issues = issues.filter((issue) => issue.status && issue.status.code !== "success");
+    issues = issues.filter(
+      (issue) => issue.status && issue.status.code !== "success",
+    );
 
     res.json(issues);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getIssuesByHighUrgency = async (req, res) => {
+  try {
+    const targetUrgencyCodes = ["high", "critical"];
+    const targetUrgencies = await Urgency.find({
+      code: { $in: targetUrgencyCodes },
+    });
+
+    if (!targetUrgencies.length) {
+      return res
+        .status(404)
+        .json({ message: "High/Critical urgency levels not found" });
+    }
+
+    const urgencyIds = targetUrgencies.map((u) => u._id);
+
+    const successStatus = await Status.findOne({ code: "success" });
+
+    const query = {
+      urgency: { $in: urgencyIds },
+    };
+
+    if (successStatus) {
+      query.status = { $ne: successStatus._id };
+    }
+
+    const issues = await Issue.find(query)
+      .populate("type", "name code")
+      .populate("urgency", "name color code")
+      .populate("status", "name code")
+      .populate("reporter", "username user_name role_name")
+      .populate("assignee", "username user_name role_name")
+      .sort({ createdAt: -1 });
+
+    res.json(issues);
+  } catch (error) {
+    console.error("Error fetching high urgency issues:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -144,7 +190,7 @@ exports.getIssuesforTester = async (req, res) => {
   try {
     const upserverStatus = await Status.findOne({ code: "upserver" });
     const successStatus = await Status.findOne({ code: "success" });
-    const testingStatus = await Status.findOne({ code: "testing" }); 
+    const testingStatus = await Status.findOne({ code: "testing" });
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -180,8 +226,8 @@ exports.getIssuesforTester = async (req, res) => {
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name")
       .populate("assignee", "username user_name role_name")
-      .populate("tester", "username user_name role_name") 
-      .sort({ updatedAt: -1 }); 
+      .populate("tester", "username user_name role_name")
+      .sort({ updatedAt: -1 });
 
     res.json(issues);
   } catch (error) {
@@ -214,7 +260,7 @@ exports.updateIssue = async (req, res) => {
     // 1. หา Issue เก่าก่อน (เพื่อเปรียบเทียบค่าเก่าสำหรับ Log)
     if (mongoose.Types.ObjectId.isValid(issueId)) {
       issueToUpdate = await Issue.findById(issueId);
-    } 
+    }
     if (!issueToUpdate) {
       issueToUpdate = await Issue.findOne({ id: issueId });
     }
@@ -224,14 +270,14 @@ exports.updateIssue = async (req, res) => {
     }
 
     // เก็บสถานะเก่าไว้ Log
-    const oldStatus = issueToUpdate.status; 
+    const oldStatus = issueToUpdate.status;
     const oldAssignee = issueToUpdate.assignee;
 
     // 2. อัปเดตข้อมูล
     const updatedIssue = await Issue.findByIdAndUpdate(
       issueToUpdate._id,
       req.body,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate("type")
       .populate("urgency")
@@ -243,16 +289,22 @@ exports.updateIssue = async (req, res) => {
     let metadata = { issue_id: updatedIssue._id };
 
     // เช็คว่ามีการเปลี่ยนสถานะไหม
-    if (req.body.status && req.body.status.toString() !== oldStatus?.toString()) {
-       logDetail += ` (Status changed to ${updatedIssue.status?.name})`;
-       metadata.old_status = oldStatus;
-       metadata.new_status = updatedIssue.status?._id;
+    if (
+      req.body.status &&
+      req.body.status.toString() !== oldStatus?.toString()
+    ) {
+      logDetail += ` (Status changed to ${updatedIssue.status?.name})`;
+      metadata.old_status = oldStatus;
+      metadata.new_status = updatedIssue.status?._id;
     }
 
     // เช็คว่ามีการ Assign งานไหม
-    if (req.body.assignee && req.body.assignee.toString() !== oldAssignee?.toString()) {
-       logDetail += ` (Assigned to ${updatedIssue.assignee?.user_name})`;
-       metadata.assignee = updatedIssue.assignee?._id;
+    if (
+      req.body.assignee &&
+      req.body.assignee.toString() !== oldAssignee?.toString()
+    ) {
+      logDetail += ` (Assigned to ${updatedIssue.assignee?.user_name})`;
+      metadata.assignee = updatedIssue.assignee?._id;
     }
 
     saveLog(req, req.user, "UPDATE_ISSUE", logDetail, metadata);
@@ -272,8 +324,8 @@ exports.deleteIssue = async (req, res) => {
 
     if (mongoose.Types.ObjectId.isValid(issueId)) {
       deletedIssue = await Issue.findByIdAndDelete(issueId);
-    } 
-    
+    }
+
     if (!deletedIssue) {
       deletedIssue = await Issue.findOneAndDelete({ id: issueId });
     }
@@ -283,10 +335,16 @@ exports.deleteIssue = async (req, res) => {
     }
 
     // ✅ Log: Delete Issue
-    saveLog(req, req.user, "DELETE_ISSUE", `Deleted issue: ${deletedIssue.name}`, {
-      issue_id: deletedIssue._id,
-      issue_custom_id: deletedIssue.id
-    });
+    saveLog(
+      req,
+      req.user,
+      "DELETE_ISSUE",
+      `Deleted issue: ${deletedIssue.name}`,
+      {
+        issue_id: deletedIssue._id,
+        issue_custom_id: deletedIssue.id,
+      },
+    );
 
     res.json({ message: "Issue deleted successfully" });
   } catch (error) {
