@@ -239,7 +239,6 @@ export default {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(import.meta.env.VITE_API_URL + '/issues', config);
 
-        // JSON ของคุณคือ Array ของ Issues โดยตรง
         this.recentIssues = response.data;
         this.calculateStats(response.data);
 
@@ -255,7 +254,6 @@ export default {
       };
 
       issues.forEach(issue => {
-        // ดึง code จาก object status
         const statusCode = issue.status?.code || '';
         if (Object.prototype.hasOwnProperty.call(counts, statusCode)) {
           counts[statusCode]++;
@@ -268,7 +266,6 @@ export default {
       return (val / this.stats.total) * 100;
     },
     getStatusColor(status) {
-      // รองรับทั้ง Object และ String (เผื่อไว้)
       const code = status?.code || status;
       const map = {
         reported: 'error', received: 'default', inProgress: 'processing', rejected: 'error',

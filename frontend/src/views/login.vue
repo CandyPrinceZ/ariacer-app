@@ -39,7 +39,7 @@ export default {
     return {
       username: '',
       password: '',
-      loading: false, // For button loading state
+      loading: false, 
     }
   },
   methods: {

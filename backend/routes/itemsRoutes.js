@@ -8,5 +8,5 @@ router.get('/roles', protect, getRoles); // GET /api/items/roles
 router.get('/urgencies', protect, getUrgencies); // GET /api/items/urgencies
 router.get('/statuses', protect, getStatuses); // GET /api/items/statuses
 router.get('/statuses/dev', protect, getStatusesForDev); // GET /api/items/statuses/dev
-router.get('/statuses/imp', protect, getStatusesForImp); // GET /api/items/statuses/imp
+
 module.exports = router;

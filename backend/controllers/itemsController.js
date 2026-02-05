@@ -89,20 +89,3 @@ exports.getStatusesForDev = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-exports.getStatusesForImp = async (req, res) => {
-  try {
-    const forType = 'imp';
-    const statuses = await status.find({ for: forType });
-    const formattedStatuses = statuses.map((s) => {
-      return {
-        _id: s._id, 
-        name: s.name,
-        code: s.code,
-      };
-    });
-    res.json(formattedStatuses);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};

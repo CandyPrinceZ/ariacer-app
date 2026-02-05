@@ -13,6 +13,5 @@ exports.saveLog = async (req, user, action, detail, metadata = {}) => {
     console.log(`[LOG SAVED] ${action}: ${detail}`);
   } catch (error) {
     console.error("Failed to save log:", error);
-    // ไม่ต้อง throw error เพราะไม่อยากให้ Log พังแล้วกระทบการทำงานหลัก
   }
 };
