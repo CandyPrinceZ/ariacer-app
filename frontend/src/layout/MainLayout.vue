@@ -48,7 +48,6 @@ export default {
 }
 
 .page-view {
-  padding: 20px;
   flex: 1;
   overflow-y: auto;
 }

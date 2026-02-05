@@ -1,6 +1,7 @@
 const Issue = require("../models/issue");
 const IssueType = require("../models/issue_type");
 const Urgency = require("../models/urgency");
+const Status = require("../models/status");
 const User = require("../models/auth");
 const mongoose = require("mongoose");
 const { saveLog } = require("../services/logger"); // ตรวจสอบ path ให้ถูกต้อง
@@ -139,6 +140,55 @@ exports.getIssuesByAssignee = async (req, res) => {
   }
 };
 
+exports.getIssuesforTester = async (req, res) => {
+  try {
+    const upserverStatus = await Status.findOne({ code: "upserver" });
+    const successStatus = await Status.findOne({ code: "success" });
+    const testingStatus = await Status.findOne({ code: "testing" }); 
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    let conditions = [];
+
+    if (upserverStatus) {
+      conditions.push({ status: upserverStatus._id });
+    }
+
+    if (testingStatus) {
+      conditions.push({ status: testingStatus._id });
+    }
+
+    if (successStatus) {
+      conditions.push({
+        status: successStatus._id,
+        updatedAt: { $gte: todayStart, $lte: todayEnd },
+      });
+    }
+
+    if (conditions.length === 0) {
+      return res.json([]);
+    }
+
+    // 4. ค้นหาด้วย $or
+    const issues = await Issue.find({ $or: conditions })
+      .populate("type", "name code")
+      .populate("urgency", "name color code")
+      .populate("status", "name code")
+      .populate("reporter", "username user_name role_name")
+      .populate("assignee", "username user_name role_name")
+      .populate("tester", "username user_name role_name") 
+      .sort({ updatedAt: -1 }); 
+
+    res.json(issues);
+  } catch (error) {
+    console.error("Error get issues for tester:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 // --- Get Unassigned Issues ---
 exports.getUnassignedIssues = async (req, res) => {
   try {

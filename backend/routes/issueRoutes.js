@@ -8,6 +8,7 @@ const {
   getIssueById,
   updateIssue,
   deleteIssue,
+  getIssuesforTester,
 } = require("../controllers/issueController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -16,6 +17,7 @@ router.get("/", protect, getIssues); // GET  /api/issues
 router.get("/unassigned", protect, getUnassignedIssues); // GET  /api/issues/unassigned
 router.get("/assigned/:assigneeId", protect, getIssuesByAssignee); // GET  /api/issues/assigned/:assigneeId
 router.get("/:id", protect, getIssueById); // GET  /api/issues/123
+router.get("/tester/list", protect, getIssuesforTester); // GET  /api/issues/tester/list
 router.put("/:id", protect, updateIssue); // PUT  /api/issues/123
 router.delete("/:id", protect, deleteIssue); // DELETE /api/issues/123
 
