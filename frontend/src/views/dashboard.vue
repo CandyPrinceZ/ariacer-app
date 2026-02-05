@@ -20,7 +20,7 @@
     <div style="padding: 12px; width: 100%;">
       
       <a-row :gutter="[12, 12]" class="fade-in-up">
-        <a-col :xs="24" :sm="12" :md="6" :lg="6">
+        <a-col :xs="24" :sm="12" :md="6" :lg="24">
           <a-card class="stat-card hero-card" :bordered="false">
             <div class="stat-content">
               <div>
