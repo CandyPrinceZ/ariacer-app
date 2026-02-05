@@ -1,93 +1,85 @@
 <template>
-  <a-layout style="min-height: 100vh; background: #f0f2f5;">
-    <div class="page-header">
+  <a-layout style="min-height: 100vh; background: #f5f7fa;">
+
+    <div class="page-header compact-header">
       <div class="header-content">
-        <h2 class="page-title">
-          <SafetyCertificateOutlined /> System Activity Logs
-        </h2>
-        <p class="page-subtitle">ตรวจสอบประวัติการใช้งานและการแก้ไขข้อมูลในระบบ</p>
+        <div class="header-text">
+          <h2 class="page-title">
+            <span class="icon-box">🛡️</span> System Activity Logs
+          </h2>
+          <p class="page-subtitle">ตรวจสอบประวัติการใช้งานและการแก้ไขข้อมูลในระบบ</p>
+        </div>
+        <div class="header-actions">
+          <a-button type="default" size="small" @click="fetchLogs" :loading="loading">
+            <ReloadOutlined /> Refresh Data
+          </a-button>
+        </div>
       </div>
-      <a-button type="primary" @click="fetchLogs" :loading="loading">
-        <ReloadOutlined /> Refresh Data
-      </a-button>
     </div>
 
-    <div class="page-content">
-      <a-card :bordered="false" class="main-card">
-        
-        <div class="filter-bar">
-          <a-input-search
-            v-model:value="searchText"
-            placeholder="ค้นหา (ชื่อผู้ใช้, รายละเอียด, Action)"
-            style="width: 300px"
-            allow-clear
-          />
+    <div style="padding: 12px; width: 100%;">
 
-          <a-select
-            v-model:value="filterAction"
-            placeholder="Filter by Action"
-            style="width: 200px"
-            allow-clear
-          >
-            <a-select-option value="LOGIN">Login</a-select-option>
-            <a-select-option value="UPDATE_USER">Update User</a-select-option>
-            <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
-            <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
-            <a-select-option value="UPDATE_ISSUE">Update Issue</a-select-option>
-            <a-select-option value="REGISTER">Register</a-select-option>
-          </a-select>
+      <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0' }">
+
+        <div class="table-toolbar">
+          <div class="toolbar-left">
+            <span class="section-title">Transaction History</span>
+          </div>
+          <div class="toolbar-right">
+            <a-input v-model:value="searchText" placeholder="Search User, Detail..." style="width: 220px" allow-clear
+              size="small" class="modern-input">
+              <template #prefix>
+                <SearchOutlined class="text-muted" />
+              </template>
+            </a-input>
+
+            <a-select v-model:value="filterAction" placeholder="Filter Action" style="width: 140px" allow-clear
+              size="small" class="modern-select">
+              <a-select-option value="LOGIN">Login</a-select-option>
+              <a-select-option value="UPDATE_USER">Update User</a-select-option>
+              <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
+              <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
+              <a-select-option value="UPDATE_ISSUE">Update Issue</a-select-option>
+              <a-select-option value="REGISTER">Register</a-select-option>
+            </a-select>
+          </div>
         </div>
 
-        <a-table
-          :columns="columns"
-          :data-source="filteredLogs"
-          :loading="loading"
-          :pagination="{ pageSize: 10, showSizeChanger: true }"
-          row-key="_id"
-          class="log-table"
-        >
+        <a-table :columns="columns" :data-source="filteredLogs" :loading="loading" rowKey="_id"
+          :pagination="{ pageSize: 15, showSizeChanger: true, showTotal: total => `Total ${total} logs` }" size="middle"
+          class="log-table">
           <template #bodyCell="{ column, record }">
-            
+
             <template v-if="column.key === 'user'">
               <div class="user-cell">
-                <a-avatar 
-                  :style="{ backgroundColor: stringToColor(record.user?.user_name) }" 
-                  size="small"
-                >
+                <a-avatar :style="{ backgroundColor: stringToColor(record.user?.user_name), fontSize: '12px' }"
+                  size="small">
                   {{ record.user?.user_name?.[0] || '?' }}
                 </a-avatar>
-                <span class="username">
-                  {{ record.user?.user_name || 'System / Unknown' }}
-                </span>
-                <span v-if="record.user?.role_name" class="role-tag">
-                  ({{ record.user.role_name }})
-                </span>
+                <div class="user-info">
+                  <span class="username">{{ record.user?.user_name || 'System / Unknown' }}</span>
+                  <span v-if="record.user?.role_name" class="role-text">{{ record.user.role_name }}</span>
+                </div>
               </div>
             </template>
 
             <template v-if="column.key === 'action'">
-              <a-tag :color="getActionColor(record.action)">
+              <a-tag :color="getActionColor(record.action)" class="action-tag">
                 {{ record.action }}
               </a-tag>
             </template>
 
             <template v-if="column.key === 'createdAt'">
-              <span class="date-text">
-                {{ formatDate(record.createdAt) }}
-              </span>
-              <div class="time-sub">
-                {{ formatTime(record.createdAt) }}
+              <div class="date-wrapper">
+                <span class="date-text">{{ formatDate(record.createdAt) }}</span>
+                <span class="time-sub">{{ formatTime(record.createdAt) }}</span>
               </div>
             </template>
 
             <template v-if="column.key === 'metadata'">
-              <a-button 
-                v-if="record.metadata && Object.keys(record.metadata).length > 0"
-                size="small" 
-                type="dashed"
-                @click="openMetadata(record)"
-              >
-                <CodeOutlined /> View Data
+              <a-button v-if="record.metadata && Object.keys(record.metadata).length > 0" size="small" type="dashed"
+                class="view-btn" @click="openMetadata(record)">
+                <CodeOutlined /> Data
               </a-button>
               <span v-else class="text-muted">-</span>
             </template>
@@ -97,15 +89,17 @@
       </a-card>
     </div>
 
-    <a-modal
-      v-model:open="modal.visible"
-      title="Transaction Metadata"
-      :footer="null"
-      width="600px"
-    >
+    <a-modal v-model:open="modal.visible" title="Transaction Metadata" :footer="null" width="600px" centered
+      class="json-modal">
       <div class="metadata-content">
-        <p><strong>Action:</strong> {{ modal.data?.action }}</p>
-        <p><strong>Detail:</strong> {{ modal.data?.detail }}</p>
+        <div class="meta-row">
+          <span class="label">Action:</span>
+          <span class="value">{{ modal.data?.action }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="label">Detail:</span>
+          <span class="value">{{ modal.data?.detail }}</span>
+        </div>
         <div class="json-viewer">
           <pre>{{ JSON.stringify(modal.data?.metadata, null, 2) }}</pre>
         </div>
@@ -118,15 +112,15 @@
 <script>
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { 
-  SafetyCertificateOutlined, ReloadOutlined, CodeOutlined 
+import {
+  ReloadOutlined, CodeOutlined, SearchOutlined
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
 export default {
   name: 'SystemLogs',
   components: {
-    SafetyCertificateOutlined, ReloadOutlined, CodeOutlined
+    ReloadOutlined, CodeOutlined, SearchOutlined
   },
   data() {
     return {
@@ -139,25 +133,25 @@ export default {
         data: null
       },
       columns: [
-        { title: 'Date/Time', key: 'createdAt', width: 180 },
-        { title: 'User (Actor)', key: 'user', width: 250 },
-        { title: 'Action', key: 'action', width: 150, filters: [] },
+        { title: 'Date/Time', key: 'createdAt', width: 160 },
+        { title: 'Actor', key: 'user', width: 220 },
+        { title: 'Action', key: 'action', width: 160, align: 'center' },
         { title: 'Detail', dataIndex: 'detail', key: 'detail' },
-        { title: 'Metadata', key: 'metadata', width: 120, align: 'center' },
+        { title: 'Data', key: 'metadata', width: 100, align: 'center' },
       ]
     };
   },
   computed: {
     filteredLogs() {
       return this.logs.filter(log => {
-        const matchesSearch = 
+        const matchesSearch =
           this.searchText === '' ||
           log.detail?.toLowerCase().includes(this.searchText.toLowerCase()) ||
           log.user?.user_name?.toLowerCase().includes(this.searchText.toLowerCase()) ||
           log.action?.toLowerCase().includes(this.searchText.toLowerCase());
 
-        const matchesAction = 
-          !this.filterAction || 
+        const matchesAction =
+          !this.filterAction ||
           log.action === this.filterAction;
 
         return matchesSearch && matchesAction;
@@ -172,7 +166,6 @@ export default {
       this.loading = true;
       try {
         const token = localStorage.getItem('token');
-        // 👇 ยิงไป API ที่เราสร้างไว้ (getSystemLogs)
         const res = await axios.get(import.meta.env.VITE_API_URL + '/config/system-logs', {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -214,66 +207,129 @@ export default {
 </script>
 
 <style scoped>
-.page-header {
+/* 1. Compact Header */
+.compact-header {
   background: #fff;
-  padding: 20px 32px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  margin-bottom: 0;
+}
+
+.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #e8e8e8;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .page-title {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
+  font-weight: 600;
   color: #1f1f1f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-subtitle {
+  margin: 2px 0 0;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.icon-box {
+  background: #e6f7ff;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 18px;
+}
+
+/* 2. Main Card */
+.main-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+  min-height: 600px;
+}
+
+/* 3. Toolbar */
+.table-toolbar {
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f5f5f5;
+  background: #fafafa;
+}
+
+.section-title {
+  font-weight: 600;
+  color: #1f1f1f;
+  font-size: 14px;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+}
+
+/* 4. Table Elements */
+.user-cell {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.page-subtitle {
-  margin: 4px 0 0 34px;
-  color: #8c8c8c;
-}
-
-.page-content {
-  padding: 24px 32px;
-}
-
-.main-card {
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.filter-bar {
+.user-info {
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
-/* User Cell Styling */
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 .username {
   font-weight: 500;
   color: #1f1f1f;
+  font-size: 13px;
 }
-.role-tag {
+
+.role-text {
   font-size: 11px;
   color: #8c8c8c;
 }
 
-/* Date Styling */
+.action-tag {
+  min-width: 90px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 11px;
+  border: none;
+}
+
+.date-wrapper {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
 .date-text {
   font-weight: 500;
   color: #262626;
+  font-size: 13px;
 }
+
 .time-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: #8c8c8c;
 }
 
@@ -281,19 +337,48 @@ export default {
   color: #d9d9d9;
 }
 
-/* JSON Viewer in Modal */
+.view-btn {
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+/* 5. Inputs */
+.modern-input,
+.modern-select {
+  border-radius: 4px;
+}
+
+/* 6. Metadata Modal */
+.metadata-content {
+  font-size: 14px;
+  color: #1f1f1f;
+}
+
+.meta-row {
+  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.meta-row .label {
+  font-weight: 600;
+  color: #595959;
+}
+
 .json-viewer {
   background: #1e1e1e;
   color: #d4d4d4;
   padding: 16px;
   border-radius: 6px;
-  margin-top: 10px;
+  margin-top: 12px;
   max-height: 400px;
   overflow: auto;
+  border: 1px solid #333;
 }
+
 .json-viewer pre {
   margin: 0;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
+  font-size: 12px;
 }
 </style>
