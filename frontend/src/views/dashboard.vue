@@ -92,18 +92,18 @@
                 <a-select v-model:value="filters.status" placeholder="Status" style="width: 110px;" size="small"
                   allow-clear class="modern-select">
                   <a-select-option v-for="s in dropdowns.statuses" :key="s._id" :value="s._id">{{ s.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
 
                 <a-select v-model:value="filters.urgency" placeholder="Urgency" style="width: 110px;" size="small"
                   allow-clear class="modern-select">
                   <a-select-option v-for="u in dropdowns.urgencies" :key="u._id" :value="u._id">{{ u.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
                 <a-select v-model:value="filters.type" placeholder="Type" style="width: 110px;" size="small" allow-clear
                   class="modern-select">
                   <a-select-option v-for="t in dropdowns.types" :key="t._id" :value="t._id">{{ t.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
               </div>
             </div>
@@ -148,7 +148,7 @@
                 </template>
 
                 <template v-if="column.key === 'createdAt'">
-                  {{ record.createdAt ? new Date(record.createdAt).toLocaleString() : '-' }}
+                  {{ formatDate(record.createdAt) || '-' }}
                 </template>
 
                 <template v-if="column.key === 'action'">
@@ -171,6 +171,7 @@ import {
   ExperimentOutlined, CheckCircleOutlined, AlertOutlined, CloudUploadOutlined,
   ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined
 } from '@ant-design/icons-vue';
+import dayjs from 'dayjs';
 import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
 
@@ -341,6 +342,10 @@ export default {
     },
     goToIssueDetail(id) {
       this.$router.push(`Issue/detail/${id}`);
+    },
+    formatDate(date) {
+      if (!date) return '-';
+      return dayjs(date).format('DD/MM/YYYY HH:mm');
     }
   }
 };
