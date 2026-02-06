@@ -315,7 +315,7 @@ export default {
             this.$router.push({ name: 'DevelopmentDetail', params: { id: this.issue._id } });
         },
         goToEditDetail() {
-            console.log(this.issue._id);
+            this.$router.push({ name: 'IssueEdit', params: { id: this.issue._id } });
         }
     }
 };
