@@ -1,93 +1,156 @@
 <template>
-    <div class="page">
-        <div class="container">
-            <div class="form-box">
-                <form>
-                    <h2>Sign In</h2>
-
-                    <div class="input-box">
-                        <a-input placeholder="Username" v-model:value="username"/>
-                    </div>
-
-                    <div class="input-box">
-                        <a-input-password placeholder="Password" v-model:value="password"/>
-                    </div>
-
-                    <a-button type="primary" block class="login-btn" @click="handleSubmit">
-                        Login
-                    </a-button>
-                </form>
+  <a-layout class="login-layout">
+    <a-row type="flex" justify="center" align="middle" style="min-height: 100vh;">
+      <a-col :xs="22" :sm="16" :md="12" :lg="8" :xl="6">
+        
+        <div class="header-content">
+          <a-space direction="vertical" align="center" size="small">
+            <div class="logo-wrapper">
+               <SafetyCertificateTwoTone two-tone-color="#1890ff" style="font-size: 48px;" />
             </div>
-
-            <div class="form-bg">
-                <span class="shape shape4"></span>
-                <span class="shape shape3"></span>
-                <span class="shape shape2"></span>
-                <span class="shape shape1"></span>
-            </div>
+            
+            <a-typography-title :level="2" class="app-title">
+              Ariacer Admin
+            </a-typography-title>
+            <a-typography-text type="secondary">
+              ระบบจัดการข้อมูลและแจ้งปัญหาออนไลน์
+            </a-typography-text>
+          </a-space>
         </div>
-    </div>
+
+        <a-card :bordered="false" class="login-card">
+          <a-typography-title :level="4" class="form-title">
+            เข้าสู่ระบบ
+          </a-typography-title>
+
+          <a-form layout="vertical" :model="formState">
+            
+            <a-form-item name="username" style="margin-bottom: 24px;">
+              <a-input 
+                v-model:value="username" 
+                placeholder="Username" 
+                size="large"
+                @keyup.enter="handleSubmit"
+              >
+                <template #prefix>
+                  <UserOutlined style="color: rgba(0,0,0,.25)" />
+                </template>
+              </a-input>
+            </a-form-item>
+
+            <a-form-item name="password" style="margin-bottom: 24px;">
+              <a-input-password 
+                v-model:value="password" 
+                placeholder="Password" 
+                size="large"
+                @keyup.enter="handleSubmit"
+              >
+                <template #prefix>
+                  <LockOutlined style="color: rgba(0,0,0,.25)" />
+                </template>
+              </a-input-password>
+            </a-form-item>
+
+            <a-form-item style="margin-bottom: 0;">
+              <a-button 
+                type="primary" 
+                block 
+                size="large" 
+                :loading="loading"
+                @click="handleSubmit"
+                class="submit-btn"
+              >
+                Sign In
+              </a-button>
+            </a-form-item>
+
+          </a-form>
+        </a-card>
+
+        <div class="footer-content">
+          <a-typography-text type="secondary" style="font-size: 12px;">
+            Copyright © 2026 Ariacer Tech. All rights reserved.
+          </a-typography-text>
+        </div>
+
+      </a-col>
+    </a-row>
+  </a-layout>
 </template>
 
 <script>
-import axios from 'axios'; 
+import axios from 'axios';
 import Swal from 'sweetalert2';
+import { 
+  UserOutlined, 
+  LockOutlined, 
+  SafetyCertificateTwoTone 
+} from '@ant-design/icons-vue';
 
 export default {
-  name: 'UserLogin', // Solves "multi-word-component-names" error
+  name: 'UserLogin',
+  components: {
+    UserOutlined,
+    LockOutlined,
+    SafetyCertificateTwoTone
+  },
   data() {
     return {
       username: '',
       password: '',
-      loading: false, 
+      loading: false,
+      formState: {}
     }
   },
   methods: {
     async handleSubmit() {
-      // 1. Basic Validation
       if (!this.username || !this.password) {
         Swal.fire({
           icon: 'warning',
-          title: 'Oops...',
-          text: 'Please fill in both fields.',
-          showConfirmButton: true
-        })
+          title: 'ข้อมูลไม่ครบถ้วน',
+          text: 'กรุณาระบุ Username และ Password',
+          confirmButtonColor: '#001529'
+        });
         return;
       }
 
       this.loading = true;
 
       try {
-        // 2. Send data to your backend (Replace URL with your API)
         const response = await axios.post(import.meta.env.VITE_API_URL + '/auth/login', {
           username: this.username,
           password: this.password
         });
 
-        // 3. Handle Success
         console.log('Login Success:', response.data);
-        Swal.fire({
-          icon: 'success',
-          title: 'Login Successful!',
-          showConfirmButton: false,
-          timer: 1500
-        })
         
-        // Example: Save token and redirect
+        const Toast = Swal.mixin({
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+        });
+        
+        Toast.fire({
+          icon: 'success',
+          title: 'เข้าสู่ระบบสำเร็จ'
+        });
+
         localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user_id', response.data._id);
+        localStorage.setItem('userId', response.data._id);
         localStorage.setItem('user_role', response.data.role);
+        
         this.$router.push('/dashboard');
 
       } catch (error) {
-        // 4. Handle Error
         console.error('Login Error:', error);
         Swal.fire({
           icon: 'error',
-          title: 'Login Failed',
-          text: error.response?.data?.message || error.message,
-          showConfirmButton: true
-        })
+          title: 'เข้าสู่ระบบไม่สำเร็จ',
+          text: error.response?.data?.message || 'Username หรือ Password ไม่ถูกต้อง',
+          confirmButtonColor: '#d33'
+        });
       } finally {
         this.loading = false;
       }
@@ -97,105 +160,56 @@ export default {
 </script>
 
 <style scoped>
-.page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(#FFFAFA, #F8F8FF, #F5F5F5);
-  overflow: hidden;
-  padding: 24px;
+/* พื้นหลังและ Layout หลัก */
+.login-layout {
+  background-color: #f0f2f5;
+  background-image: url('https://gw.alipayobjects.com/zos/rmsportal/TVYTbAXWheQpRcWDaDMu.svg');
+  background-repeat: no-repeat;
+  background-position: center 110px;
+  background-size: 100%;
 }
 
-.container {
-  background: linear-gradient(90deg, #131346, #000080);
-  position: relative;
-  height: 600px;
-  width: 360px;
-  box-shadow: 0 0 24px #000;
-  overflow: hidden;
-  border-radius: 26px;
+/* ส่วน Header (Logo & Title) */
+.header-content {
+  text-align: center;
+  margin-bottom: 40px;
 }
 
-
-form {
-  position: relative;
-  height: 100%;
-  width: 320px;
-  padding: 30px;
-  z-index: 1;
+.app-title {
+  margin-bottom: 0 !important;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.85);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
 }
 
-h2 {
-  color: #000000;
-  font-size: 35px;
-  margin: 0 0 24px;
+/* การ์ด Login */
+.login-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.input-box {
-  padding: 12px 0;
+.form-title {
+  text-align: center;
+  margin-bottom: 24px !important;
+  color: #001529;
 }
 
-:deep(.ant-input),
-:deep(.ant-input-affix-wrapper) {
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid #d1d1d4;
-  border-radius: 0;
-  color: #000000;
-}
-:deep(.ant-input-affix-wrapper input) {
-  color: #111;
+/* ปุ่ม Sign In */
+.submit-btn {
+  background-color: #001529;
+  border-color: #001529;
+  height: 40px;
+  font-weight: 500;
 }
 
-:deep(.ant-input::placeholder) {
-  color: #000
+.submit-btn:hover, .submit-btn:focus {
+  background-color: #002c52;
+  border-color: #002c52;
 }
 
-:deep(.ant-input-affix-wrapper:hover),
-:deep(.ant-input-affix-wrapper-focused),
-:deep(.ant-input:hover),
-:deep(.ant-input:focus) {
-  border-bottom-color: #00ffa2;
-  box-shadow: none;
+/* Footer */
+.footer-content {
+  margin-top: 48px;
+  text-align: center;
 }
-
-.login-btn {
-  margin-top: 22px;
-  border-radius: 26px;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #131346;
-  color: #FFF;
-}
-
-.form-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
-.form-bg .shape {
-  transform: rotate(45deg);
-  position: absolute;
-}
-
-.form-bg .shape1 {
-  height: 520px;
-  width: 520px;
-  background-color: #fff;
-  top: -50px;
-  right: 120px;
-  border-radius: 0 72px 0 0;
-}
-
-.form-bg .shape2 {
-  height: 220px;
-  width: 220px;
-  background-color: #150c33;
-  top: -172px;
-  right: 0;
-  border-radius: 32px;
-}
-
 </style>
