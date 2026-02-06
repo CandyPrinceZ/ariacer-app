@@ -26,6 +26,7 @@ export default {
   },
   data() {
     return {
+      AuthProfile: null,
       Myissue: [],
       HighIssue: [],      
       CriticalIssue: [],  
@@ -38,17 +39,14 @@ export default {
   methods: {
     async fetchData() {
       const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId') || localStorage.getItem('user_id');
-
-      // ถ้าไม่มี Token หรือ UserID ให้หยุดทำงาน (ไม่ต้องแจ้งเตือน)
-      if (!token || !userId) {
-        return;
-      }
-
+      if (!token) return;
       try {
         const config = {
           headers: { Authorization: `Bearer ${token}` },
         };
+
+        const authRes = await axios.get(import.meta.env.VITE_API_URL + '/auth/profile', config);
+        this.AuthProfile = authRes.data;
 
         const urgencyRes = await axios.get(import.meta.env.VITE_API_URL + '/issues/high-urgency', config);
         const allUrgentIssues = urgencyRes.data || [];
@@ -56,7 +54,7 @@ export default {
         this.HighIssue = allUrgentIssues.filter(issue => issue.urgency?.code === 'high');
         this.CriticalIssue = allUrgentIssues.filter(issue => issue.urgency?.code === 'critical');
 
-        const myIssueRes = await axios.get(import.meta.env.VITE_API_URL + '/issues/assigned/' + userId, config);
+        const myIssueRes = await axios.get(import.meta.env.VITE_API_URL + '/issues/assigned/' + this.AuthProfile._id, config);
         this.Myissue = myIssueRes.data || [];
 
         console.log("API Success", { 
