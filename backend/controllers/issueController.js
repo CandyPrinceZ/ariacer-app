@@ -316,6 +316,80 @@ exports.updateIssue = async (req, res) => {
   }
 };
 
+exports.editIssue = async (req, res) => {
+  try {
+    const issueId = req.params.id;
+    let issueToEdit;
+
+    if (mongoose.Types.ObjectId.isValid(issueId)) {
+      issueToEdit = await Issue.findById(issueId);
+    }
+    if (!issueToEdit) {
+      issueToEdit = await Issue.findOne({ id: issueId });
+    }
+
+    if (!issueToEdit) {
+      return res.status(404).json({ message: "Issue not found" });
+    }
+
+    const oldStatus = issueToEdit.status;
+    const oldAssignee = issueToEdit.assignee;
+
+    let updateData = { ...req.body };
+
+    if (updateData.images && Array.isArray(updateData.images)) {
+      updateData.images = updateData.images.map((img) => {
+        return typeof img === 'string' ? { url: img } : img;
+      });
+    }
+
+    if (updateData.assignee === 'null' || updateData.assignee === '') {
+        updateData.assignee = null;
+    }
+
+    const updatedIssue = await Issue.findByIdAndUpdate(
+      issueToEdit._id,
+      updateData,
+      { new: true, runValidators: true }
+    )
+      .populate("type")
+      .populate("urgency")
+      .populate("status")
+      .populate("assignee", "user_name");
+
+    let logDetail = `Edited issue: ${updatedIssue.name}`;
+    let metadata = { issue_id: updatedIssue._id };
+
+    if (
+      updateData.status &&
+      updateData.status.toString() !== oldStatus?.toString()
+    ) {
+      logDetail += ` (Status changed to ${updatedIssue.status?.name})`;
+      metadata.old_status = oldStatus;
+      metadata.new_status = updatedIssue.status?._id;
+    }
+
+    const newAssigneeId = updatedIssue.assignee ? updatedIssue.assignee._id.toString() : null;
+    const oldAssigneeId = oldAssignee ? oldAssignee.toString() : null;
+
+    if (updateData.hasOwnProperty('assignee') && newAssigneeId !== oldAssigneeId) {
+      if (updatedIssue.assignee) {
+         logDetail += ` (Assigned to ${updatedIssue.assignee.user_name})`;
+      } else {
+         logDetail += ` (Unassigned)`;
+      }
+      metadata.assignee = updatedIssue.assignee?._id;
+    }
+
+    saveLog(req, req.user, "EDIT_ISSUE", logDetail, metadata);
+
+    res.json(updatedIssue);
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // --- Delete Issue ---
 exports.deleteIssue = async (req, res) => {
   try {

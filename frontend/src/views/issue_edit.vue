@@ -433,7 +433,7 @@ export default {
                     payload.assignee = null;
                 }
 
-                await axios.put(import.meta.env.VITE_API_URL + `/issues/${this.issueId}`, payload, config);
+                await axios.put(import.meta.env.VITE_API_URL + `/issues/edit/${this.issueId}`, payload, config);
 
                 notification.success({
                     message: 'บันทึกสำเร็จ',

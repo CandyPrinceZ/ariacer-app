@@ -33,16 +33,18 @@
               </template>
             </a-input>
 
-            <a-select v-model:value="filterAction" placeholder="Filter Action" style="width: 140px" allow-clear
+            <a-select v-model:value="filterAction" placeholder="Filter Action" style="width: 160px" allow-clear
               size="small" class="modern-select">
               <a-select-option value="LOGIN">Login</a-select-option>
               <a-select-option value="LOGIN_FAILED">Login Failed</a-select-option>
-              <a-select-option value="UPDATE_USER">Update User</a-select-option>
-              <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
-              <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
-              <a-select-option value="CREATE_USER">Create User</a-select-option>
-              <a-select-option value="UPDATE_ISSUE">Update Issue</a-select-option>
               <a-select-option value="REGISTER">Register</a-select-option>
+              
+              <a-select-option value="CREATE_USER">Create User</a-select-option>
+              <a-select-option value="UPDATE_USER">Update User</a-select-option>
+              
+              <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
+              <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option> <a-select-option value="UPDATE_ISSUE">Update Status</a-select-option>
+              <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
             </a-select>
           </div>
         </div>
@@ -96,7 +98,9 @@
       <div class="metadata-content">
         <div class="meta-row">
           <span class="label">Action:</span>
-          <span class="value">{{ modal.data?.action }}</span>
+          <span class="value">
+             <a-tag :color="getActionColor(modal.data?.action)">{{ modal.data?.action }}</a-tag>
+          </span>
         </div>
         <div class="meta-row">
           <span class="label">Detail:</span>
@@ -179,14 +183,22 @@ export default {
         this.loading = false;
       }
     },
+    
+    // ✅ อัปเดต Logic สีตรงนี้
     getActionColor(action) {
+      if (!action) return 'default';
+      
       if (action.includes('DELETE')) return 'red';
-      if (action.includes('UPDATE')) return 'orange';
+      // รวม UPDATE และ EDIT ให้เป็นสีส้มเหมือนกัน (เพราะเป็นการแก้ไข)
+      if (action.includes('UPDATE') || action.includes('EDIT')) return 'orange';
       if (action.includes('CREATE') || action.includes('REGISTER')) return 'green';
+      
       if (action.includes('LOGIN_FAILED')) return 'volcano';
       if (action.includes('LOGIN')) return 'blue';
+      
       return 'default';
     },
+
     openMetadata(record) {
       this.modal.data = record;
       this.modal.visible = true;
@@ -310,7 +322,7 @@ export default {
 }
 
 .action-tag {
-  min-width: 90px;
+  min-width: 100px; /* เพิ่มความกว้างนิดหน่อยเผื่อชื่อยาว */
   text-align: center;
   border-radius: 4px;
   font-weight: 500;
@@ -360,11 +372,13 @@ export default {
   margin-bottom: 8px;
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
 .meta-row .label {
   font-weight: 600;
   color: #595959;
+  min-width: 60px;
 }
 
 .json-viewer {
