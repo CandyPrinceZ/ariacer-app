@@ -64,6 +64,11 @@ const router = createRouter({
           name: 'ImplementDetail',
           component: () => import('../views/implement_detail.vue'),
           meta: { roles: ['Administrator', 'Implement'] },
+        },
+        {
+          path: 'Issue/detail/:id',
+          name: 'IssueDetail',
+          component: () => import('../views/issue_detail.vue'),
         }
       ],
     },

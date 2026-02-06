@@ -36,9 +36,11 @@
             <a-select v-model:value="filterAction" placeholder="Filter Action" style="width: 140px" allow-clear
               size="small" class="modern-select">
               <a-select-option value="LOGIN">Login</a-select-option>
+              <a-select-option value="LOGIN_FAILED">Login Failed</a-select-option>
               <a-select-option value="UPDATE_USER">Update User</a-select-option>
               <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
               <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
+              <a-select-option value="CREATE_USER">Create User</a-select-option>
               <a-select-option value="UPDATE_ISSUE">Update Issue</a-select-option>
               <a-select-option value="REGISTER">Register</a-select-option>
             </a-select>
