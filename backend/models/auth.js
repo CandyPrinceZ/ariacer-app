@@ -6,6 +6,7 @@ const authSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     user_name: { type: String, required: true },
+    avatar: { type: String, required: false },
     user_id: { type: String, unique: true },
     role_name: { type: String, required: true },
     role_code: { type: String, required: true },

@@ -1,162 +1,312 @@
 <template>
-  <a-layout-sider v-model:collapsed="collapsed" collapsible :width="250" class="app-sider">
-    <div class="logo-container">
-      <img src="/CES_logo.png" alt="Logo" class="sidebar-logo" />
+  <a-drawer v-if="isMobile" placement="left" :closable="false" :open="mobileOpen" @close="closeMobileMenu" width="260"
+    :bodyStyle="{ padding: 0, background: '#001529' }" class="mobile-drawer-sider">
+    <div class="drawer-content">
+      <div class="logo-area">
+        <img src="/CES_logo.png" alt="Logo" class="logo-img" />
+        <span class="brand-text">Ariacer</span>
+        <a-button type="text" class="close-btn" @click="closeMobileMenu">
+          <CloseOutlined />
+        </a-button>
+      </div>
+      <AppMenu :selectedKeys="selectedKeys" @menuClick="handleMenuClick" />
+    </div>
+  </a-drawer>
+
+  <div v-if="isMobile" class="mobile-hamburger" @click="openMobileMenu">
+    <MenuUnfoldOutlined />
+  </div>
+
+  <a-layout-sider v-model:collapsed="collapsed" :trigger="null" collapsible :width="260"
+    :collapsedWidth="isMobile ? 0 : 80" breakpoint="lg" @breakpoint="onBreakpoint" class="desktop-sider"
+    :class="{ 'hidden-sider': isMobile && collapsed }">
+    <div class="logo-area" v-if="!isMobile || !collapsed">
+      <img src="/CES_logo.png" alt="Logo" class="logo-img" />
       <transition name="fade">
-        <h1 v-if="!collapsed" class="sidebar-title">Ariacer</h1>
+        <span v-if="!collapsed" class="brand-text">Ariacer</span>
       </transition>
     </div>
 
-    <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline" class="custom-menu">
-      
-      <a-menu-item key="dashboard">
-        <template #icon>
-          <DashboardOutlined />
-        </template>
-        <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
-      </a-menu-item>
+    <div class="menu-scroll-wrapper" v-if="!isMobile || !collapsed">
+      <AppMenu :selectedKeys="selectedKeys" />
+    </div>
 
-      <a-menu-item key="report-bug">
-        <template #icon>
-          <BugOutlined />
-        </template>
-        <router-link :to="{ name: 'report-bug' }">Report Issue</router-link>
-      </a-menu-item>
-
-      <a-menu-item key="development">
-        <template #icon>
-          <HddOutlined />
-        </template>
-        <router-link :to="{ name: 'development' }">Development</router-link>
-      </a-menu-item>
-
-      <a-menu-item key="Implement">
-        <template #icon>
-          <PieChartOutlined />
-        </template>
-        <router-link :to="{ name: 'Implement' }">Implementation</router-link>
-      </a-menu-item>
-
-      <a-menu-item key="usermanagement">
-        <template #icon>
-          <TeamOutlined />
-        </template>
-        <router-link :to="{ name: 'usermanagement' }">User Management</router-link>
-      </a-menu-item>
-
-      <a-menu-item key="system-logs">
-        <template #icon>
-          <SafetyCertificateOutlined />
-        </template>
-        <router-link :to="{ name: 'system-logs' }">System Logs</router-link>
-      </a-menu-item>
-
-    </a-menu>
-
+    <div v-if="!isMobile" class="sider-footer" @click="toggleCollapse">
+      <component :is="collapsed ? 'MenuUnfoldOutlined' : 'MenuFoldOutlined'" />
+    </div>
   </a-layout-sider>
 </template>
 
 <script>
-import { defineComponent, ref, watch } from 'vue';
+import { defineComponent, h, resolveComponent, ref, watch, } from 'vue';
 import { useRoute } from 'vue-router';
 import {
-  DashboardOutlined,
-  BugOutlined,
-  TeamOutlined,
-  HddOutlined,
-  PieChartOutlined,
-  SafetyCertificateOutlined // ✅ เพิ่มไอคอนนี้เข้ามา
+  DashboardOutlined, BugOutlined, TeamOutlined, SafetyCertificateOutlined,
+  FileProtectOutlined, CodeOutlined, DeploymentUnitOutlined,
+  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined
 } from '@ant-design/icons-vue';
 
+// --- Sub-Component: AppMenu (เมนูกลาง ใช้ร่วมกัน) ---
+const AppMenu = defineComponent({
+  props: ['selectedKeys'],
+  emits: ['menuClick'],
+  setup(props, { emit }) {
+    const isAdmin = localStorage.getItem('user_role') === 'Administrator';
+
+    return () => h(resolveComponent('a-menu'), {
+      selectedKeys: props.selectedKeys,
+      theme: 'dark',
+      mode: 'inline',
+      class: 'custom-ant-menu',
+      onClick: () => emit('menuClick')
+    }, () => [
+      h('div', { class: 'menu-group-title' }, 'GENERAL'),
+      h(resolveComponent('a-menu-item'), { key: 'dashboard' }, {
+        icon: () => h(DashboardOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'dashboard' } }, () => 'Dashboard')
+      }),
+      h(resolveComponent('a-menu-item'), { key: 'report-bug' }, {
+        icon: () => h(BugOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'report-bug' } }, () => 'Report Issue')
+      }),
+
+      h('div', { class: 'menu-divider' }),
+
+      h('div', { class: 'menu-group-title' }, 'DEV TOOLS'),
+      h(resolveComponent('a-menu-item'), { key: 'development' }, {
+        icon: () => h(CodeOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'development' } }, () => 'Development')
+      }),
+      h(resolveComponent('a-menu-item'), { key: 'Implement' }, {
+        icon: () => h(DeploymentUnitOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'Implement' } }, () => 'Implementation')
+      }),
+
+      ...(isAdmin ? [
+        h('div', { class: 'menu-divider' }),
+        h('div', { class: 'menu-group-title' }, 'ADMINISTRATION'),
+        h(resolveComponent('a-menu-item'), { key: 'IssueManagement' }, {
+          icon: () => h(FileProtectOutlined),
+          default: () => h(resolveComponent('router-link'), { to: { name: 'IssueManagement' } }, () => 'Issue Management')
+        }),
+        h(resolveComponent('a-menu-item'), { key: 'usermanagement' }, {
+          icon: () => h(TeamOutlined),
+          default: () => h(resolveComponent('router-link'), { to: { name: 'usermanagement' } }, () => 'User Management')
+        }),
+        h(resolveComponent('a-menu-item'), { key: 'system-logs' }, {
+          icon: () => h(SafetyCertificateOutlined),
+          default: () => h(resolveComponent('router-link'), { to: { name: 'system-logs' } }, () => 'System Logs')
+        }),
+      ] : [])
+    ]);
+  }
+});
+
+// --- Main Sidebar Component ---
 export default defineComponent({
-  name: 'SideBar',
+  name: 'AppSidebar',
   components: {
-    DashboardOutlined,
-    BugOutlined,
-    TeamOutlined,
-    HddOutlined,
-    PieChartOutlined,
-    SafetyCertificateOutlined // ✅ Register Component
+    AppMenu,
+    MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined
   },
   setup() {
     const route = useRoute();
     const collapsed = ref(false);
+    const mobileOpen = ref(false);
     const selectedKeys = ref([]);
+    const isMobile = ref(false);
 
-    // Watch Route เพื่อเปลี่ยนสีเมนูให้ตรงหน้า
+    // 1. Ant Design Breakpoint Listener (แม่นยำที่สุด)
+    const onBreakpoint = (broken) => {
+      isMobile.value = broken;
+      if (broken) {
+        collapsed.value = true; // ถ้าเป็นมือถือ ให้พับ Sider ทันที (Width จะเป็น 0)
+      } else {
+        collapsed.value = false; // ถ้าเป็น Desktop ให้กางออก
+      }
+    };
+
+    const openMobileMenu = () => { mobileOpen.value = true; };
+    const closeMobileMenu = () => { mobileOpen.value = false; };
+    const handleMenuClick = () => {
+      if (isMobile.value) closeMobileMenu();
+    };
+    const toggleCollapse = () => { collapsed.value = !collapsed.value; };
+
     watch(
       () => route.name,
-      (newRouteName) => {
-        if (newRouteName) {
-          selectedKeys.value = [newRouteName];
-        }
-      },
+      (val) => { if (val) selectedKeys.value = [val]; },
       { immediate: true }
     );
 
     return {
-      collapsed,
-      selectedKeys,
+      collapsed, mobileOpen, selectedKeys, isMobile,
+      openMobileMenu, closeMobileMenu, handleMenuClick, toggleCollapse, onBreakpoint
     };
-  },
+  }
 });
 </script>
 
 <style scoped>
-.app-sider {
-  background: #111827 !important;
-  box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+/* --- DESKTOP SIDER --- */
+.desktop-sider {
+  background: #001529;
+  background: linear-gradient(180deg, #001529 0%, #000c17 100%);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
   z-index: 10;
+  overflow: hidden;
 }
 
-.logo-container {
-  height: 64px;
+/* 🔥 KEY FIX: เมื่อเป็นมือถือและพับอยู่ ให้ซ่อน Sider ไปเลย ไม่กินพื้นที่ */
+.hidden-sider {
+  position: absolute;
+  /* หลบออกจาก Flow */
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  flex: 0 0 0 !important;
+  overflow: hidden;
+}
+
+/* --- MOBILE HAMBURGER --- */
+.mobile-hamburger {
+  position: fixed;
+  top: 18px;
+  /* ปรับตำแหน่งให้ตรงกับ Header */
+  left: 18px;
+  z-index: 1000;
+  /* อยู่บนสุด */
+  width: 40px;
+  height: 40px;
+  background: #001529;
+  color: #fff;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  margin-bottom: 8px;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.sidebar-logo {
-  height: 32px;
-  width: auto;
-  margin: 0 10px;
-}
-
-.sidebar-title {
-  color: white;
   font-size: 20px;
-  font-weight: 600;
-  margin: 0;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
 }
 
-/* Override Ant Design Styles for Dark Theme */
-:deep(.ant-layout-sider-children),
-:deep(.ant-menu.ant-menu-dark),
-:deep(.ant-menu-dark .ant-menu-sub),
-:deep(.ant-menu.ant-menu-dark .ant-menu-sub) {
-  background: #141b2d !important;
+.mobile-hamburger:active {
+  transform: scale(0.95);
 }
 
-:deep(.ant-layout-sider-trigger) {
-  background: #111827 !important;
+/* --- LOGO --- */
+.logo-area {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-:deep(.ant-menu-dark .ant-menu-item:hover) {
-  background: rgba(255, 255, 255, 0.08) !important;
+.logo-img {
+  height: 32px;
+  width: 32px;
+  object-fit: contain;
+  margin-right: 12px;
 }
 
-:deep(.ant-menu-dark .ant-menu-item-selected) {
-  background: linear-gradient(90deg, #3e34ff, #69247C) !important;
-  color: white !important;
+.brand-text {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-family: 'Segoe UI', sans-serif;
 }
 
+.close-btn {
+  color: #fff;
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.close-btn:hover {
+  color: #ff4d4f;
+}
+
+/* --- MENU --- */
+:deep(.custom-ant-menu) {
+  background: transparent;
+  border-right: none;
+}
+
+:deep(.menu-group-title) {
+  padding: 16px 0 8px 24px;
+  font-size: 11px;
+  color: #5c6b7f;
+  font-weight: 800;
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+.ant-layout-sider-collapsed :deep(.menu-group-title) {
+  display: none;
+}
+
+:deep(.menu-divider) {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 8px 16px;
+}
+
+:deep(.ant-menu-item) {
+  margin: 4px 8px !important;
+  width: auto !important;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+:deep(.ant-menu-item-selected) {
+  background-color: #1890ff !important;
+  color: #fff !important;
+  font-weight: 500;
+}
+
+/* --- SCROLL AREA --- */
+.menu-scroll-wrapper {
+  height: calc(100vh - 64px - 48px);
+  overflow-y: auto;
+}
+
+.menu-scroll-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+/* --- FOOTER --- */
+.sider-footer {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.sider-footer:hover {
+  background: #1890ff;
+}
+
+/* Transition */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity 0.2s;
 }
 
 .fade-enter-from,

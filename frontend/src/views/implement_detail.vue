@@ -59,7 +59,12 @@
                                         </div>
                                     </div>
                                     <div v-if="issue.tester" class="alert-meta">
-                                        <UserOutlined /> ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
+                                        <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
+                                            <span v-if="!issue.tester.avatar">{{
+                                                issue.tester.user_name?.[0]?.toUpperCase()
+                                                }}</span>
+                                        </a-avatar>
+                                        ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -162,12 +167,14 @@
                             <a-card :bordered="false" class="main-card side-card mb-3">
                                 <h4 class="side-title">Responsible Developer</h4>
                                 <div class="dev-profile">
-                                    <a-avatar :size="40" style="background-color: #3b82f6;">
-                                        {{ (issue.assignee?.user_name || 'D')[0]?.toUpperCase() }}
+                                    <a-avatar :size="40" :src="issue.assignee?.avatar"
+                                        :style="{ backgroundColor: !issue.assignee?.avatar ? stringToColor(issue.assignee?.user_name) : 'transparent' }">
+                                        <span v-if="!issue.assignee?.avatar">{{ (issue.assignee?.user_name || 'U')[0]
+                                            }}</span>
                                     </a-avatar>
                                     <div class="dev-details">
                                         <h4 class="dev-name text-ellipsis">{{ issue.assignee?.user_name || 'Unassigned'
-                                        }}</h4>
+                                            }}</h4>
                                         <span class="dev-role">Developer</span>
                                     </div>
                                 </div>
@@ -183,7 +190,7 @@
                                     <div class="info-row">
                                         <span class="label">Urgency</span>
                                         <a-tag :color="issue.urgency?.color" class="tag-pill">{{ issue.urgency?.name
-                                        }}</a-tag>
+                                            }}</a-tag>
                                     </div>
                                 </div>
                             </a-card>
@@ -202,7 +209,7 @@ import axios from 'axios';
 import {
     ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
     CloudUploadOutlined, ExperimentOutlined, CheckCircleFilled, CloseCircleFilled,
-    PaperClipOutlined, UserOutlined, CloseCircleOutlined
+    PaperClipOutlined, CloseCircleOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload } from 'ant-design-vue';
 
@@ -220,7 +227,7 @@ export default {
     components: {
         ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
         CloudUploadOutlined, ExperimentOutlined, PaperClipOutlined,
-        CheckCircleFilled, CloseCircleFilled, UserOutlined, CloseCircleOutlined
+        CheckCircleFilled, CloseCircleFilled, CloseCircleOutlined
     },
     data() {
         return {
@@ -265,6 +272,13 @@ export default {
                 return Upload.LIST_IGNORE;
             }
             return false;
+        },
+        stringToColor(str) {
+            if (!str) return '#3b82f6';
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            return '#' + '00000'.substring(0, 6 - c.length) + c;
         },
         async getAuthProfile() {
             try {

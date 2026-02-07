@@ -19,14 +19,29 @@
                     <a-card :bordered="false" class="main-card profile-card" :bodyStyle="{ padding: 0 }">
                         <div class="profile-cover"></div>
                         <div class="profile-body">
+
                             <div class="avatar-container">
-                                <a-avatar :size="100" class="user-avatar"
-                                    :style="{ backgroundColor: getAvatarColor(user.username), fontSize: '40px' }">
-                                    <template #icon v-if="!user.user_name">
-                                        <UserOutlined />
-                                    </template>
-                                    <span>{{ getInitial(user.user_name) }}</span>
-                                </a-avatar>
+                                <a-upload name="avatar" list-type="picture-card" class="avatar-uploader"
+                                    :show-upload-list="false" :before-upload="beforeUpload"
+                                    :customRequest="handleUpload" :disabled="uploadLoading">
+                                    <div class="avatar-wrapper">
+                                        <a-avatar :size="100" class="user-avatar" :src="user.avatar"
+                                            :style="{ backgroundColor: getAvatarColor(user.username), fontSize: '40px' }">
+                                            <template #icon v-if="!user.avatar && !user.user_name">
+                                                <UserOutlined />
+                                            </template>
+                                            <span v-if="!user.avatar">{{ getInitial(user.user_name) }}</span>
+                                        </a-avatar>
+
+                                        <div class="avatar-overlay">
+                                            <loading-outlined v-if="uploadLoading"
+                                                style="font-size: 24px; color: white" />
+                                            <camera-outlined v-else style="font-size: 24px; color: white" />
+                                            <span v-if="!uploadLoading"
+                                                style="font-size: 12px; color: white; margin-top: 4px;">Change</span>
+                                        </div>
+                                    </div>
+                                </a-upload>
                             </div>
 
                             <div class="user-info">
@@ -175,11 +190,18 @@
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import dayjs from 'dayjs';
-import { UserOutlined, IdcardOutlined, CalendarOutlined, LockOutlined } from '@ant-design/icons-vue';
+import {
+    UserOutlined, IdcardOutlined, CalendarOutlined, LockOutlined,
+    CameraOutlined, LoadingOutlined // ✅ เพิ่มไอคอน
+} from '@ant-design/icons-vue';
+import { message } from 'ant-design-vue';
 
 export default {
     name: 'MyProfile',
-    components: { UserOutlined, IdcardOutlined, CalendarOutlined, LockOutlined },
+    components: {
+        UserOutlined, IdcardOutlined, CalendarOutlined, LockOutlined,
+        CameraOutlined, LoadingOutlined
+    },
     data() {
         const validatePass2 = async (_rule, value) => {
             if (value === '') return Promise.reject('กรุณายืนยันรหัสผ่านใหม่');
@@ -189,8 +211,9 @@ export default {
 
         return {
             loading: false,
+            uploadLoading: false, // ✅ สถานะอัปโหลดรูป
             activeTab: 'general',
-            user: { user_name: '', username: '', role_name: '', role_code: '', user_id: '', createdAt: null },
+            user: { user_name: '', username: '', role_name: '', role_code: '', user_id: '', createdAt: null, avatar: '' },
             formProfile: { user_name: '' },
             formPassword: { currentPassword: '', newPassword: '', confirmPassword: '' },
             passwordRules: {
@@ -202,6 +225,7 @@ export default {
     },
     async mounted() { await this.fetchProfile(); },
     methods: {
+        // --- 1. Fetch Profile ---
         async fetchProfile() {
             try {
                 const token = localStorage.getItem('token');
@@ -213,6 +237,61 @@ export default {
                 if (error.response?.status === 401) { localStorage.removeItem('token'); this.$router.push('/login'); }
             }
         },
+
+        // --- 2. Upload Avatar Logic (New) ---
+        beforeUpload(file) {
+            const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+            if (!isJpgOrPng) {
+                message.error('อัปโหลดได้เฉพาะไฟล์ JPG/PNG เท่านั้น!');
+            }
+            const isLt5M = file.size / 1024 / 1024 < 5;
+            if (!isLt5M) {
+                message.error('ขนาดไฟล์ต้องไม่เกิน 5MB!');
+            }
+            return isJpgOrPng && isLt5M;
+        },
+
+        async handleUpload({ file }) {
+            this.uploadLoading = true;
+            try {
+                const token = localStorage.getItem('token');
+
+                // 2.1 Get Discord Webhook URL from backend
+                // (สมมติว่า backend มี endpoint นี้ ถ้าไม่มีคุณอาจต้อง hardcode หรือใช้วิธีอื่น)
+                const configRes = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const webhookUrl = configRes.data.url;
+
+                if (!webhookUrl) throw new Error("Webhook URL not found");
+
+                // 2.2 Upload to Discord
+                const formData = new FormData();
+                formData.append('file', file);
+                const discordRes = await axios.post(webhookUrl, formData);
+
+                const newAvatarUrl = discordRes.data.attachments[0].url;
+
+                // 2.3 Update Avatar in Backend
+                const updateRes = await axios.put(
+                    import.meta.env.VITE_API_URL + '/auth/update-avatar',
+                    { avatar: newAvatarUrl },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                // 2.4 Update Local State
+                this.user.avatar = updateRes.data.avatar; // หรือ newAvatarUrl
+                message.success('อัปโหลดรูปโปรไฟล์สำเร็จ!');
+
+            } catch (error) {
+                console.error(error);
+                message.error('อัปโหลดรูปภาพไม่สำเร็จ');
+            } finally {
+                this.uploadLoading = false;
+            }
+        },
+
+        // --- 3. Update Text Profile ---
         async updateProfile() {
             if (!this.formProfile.user_name) { Swal.fire('Warning', 'กรุณาระบุชื่อ', 'warning'); return; }
             this.loading = true;
@@ -225,6 +304,8 @@ export default {
                 Swal.fire('Error', error.response?.data?.message || 'บันทึกไม่สำเร็จ', 'error');
             } finally { this.loading = false; }
         },
+
+        // --- 4. Update Password ---
         updatePassword() {
             this.$refs.passwordForm.validate().then(async () => {
                 this.loading = true;
@@ -241,6 +322,8 @@ export default {
                 } finally { this.loading = false; }
             }).catch(() => { });
         },
+
+        // --- Helpers ---
         getInitial(name) { return name ? name.charAt(0).toUpperCase() : '?'; },
         getAvatarColor(username) {
             const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff', '#52c41a'];
@@ -253,6 +336,65 @@ export default {
 </script>
 
 <style scoped>
+/* CSS เพิ่มเติมสำหรับ Avatar Upload */
+.avatar-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+/* ซ่อนกรอบสี่เหลี่ยมเดิมของ upload */
+:deep(.avatar-uploader .ant-upload) {
+    width: auto !important;
+    height: auto !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.avatar-wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.user-avatar {
+    width: 100%;
+    height: 100%;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: filter 0.3s;
+}
+
+/* Effect ตอนเอาเมาส์ชี้ */
+.avatar-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border-radius: 50%;
+    border: 4px solid transparent;
+    /* เพื่อให้ขนาดเท่ากับ avatar */
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+
+/* ... (CSS ส่วนอื่นๆ เหมือนเดิม) ... */
+
 /* 1. Compact Header */
 .compact-header {
     background: #fff;
@@ -319,11 +461,6 @@ export default {
     padding: 0 24px 32px;
     text-align: center;
     margin-top: -50px;
-}
-
-.user-avatar {
-    border: 4px solid #fff;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .user-info {

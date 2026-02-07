@@ -81,8 +81,14 @@
                       style="width: 100%;">
                       <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id" :label="dev.user_name">
                         <div class="dev-option-item">
-                          <a-avatar size="small" :style="{ backgroundColor: stringToColor(dev.user_name) }">
-                            {{ dev.user_name?.[0]?.toUpperCase() }}
+                          <a-avatar size="small" :src="dev.avatar" :style="{
+                            backgroundColor: dev.avatar ? 'transparent' : stringToColor(dev.user_name),
+                            fontSize: '12px',
+                            border: dev.avatar ? '1px solid #f0f0f0' : 'none'
+                          }">
+                            <span v-if="!dev.avatar">
+                              {{ dev.user_name?.[0]?.toUpperCase() }}
+                            </span>
                           </a-avatar>
                           <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name }}</span>
                         </div>
@@ -128,20 +134,37 @@
                 </div>
               </a-card>
 
-              <a-card :bordered="false" class="main-card side-card" bodyStyle="padding: 16px;">
-                <div class="reporter-info" v-if="Authprofile">
-                  <a-avatar size="small" style="background-color: #87d068; margin-right: 8px;">
-                    <UserOutlined />
+              <a-card :bordered="false" class="main-card side-card" :bodyStyle="{ padding: '20px' }">
+
+                <div class="reporter-info" v-if="Authprofile"
+                  style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+
+                  <a-avatar size="large" :src="Authprofile.avatar" :style="{
+                    backgroundColor: Authprofile.avatar ? 'transparent' : stringToColor(Authprofile.user_name),
+                    border: Authprofile.avatar ? '1px solid #f0f0f0' : 'none',
+                    flexShrink: 0
+                  }">
+                    <span v-if="!Authprofile.avatar && Authprofile.user_name">
+                      {{ Authprofile.user_name[0]?.toUpperCase() }}
+                    </span>
+                    <UserOutlined v-else-if="!Authprofile.avatar" />
                   </a-avatar>
-                  <div class="reporter-text">
-                    <span style="font-size: 11px; color: #888;">ผู้แจ้ง</span>
-                    <strong style="display: block; line-height: 1;">{{ Authprofile.user_name || 'Unknown' }}</strong>
+
+                  <div style="display: flex; flex-direction: column; line-height: 1.3;">
+                    <span style="font-size: 12px; color: #8c8c8c;">ผู้แจ้ง (Reporter)</span>
+                    <span style="font-size: 15px; font-weight: 600; color: #262626;">
+                      {{ Authprofile.user_name || 'ไม่ระบุตัวตน' }}
+                    </span>
                   </div>
+
                 </div>
+
+                <a-divider style="margin: 0 0 16px 0;" />
 
                 <a-button type="primary" block size="large" class="submit-btn" :loading="submitting" @click="onSubmit">
                   <SendOutlined /> ส่งแจ้งปัญหา
                 </a-button>
+
               </a-card>
 
             </div>

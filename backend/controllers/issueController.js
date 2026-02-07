@@ -73,9 +73,9 @@ exports.getIssues = async (req, res) => {
       .populate("type", "name code")
       .populate("urgency", "name color code")
       .populate("status", "name code")
-      .populate("tester", "username user_name role_name")
-      .populate("reporter", "username user_name role_name")
-      .populate("assignee", "username user_name role_name")
+      .populate("tester", "username user_name role_name avatar")
+      .populate("reporter", "username user_name role_name avatar")
+      .populate("assignee", "username user_name role_name avatar")
       .sort({ createdAt: -1 });
 
     res.json(issues);
@@ -96,9 +96,9 @@ exports.getIssueById = async (req, res) => {
         .populate("type")
         .populate("urgency")
         .populate("status")
-        .populate("reporter", "username user_name role_name")
-        .populate("assignee", "username user_name role_name")
-        .populate("tester", "username user_name role_name");
+        .populate("reporter", "username user_name role_name avatar")
+        .populate("assignee", "username user_name role_name avatar")
+        .populate("tester", "username user_name role_name avatar");
     }
 
     // ถ้าไม่เจอ หรือไม่ใช่ ObjectId ให้หาด้วย id (Custom ID)
@@ -107,9 +107,9 @@ exports.getIssueById = async (req, res) => {
         .populate("type")
         .populate("urgency")
         .populate("status")
-        .populate("reporter", "username user_name role_name")
-        .populate("assignee", "username user_name role_name")
-        .populate("tester", "username user_name role_name");
+        .populate("reporter", "username user_name role_name avatar")
+        .populate("assignee", "username user_name role_name avatar")
+        .populate("tester", "username user_name role_name avatar");
     }
 
     if (!issue) {
@@ -131,8 +131,8 @@ exports.getIssuesByAssignee = async (req, res) => {
       .populate("type", "name code")
       .populate("urgency", "name color code")
       .populate("status", "name code") // ต้อง populate เพื่อเช็ค code ด้านล่าง
-      .populate("reporter", "username user_name role_name")
-      .populate("assignee", "username user_name role_name")
+      .populate("reporter", "username user_name role_name avatar")
+      .populate("assignee", "username user_name role_name avatar")
       .sort({ createdAt: -1 });
 
     // Filter งานที่ยังไม่เสร็จ (Success) ออก
@@ -224,9 +224,9 @@ exports.getIssuesforTester = async (req, res) => {
       .populate("type", "name code")
       .populate("urgency", "name color code")
       .populate("status", "name code")
-      .populate("reporter", "username user_name role_name")
-      .populate("assignee", "username user_name role_name")
-      .populate("tester", "username user_name role_name")
+      .populate("reporter", "username user_name role_name avatar")
+      .populate("assignee", "username user_name role_name avatar")
+      .populate("tester", "username user_name role_name avatar")
       .sort({ updatedAt: -1 });
 
     res.json(issues);
@@ -240,9 +240,9 @@ exports.getUnassignedIssues = async (req, res) => {
   try {
     const issues = await Issue.find({ assignee: null })
       .populate("type", "name code")
-      .populate("urgency", "name color")
+      .populate("urgency", "name color code")
       .populate("status", "name code")
-      .populate("reporter", "username user_name role_name")
+      .populate("reporter", "username user_name role_name avatar")
       .sort({ createdAt: -1 });
 
     res.json(issues);

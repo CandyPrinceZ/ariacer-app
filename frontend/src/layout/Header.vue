@@ -1,45 +1,51 @@
 <template>
-  <a-layout-header class="header-container">
+  <a-layout-header class="modern-header">
 
     <div class="header-left">
-      <router-link to="/dashboard" class="logo-link">
-        <span class="app-title">Ariacer System</span>
+      <router-link to="/dashboard" class="brand-link">
+        <span class="brand-text">Ariacer <span class="highlight">System</span></span>
       </router-link>
     </div>
 
     <div class="header-right">
-      <a-dropdown :trigger="['click']">
-        <div class="user-profile-trigger">
-          
-          <a-avatar size="large" class="user-avatar">
-            <template #icon v-if="!username">
-              <UserOutlined />
-            </template>
-            <span>{{ username.charAt(0).toUpperCase() }}</span>
-          </a-avatar>
+      <a-dropdown :trigger="['click']" placement="bottomRight" overlayClassName="custom-dropdown-overlay">
+        <div class="user-profile-card">
 
-          <div class="user-info">
-            <span class="username">{{ username || 'Guest' }}</span>
-            <a-tag color="blue" class="role-tag" v-if="userrole">
-              {{ userrole.toUpperCase() }}
-            </a-tag>
+          <div class="user-details">
+            <span class="user-name">{{ username || 'Guest' }}</span>
+            <span class="user-role-text">{{ userrole || 'Visitor' }}</span>
           </div>
 
-          <DownOutlined class="dropdown-icon" />
+          <a-avatar size="large" class="user-avatar" :src="useravatar"
+            :style="{ backgroundColor: !useravatar ? stringToColor(username) : 'transparent' }">
+            <span v-if="!useravatar && username">{{ username.charAt(0).toUpperCase() }}</span>
+            <UserOutlined v-else-if="!useravatar" />
+          </a-avatar>
+
+          <DownOutlined class="dropdown-arrow" />
         </div>
 
         <template #overlay>
-          <a-menu class="custom-dropdown-menu">
-            <div class="dropdown-header">
-              <p>Signed in as <strong>{{ username }}</strong></p>
+          <a-menu class="styled-dropdown-menu">
+            <div class="menu-header-info">
+              <div class="info-content">
+                <p class="info-name">{{ username }}</p>
+                <p class="info-email">Logged in as {{ userrole }}</p>
+              </div>
             </div>
+
             <a-menu-divider />
-            <a-menu-item key="1">
-              <UserOutlined /> <router-link :to="{ name: 'profile' }">My Profile</router-link>
+
+            <a-menu-item key="1" class="menu-item-custom">
+              <router-link :to="{ name: 'profile' }">
+                <UserOutlined /> <span>My Profile</span>
+              </router-link>
             </a-menu-item>
+
             <a-menu-divider />
-            <a-menu-item key="2" danger @click="handleLogout">
-              <LogoutOutlined /> Logout
+
+            <a-menu-item key="2" danger class="menu-item-custom" @click="handleLogout">
+              <LogoutOutlined /> <span>Sign Out</span>
             </a-menu-item>
           </a-menu>
         </template>
@@ -51,15 +57,15 @@
 
 <script>
 import axios from 'axios';
-import { 
-  UserOutlined, 
-  DownOutlined, 
-  LogoutOutlined, 
+import {
+  UserOutlined,
+  DownOutlined,
+  LogoutOutlined,
 } from '@ant-design/icons-vue';
 import Swal from 'sweetalert2';
 
 export default {
-  name: 'HeadersLayout',
+  name: 'AppHeader',
   components: {
     UserOutlined,
     DownOutlined,
@@ -69,13 +75,23 @@ export default {
     return {
       userdata: null,
       username: '',
-      userrole: ''
+      userrole: '',
+      useravatar: '' // ✅ เพิ่มตัวแปรเก็บ Avatar URL
     };
   },
   async mounted() {
     await this.fetchUserProfile();
   },
   methods: {
+    stringToColor(str) {
+      if (!str) return '#1890ff';
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+      return '#' + '00000'.substring(0, 6 - c.length) + c;
+    },
     handleLogout() {
       Swal.fire({
         title: 'Sign Out?',
@@ -102,10 +118,11 @@ export default {
           headers: { Authorization: `Bearer ${token}` },
         };
         const response = await axios.get(import.meta.env.VITE_API_URL + '/auth/profile', config);
-        
+
         this.userdata = response.data;
-        this.username = this.userdata.user_name || 'Unknown User'; 
+        this.username = this.userdata.user_name || 'Unknown User';
         this.userrole = this.userdata.role_name || 'User';
+        this.useravatar = this.userdata.avatar || ''; // ✅ ดึง avatar จาก API
 
       } catch (error) {
         console.error('Failed to fetch user profile:', error);
@@ -116,119 +133,155 @@ export default {
 </script>
 
 <style scoped>
-.header-container {
+/* Main Header Container */
+.modern-header {
   background: #ffffff;
-  padding: 0 24px;
+  padding: 0 32px;
+  height: 72px;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  height: 64px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* เงานุ่มขึ้น */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   position: relative;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-}
-
-.logo-link {
-  display: flex;
-  align-items: center;
-  text-decoration: none;
-  gap: 12px;
-}
-
-.logo-img {
-  height: 36px;
-  width: auto;
-  border-radius: 6px;
-}
-
-.app-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f1f1f;
-  letter-spacing: -0.5px; 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.user-profile-trigger {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 30px;
+  z-index: 50;
   transition: all 0.3s ease;
-  background-color: transparent;
+}
+
+/* Left Side Styling */
+.brand-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+
+.highlight {
+  color: #3b82f6;
+}
+
+/* Right Side Styling */
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 6px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   border: 1px solid transparent;
 }
 
-.user-profile-trigger:hover {
-  background-color: #f5f5f5;
-  border-color: #e8e8e8;
+.user-profile-card:hover {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: #334155;
+}
+
+.user-role-text {
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .user-avatar {
-  background-color: #1890ff;
-  font-weight: 600;
-  font-size: 16px;
-  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.2);
-}
-
-.user-info {
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-left: 12px;
-  margin-right: 8px;
-  line-height: 1.2;
+  align-items: center;
+  justify-content: center;
 }
 
-.username {
-  font-weight: 600;
-  font-size: 14px;
-  color: #262626;
+.user-profile-card:hover .user-avatar {
+  transform: scale(1.05);
 }
 
-.role-tag {
-  margin: 0;
-  margin-top: 2px;
+.dropdown-arrow {
   font-size: 10px;
-  line-height: 14px;
-  padding: 0 6px;
-  border-radius: 4px;
-  border: none;
-}
-
-.dropdown-icon {
-  font-size: 12px;
-  color: #8c8c8c;
+  color: #94a3b8;
   margin-left: 4px;
 }
 
-.custom-dropdown-menu {
-  padding: 8px 0;
+/* Dropdown Menu Styling */
+:deep(.styled-dropdown-menu) {
+  border-radius: 12px;
+  padding: 8px;
+  width: 240px;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.menu-header-info {
+  padding: 12px 16px;
+  background: #f8fafc;
   border-radius: 8px;
-  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 8px;
 }
 
-.dropdown-header {
-  padding: 8px 16px;
-  color: #595959;
-  font-size: 13px;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 4px;
+.info-name {
+  margin: 0;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 15px;
 }
 
-.dropdown-header strong {
-  color: #262626;
+.info-email {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.menu-item-custom {
+  border-radius: 6px;
+  margin: 2px 0;
+}
+
+.menu-item-custom a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .modern-header {
+    padding: 0 16px;
+    height: 64px;
+  }
+
+  .user-details {
+    display: none;
+  }
+
+  .user-profile-card {
+    padding: 4px;
+    gap: 0;
+  }
+
+  .dropdown-arrow {
+    display: none;
+  }
 }
 </style>

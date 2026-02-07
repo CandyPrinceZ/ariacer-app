@@ -38,12 +38,14 @@
               <a-select-option value="LOGIN">Login</a-select-option>
               <a-select-option value="LOGIN_FAILED">Login Failed</a-select-option>
               <a-select-option value="REGISTER">Register</a-select-option>
-              
+
               <a-select-option value="CREATE_USER">Create User</a-select-option>
               <a-select-option value="UPDATE_USER">Update User</a-select-option>
-              
+
               <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
-              <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option> <a-select-option value="UPDATE_ISSUE">Update Status</a-select-option>
+              <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option> <a-select-option
+                value="UPDATE_ISSUE">Update
+                Status</a-select-option>
               <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
             </a-select>
           </div>
@@ -56,10 +58,13 @@
 
             <template v-if="column.key === 'user'">
               <div class="user-cell">
-                <a-avatar :style="{ backgroundColor: stringToColor(record.user?.user_name), fontSize: '12px' }"
-                  size="small">
-                  {{ record.user?.user_name?.[0] || '?' }}
+                <a-avatar size="small" :src="record.user?.avatar"
+                  :style="{ backgroundColor: !record.user?.avatar ? stringToColor(record.user?.user_name) : 'transparent' }">
+                  <span v-if="!record.user?.avatar">
+                    {{ record.user?.user_name?.[0]?.toUpperCase() || '?' }}
+                  </span>
                 </a-avatar>
+
                 <div class="user-info">
                   <span class="username">{{ record.user?.user_name || 'System / Unknown' }}</span>
                   <span v-if="record.user?.role_name" class="role-text">{{ record.user.role_name }}</span>
@@ -99,7 +104,7 @@
         <div class="meta-row">
           <span class="label">Action:</span>
           <span class="value">
-             <a-tag :color="getActionColor(modal.data?.action)">{{ modal.data?.action }}</a-tag>
+            <a-tag :color="getActionColor(modal.data?.action)">{{ modal.data?.action }}</a-tag>
           </span>
         </div>
         <div class="meta-row">
@@ -183,19 +188,19 @@ export default {
         this.loading = false;
       }
     },
-    
+
     // ✅ อัปเดต Logic สีตรงนี้
     getActionColor(action) {
       if (!action) return 'default';
-      
+
       if (action.includes('DELETE')) return 'red';
       // รวม UPDATE และ EDIT ให้เป็นสีส้มเหมือนกัน (เพราะเป็นการแก้ไข)
       if (action.includes('UPDATE') || action.includes('EDIT')) return 'orange';
       if (action.includes('CREATE') || action.includes('REGISTER')) return 'green';
-      
+
       if (action.includes('LOGIN_FAILED')) return 'volcano';
       if (action.includes('LOGIN')) return 'blue';
-      
+
       return 'default';
     },
 
@@ -322,7 +327,8 @@ export default {
 }
 
 .action-tag {
-  min-width: 100px; /* เพิ่มความกว้างนิดหน่อยเผื่อชื่อยาว */
+  min-width: 100px;
+  /* เพิ่มความกว้างนิดหน่อยเผื่อชื่อยาว */
   text-align: center;
   border-radius: 4px;
   font-weight: 500;

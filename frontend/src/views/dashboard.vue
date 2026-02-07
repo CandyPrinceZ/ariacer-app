@@ -139,12 +139,21 @@
                 </template>
 
                 <template v-if="column.key === 'assignee'">
-                  <a-avatar v-if="record.assignee" size="small"
-                    :style="{ backgroundColor: stringToColor(record.assignee.user_name), fontSize: '12px' }"
-                    :title="record.assignee.user_name">
-                    {{ record.assignee.user_name?.[0]?.toUpperCase() }}
-                  </a-avatar>
-                  <span v-else class="text-muted">-</span>
+                  <div v-if="record.assignee">
+                    <a-tooltip :title="record.assignee.user_name">
+                      <a-avatar size="small" :src="record.assignee.avatar" :style="{
+                        backgroundColor: record.assignee.avatar ? 'transparent' : stringToColor(record.assignee.user_name),
+                        fontSize: '12px',
+                        border: record.assignee.avatar ? '1px solid #f0f0f0' : 'none'
+                      }">
+                        <span v-if="!record.assignee.avatar">
+                          {{ record.assignee.user_name?.[0]?.toUpperCase() }}
+                        </span>
+                      </a-avatar>
+
+                    </a-tooltip>
+                  </div>
+                  <span v-else class="text-muted" style="color: #bfbfbf;">-</span>
                 </template>
 
                 <template v-if="column.key === 'createdAt'">

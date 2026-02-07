@@ -21,7 +21,9 @@ exports.register = async (req, res) => {
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     const newUserObj = {
@@ -33,7 +35,7 @@ exports.register = async (req, res) => {
     };
 
     if (req.user) {
-        newUserObj.createdBy = req.user._id; 
+      newUserObj.createdBy = req.user._id;
     }
 
     const user = await Auth.create(newUserObj);
@@ -43,23 +45,22 @@ exports.register = async (req, res) => {
     let detail = "New user self-registered";
 
     if (req.user) {
-      actor = req.user; 
+      actor = req.user;
       action = "CREATE_USER";
       detail = `Admin (${req.user.user_name}) created user: ${user.username}`;
     }
 
-    saveLog(req, actor, action, detail, { 
+    saveLog(req, actor, action, detail, {
       new_user_id: user._id,
-      new_username: user.username 
+      new_username: user.username,
     });
 
     res.status(201).json({
       _id: user._id,
       user_id: user.user_id,
       username: user.username,
-      message: "User created successfully"
+      message: "User created successfully",
     });
-
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -83,7 +84,12 @@ exports.login = async (req, res) => {
         token: generateToken(user._id, user.role_name),
       });
     } else {
-      saveLog(req, null, "LOGIN_FAILED", `Failed login attempt for: ${username}`);
+      saveLog(
+        req,
+        null,
+        "LOGIN_FAILED",
+        `Failed login attempt for: ${username}`,
+      );
       res.status(401).json({ message: "Invalid username or password" });
     }
   } catch (error) {
@@ -155,8 +161,13 @@ exports.updateUserName = async (req, res) => {
     if (user) {
       user.user_name = user_name;
       const updatedUser = await user.save();
-      
-      saveLog(req, user, "UPDATE_USER_NAME", `Updated user name to: ${user_name}`);
+
+      saveLog(
+        req,
+        user,
+        "UPDATE_USER_NAME",
+        `Updated user name to: ${user_name}`,
+      );
 
       res.json({
         _id: updatedUser._id,
@@ -173,16 +184,48 @@ exports.updateUserName = async (req, res) => {
   }
 };
 
+exports.updateAvatar = async (req, res) => {
+  const { avatar } = req.body;
+
+  if (!avatar) {
+    return res.status(400).json({ message: "Avatar URL is required" });
+  }
+
+  try {
+    const user = await Auth.findById(req.user.id);
+
+    if (user) {
+      user.avatar = avatar;
+      await user.save();
+
+      res.json({
+        _id: user._id,
+        username: user.username,
+        avatar: user.avatar,
+        role: user.role,
+      });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // --- Update Password (User Own) ---
 exports.updatePassword = async (req, res) => {
   const { currentPassword, newPassword } = req.body;
 
   if (!currentPassword || !newPassword) {
-    return res.status(400).json({ message: "Please provide both current and new passwords" });
+    return res
+      .status(400)
+      .json({ message: "Please provide both current and new passwords" });
   }
 
   if (newPassword.length < 6) {
-    return res.status(400).json({ message: "New password must be at least 6 characters" });
+    return res
+      .status(400)
+      .json({ message: "New password must be at least 6 characters" });
   }
 
   try {
@@ -196,9 +239,9 @@ exports.updatePassword = async (req, res) => {
 
       user.password = newPassword;
       await user.save();
-      
+
       saveLog(req, user, "UPDATE_PASSWORD", "User updated their password");
-      
+
       res.json({ message: "Password updated successfully" });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -223,10 +266,14 @@ exports.updateUserByAdmin = async (req, res) => {
 
     if (role_code && role_code !== user.role_code) {
       const activeIssue = await Issue.findOne({
-        assignee: user._id, 
+        assignee: user._id,
       }).populate("status");
 
-      if (activeIssue && activeIssue.status && activeIssue.status.code !== "success") {
+      if (
+        activeIssue &&
+        activeIssue.status &&
+        activeIssue.status.code !== "success"
+      ) {
         return res.status(400).json({
           message: `Cannot change role. User has active issue: ${activeIssue.name}`,
         });
@@ -242,9 +289,15 @@ exports.updateUserByAdmin = async (req, res) => {
 
     const updatedUser = await user.save();
 
-    saveLog(req, req.user, "UPDATE_USER_BY_ADMIN", `Admin updated user: ${updatedUser.username}`, {
-      target_user_id: updatedUser._id
-    });
+    saveLog(
+      req,
+      req.user,
+      "UPDATE_USER_BY_ADMIN",
+      `Admin updated user: ${updatedUser.username}`,
+      {
+        target_user_id: updatedUser._id,
+      },
+    );
 
     res.json({
       _id: updatedUser._id,
@@ -274,14 +327,22 @@ exports.deleteUser = async (req, res) => {
 
     // ป้องกันการลบตัวเอง (เทียบ _id)
     if (req.user.id === userToDelete._id.toString()) {
-      return res.status(400).json({ message: "You cannot delete your own account" });
+      return res
+        .status(400)
+        .json({ message: "You cannot delete your own account" });
     }
 
     await Auth.findByIdAndDelete(userToDelete._id);
-    
-    saveLog(req, req.user, "DELETE_USER", `Admin deleted user: ${userToDelete.username}`, {
-       deleted_user_id: userToDelete.user_id 
-    });
+
+    saveLog(
+      req,
+      req.user,
+      "DELETE_USER",
+      `Admin deleted user: ${userToDelete.username}`,
+      {
+        deleted_user_id: userToDelete.user_id,
+      },
+    );
 
     res.json({ message: "User deleted successfully" });
   } catch (error) {

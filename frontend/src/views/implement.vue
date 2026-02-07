@@ -18,36 +18,45 @@
     </div>
 
     <div style="padding: 10px; width: 100%;">
-      
+
       <a-row :gutter="[10, 10]" class="fade-in-up" style="margin-bottom: 10px;">
         <a-col :xs="24" :sm="8">
           <a-card :bordered="false" class="stat-card icon-orange-bg">
             <a-statistic title="Ready to Test" :value="statReady">
-              <template #prefix><ExperimentOutlined /></template>
+              <template #prefix>
+                <ExperimentOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
         <a-col :xs="24" :sm="8">
           <a-card :bordered="false" class="stat-card icon-blue-bg">
             <a-statistic title="In Testing (My Tasks)" :value="statTesting">
-              <template #prefix><AuditOutlined /></template>
+              <template #prefix>
+                <AuditOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
         <a-col :xs="24" :sm="8">
           <a-card :bordered="false" class="stat-card icon-green-bg">
             <a-statistic title="Passed Today" :value="statPassed">
-              <template #prefix><CheckCircleOutlined /></template>
+              <template #prefix>
+                <CheckCircleOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
       </a-row>
 
-      <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }">
-        
+      <a-card :bordered="false" class="main-card"
+        :bodyStyle="{ padding: '0', display: 'flex', flexDirection: 'column', height: '100%' }">
+
         <div class="table-toolbar">
           <div class="toolbar-left">
-            <span class="section-title"><UnorderedListOutlined /> Testing Queue</span>
+            <span class="section-title">
+              <UnorderedListOutlined /> Testing Queue
+            </span>
           </div>
           <div class="toolbar-right">
             <a-radio-group v-model:value="filterMode" button-style="solid" size="small">
@@ -58,17 +67,10 @@
           </div>
         </div>
 
-        <a-table 
-          :dataSource="filteredTableData" 
-          :columns="columns" 
-          rowKey="_id" 
-          :pagination="{ pageSize: 10, showSizeChanger: false }" 
-          :loading="loading" 
-          size="middle"
-          :scroll="{ y: 'calc(100vh - 280px)' }" 
-          :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }"
-          class="qa-table"
-        >
+        <a-table :dataSource="filteredTableData" :columns="columns" rowKey="_id"
+          :pagination="{ pageSize: 10, showSizeChanger: false }" :loading="loading" size="middle"
+          :scroll="{ y: 'calc(100vh - 280px)' }" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }"
+          class="qa-table">
           <template #bodyCell="{ column, record }">
 
             <template v-if="column.key === 'id'">
@@ -82,7 +84,9 @@
                   <UserOutlined /> {{ record.assignee.user_name }}
                 </span>
                 <a-tooltip v-if="record.reporter" :title="'Reporter: ' + record.reporter.user_name">
-                  <span class="ml-2"><InfoCircleOutlined /></span>
+                  <span class="ml-2">
+                    <InfoCircleOutlined />
+                  </span>
                 </a-tooltip>
               </div>
             </template>
@@ -99,30 +103,22 @@
 
             <template v-if="column.key === 'urgency'">
               <a-tag :color="record.urgency?.color || 'default'" class="dot-tag">
-                <span class="dot" :style="{background: record.urgency?.color}"></span>
+                <span class="dot" :style="{ background: record.urgency?.color }"></span>
                 {{ record.urgency?.name }}
               </a-tag>
             </template>
 
             <template v-if="column.key === 'action'">
-              <a-button 
-                v-if="record.status?.code === 'upserver'" 
-                type="primary" 
-                size="small" 
-                class="action-btn start-btn"
-                @click="startTesting(record)"
-              >
-                Start <AuditOutlined />
+              <a-button v-if="record.status?.code === 'upserver'" type="primary" size="small"
+                class="action-btn start-btn" @click="startTesting(record)">
+                Start
+                <AuditOutlined />
               </a-button>
-              
-              <a-button 
-                v-else-if="record.status?.code === 'testing'" 
-                type="default" 
-                size="small"
-                class="action-btn continue-btn" 
-                @click="goToTestDetail(record._id)"
-              >
-                Continue <RightOutlined />
+
+              <a-button v-else-if="record.status?.code === 'testing'" type="default" size="small"
+                class="action-btn continue-btn" @click="goToTestDetail(record._id)">
+                Continue
+                <RightOutlined />
               </a-button>
             </template>
 
@@ -201,8 +197,8 @@ export default {
     },
     async fetchDropdownStatusOptions() {
       const token = localStorage.getItem('token');
-      const res = await axios.get(import.meta.env.VITE_API_URL + '/items/statuses', { 
-        headers: { Authorization: `Bearer ${token}` } 
+      const res = await axios.get(import.meta.env.VITE_API_URL + '/items/statuses', {
+        headers: { Authorization: `Bearer ${token}` }
       });
       this.statusOptions = res.data;
     },
@@ -232,8 +228,8 @@ export default {
         const token = localStorage.getItem('token');
         const testingStatus = this.statusOptions.find(s => s.code === 'testing');
         if (!testingStatus) {
-            message.error('ไม่พบสถานะ Testing ในระบบ');
-            return;
+          message.error('ไม่พบสถานะ Testing ในระบบ');
+          return;
         }
         await axios.put(import.meta.env.VITE_API_URL + `/issues/${record._id}`, {
           tester: this.authProfile._id,
@@ -261,33 +257,88 @@ export default {
   background: #fff;
   padding: 12px 16px;
   border-bottom: 1px solid #e0e0e0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   margin-bottom: 0;
 }
-.header-content { display: flex; justify-content: space-between; align-items: center; }
-.header-text { display: flex; flex-direction: column; }
-.page-title { margin: 0; font-size: 20px; font-weight: 600; color: #1f1f1f; display: flex; align-items: center; gap: 8px; }
-.page-subtitle { margin: 2px 0 0; color: #8c8c8c; font-size: 13px; }
-.icon-box { background: #e6f7ff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 18px; }
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f1f1f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-subtitle {
+  margin: 2px 0 0;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.icon-box {
+  background: #e6f7ff;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 18px;
+}
 
 /* 2. Stat Cards (Tight) */
 .stat-card {
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
   transition: all 0.2s;
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.08); }
 
-.icon-orange-bg :deep(.ant-statistic-title) { color: #fa8c16; font-size: 12px; margin-bottom: 4px; }
-.icon-blue-bg :deep(.ant-statistic-title) { color: #1890ff; font-size: 12px; margin-bottom: 4px; }
-.icon-green-bg :deep(.ant-statistic-title) { color: #52c41a; font-size: 12px; margin-bottom: 4px; }
-:deep(.ant-statistic-content) { font-size: 22px; font-weight: 700; }
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.icon-orange-bg :deep(.ant-statistic-title) {
+  color: #fa8c16;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.icon-blue-bg :deep(.ant-statistic-title) {
+  color: #1890ff;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.icon-green-bg :deep(.ant-statistic-title) {
+  color: #52c41a;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+:deep(.ant-statistic-content) {
+  font-size: 22px;
+  font-weight: 700;
+}
 
 /* 3. Main Card & Toolbar */
 .main-card {
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
   height: 100%;
 }
@@ -300,24 +351,106 @@ export default {
   border-bottom: 1px solid #f5f5f5;
   background: #fafafa;
 }
-.section-title { font-weight: 600; color: #1f1f1f; font-size: 14px; }
+
+.section-title {
+  font-weight: 600;
+  color: #1f1f1f;
+  font-size: 14px;
+}
 
 /* 4. Table Elements */
-.id-badge { background: #f5f5f5; color: #888; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; border: 1px solid #e8e8e8; font-family: monospace; }
-.task-name { font-weight: 500; color: #262626; font-size: 13px; margin-bottom: 2px; }
-.text-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
-.meta-info { font-size: 11px; color: #999; display: flex; align-items: center; }
-.ml-2 { margin-left: 8px; }
+.id-badge {
+  background: #f5f5f5;
+  color: #888;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #e8e8e8;
+}
 
-.status-tag { min-width: 90px; text-align: center; border-radius: 4px; font-weight: 500; font-size: 11px; border: none; }
-.dot-tag { border: none; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; margin: 0; }
-.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.task-name {
+  font-weight: 500;
+  color: #262626;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
 
-.action-btn { font-size: 12px; height: 28px; border-radius: 4px; }
-.start-btn { font-weight: 500; }
-.continue-btn { color: #1890ff; border-color: #1890ff; }
+.text-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.meta-info {
+  font-size: 11px;
+  color: #999;
+  display: flex;
+  align-items: center;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+.status-tag {
+  min-width: 90px;
+  text-align: center;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 11px;
+  border: none;
+}
+
+.dot-tag {
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  margin: 0;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.action-btn {
+  font-size: 12px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.start-btn {
+  font-weight: 500;
+}
+
+.continue-btn {
+  color: #1890ff;
+  border-color: #1890ff;
+}
 
 /* Animation */
-.fade-in-up { animation: fadeUp 0.5s ease-out forwards; opacity: 0; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in-up {
+  animation: fadeUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 </style>

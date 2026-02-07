@@ -10,7 +10,7 @@
                         </span>
                         แก้ไข: {{ originalName || 'Loading...' }}
                     </h2>
-                    <p class="page-subtitle">แก้ไขรายละเอียดข้อมูลและสถานะของปัญหา #{{ issueId }}</p>
+                    <p class="page-subtitle">แก้ไขรายละเอียดข้อมูล #{{ originalId }}</p>
                 </div>
 
                 <div class="header-actions">
@@ -96,9 +96,10 @@
                                             <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id"
                                                 :label="dev.user_name">
                                                 <div class="dev-option-item">
-                                                    <a-avatar size="small"
-                                                        :style="{ backgroundColor: stringToColor(dev.user_name) }">
-                                                        {{ dev.user_name?.[0]?.toUpperCase() }}
+                                                    <a-avatar size="small" :src="dev.avatar"
+                                                        :style="{ backgroundColor: !dev.avatar ? stringToColor(dev.user_name) : 'transparent' }">
+                                                        <span v-if="!dev.avatar">{{ dev.user_name?.[0]?.toUpperCase()
+                                                            }}</span>
                                                     </a-avatar>
                                                     <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name
                                                         }}</span>
@@ -124,6 +125,9 @@
                                 <div class="image-grid">
                                     <div class="img-item" v-for="(img, index) in existingImages" :key="index">
                                         <img :src="img.url" @click="openPreview(img.url)" />
+                                        <div class="img-overlay delete" @click.stop="removeExistingImage(index)">
+                                            <DeleteOutlined />
+                                        </div>
                                     </div>
                                 </div>
                             </a-card>
@@ -162,20 +166,19 @@
 
                             <a-card :bordered="false" class="main-card side-card" bodyStyle="padding: 16px;">
                                 <div class="reporter-info" v-if="originalReporter">
-                                    <a-avatar size="small" style="background-color: #faad14; margin-right: 8px;">
-                                        <UserOutlined />
+                                    <a-avatar size="small" :src="originalReporter.avatar" style="margin-right: 8px;"
+                                        :style="{ backgroundColor: !originalReporter.avatar ? stringToColor(originalReporter.user_name) : 'transparent' }">
+                                        <span v-if="!originalReporter.avatar">{{
+                                            originalReporter.user_name?.[0]?.toUpperCase()
+                                            }}</span>
                                     </a-avatar>
                                     <div class="reporter-text">
                                         <span style="font-size: 11px; color: #888;">ผู้แจ้งปัญหา (Reporter)</span>
                                         <strong style="display: block; line-height: 1;">{{ originalReporter.user_name ||
-                                            'Unknown' }}</strong>
+                                            'Unknown'
+                                            }}</strong>
                                     </div>
                                 </div>
-
-                                <a-button type="primary" block size="large" class="submit-btn" :loading="submitting"
-                                    @click="onSubmit">
-                                    <SaveOutlined /> บันทึกการแก้ไข
-                                </a-button>
                             </a-card>
 
                         </div>
@@ -195,7 +198,7 @@
 import axios from 'axios';
 import {
     EditOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-    DeleteOutlined, SaveOutlined, UserAddOutlined, UserOutlined, PictureOutlined
+    DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload, notification } from 'ant-design-vue';
 
@@ -203,7 +206,7 @@ export default {
     name: "IssueEdit",
     components: {
         EditOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-        DeleteOutlined, SaveOutlined, UserAddOutlined, UserOutlined, PictureOutlined
+        DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined
     },
     data() {
         return {
@@ -216,9 +219,12 @@ export default {
             issues: [],    // Issue Types
             urgencies: [], // Urgency Levels
             developers: [],
+
+            // Original Data from API
+            originalId: '',
             originalName: '',
             originalReporter: null,
-            existingImages: [], // เก็บรูปภาพเดิมที่มาจาก API
+            existingImages: [],
 
             // Upload State
             fileList: [],
@@ -237,7 +243,6 @@ export default {
         };
     },
     computed: {
-        // ✅ Logic เดียวกับ Report เพื่อให้ Dropdown เหมือนกัน
         issueTypeOptions() {
             return (this.issues || []).map((it) => ({
                 value: it._id, label: it.name,
@@ -264,11 +269,11 @@ export default {
     },
     async mounted() {
         this.issueId = this.$route.params.id;
-        await this.fetchDropdowns(); // ดึงตัวเลือกก่อน
-        await this.fetchIssueDetail(); // ดึงข้อมูล Issue มาใส่ Form
+        await this.fetchDropdowns();
+        await this.fetchIssueDetail();
     },
     methods: {
-        // --- Utility Methods (เหมือน Report) ---
+        // --- Utility Methods ---
         stringToColor(str) {
             if (!str) return '#1890ff';
             let hash = 0;
@@ -315,24 +320,30 @@ export default {
                 const config = { headers: { Authorization: `Bearer ${token}` } };
                 const response = await axios.get(import.meta.env.VITE_API_URL + `/issues/${this.issueId}`, config);
 
-                const data = response.data;
+                const data = response.data; // JSON Data ที่ได้จาก API
+
+                // Map ข้อมูลเข้าตัวแปร
+                this.originalId = data.id; // I0201
+                this.originalName = data.name;
+                this.originalReporter = data.reporter; // Object with avatar
+                this.existingImages = data.images || [];
 
                 // Map ข้อมูลเข้า Form
-                this.originalName = data.name;
                 this.form.title = data.name;
                 this.form.description = data.detail;
+
+                // ✅ Map Object -> ID สำหรับ Dropdown
                 this.form.bugType = data.type?._id;
                 this.form.priority = data.urgency?._id;
 
-                // Handle Assignee Switch
+                // ✅ Handle Assignee (Check if assignee exists)
                 if (data.assignee) {
                     this.form.isCustomDeveloper = true;
                     this.form.developer = data.assignee._id;
+                } else {
+                    this.form.isCustomDeveloper = false;
+                    this.form.developer = undefined;
                 }
-
-                // Handle Metadata
-                this.originalReporter = data.reporter;
-                this.existingImages = data.images || [];
 
             } catch (error) {
                 console.error(error);
@@ -343,7 +354,7 @@ export default {
             }
         },
 
-        // --- Upload Logic (เหมือน Report) ---
+        // --- Upload Logic ---
         beforeUpload(file) {
             const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
             if (!isImage) {
@@ -370,6 +381,10 @@ export default {
             if (file.thumbUrl) URL.revokeObjectURL(file.thumbUrl);
             this.fileList = this.fileList.filter((f) => f.uid !== file.uid);
         },
+        // ฟังก์ชันลบรูปเดิมจาก Server (แค่เอาออกจาก array existingImages ก่อนกดบันทึก)
+        removeExistingImage(index) {
+            this.existingImages.splice(index, 1);
+        },
         openPreview(url) {
             this.preview.src = url || '';
             this.preview.open = true;
@@ -377,7 +392,6 @@ export default {
 
         // --- Discord & Submit Logic ---
         async getDynamicWebhook() {
-            // (Optional: ใช้ Function เดิมถ้าต้องการอัปโหลดรูปใหม่เข้า Discord)
             try {
                 const token = localStorage.getItem('token');
                 const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
@@ -418,18 +432,24 @@ export default {
                     message.success({ content: 'Uploaded', key: 'up', duration: 2 });
                 }
 
+                // รวมรูปภาพเดิม (ที่ยังไม่ถูกลบ) กับรูปใหม่
+                const finalImages = [
+                    ...this.existingImages.map(img => ({ url: img.url })),
+                    ...newImageUrls.map(url => ({ url: url }))
+                ];
+
                 const payload = {
                     name: this.form.title,
                     detail: this.form.description || '-',
                     type: this.form.bugType,
                     urgency: this.form.priority,
-
-                    images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url }))
+                    images: finalImages
                 };
 
                 if (this.form.isCustomDeveloper && this.form.developer) {
                     payload.assignee = this.form.developer;
                 } else if (!this.form.isCustomDeveloper) {
+                    // ถ้าปิด switch ให้ส่ง null หรือค่าที่ backend เข้าใจว่าเคลียร์ assignee
                     payload.assignee = null;
                 }
 
@@ -462,10 +482,6 @@ export default {
 </script>
 
 <style scoped>
-/* ⚠️ IMPORTANT: Copy Styles from ReportBugFull.vue 
-   เพื่อให้ UI เหมือนกัน 100% (CSS ชุดเดียวกันเป๊ะ)
-*/
-
 /* 1. COMPACT HEADER */
 .compact-header {
     background: #fff;
@@ -551,7 +567,6 @@ export default {
     display: inline-block;
 }
 
-/* Custom Select Logic */
 .custom-select.has-priority :deep(.ant-select-selector) {
     border-color: transparent !important;
     box-shadow: none !important;
@@ -624,6 +639,10 @@ export default {
     opacity: 1;
 }
 
+.img-overlay.delete {
+    background-color: rgba(255, 77, 79, 0.7);
+}
+
 /* 5. ASSIGN BOX */
 .assign-dev-box {
     background-color: #f9fafb;
@@ -689,7 +708,6 @@ export default {
     font-size: 14px;
     font-weight: 600;
     background: #1890ff;
-    /* สีฟ้าสำหรับ Edit */
     border-color: #1890ff;
     box-shadow: 0 4px 10px rgba(24, 144, 255, 0.2);
 }

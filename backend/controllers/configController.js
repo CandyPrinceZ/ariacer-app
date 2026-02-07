@@ -5,7 +5,7 @@ const ActivityLog = require("../models/activityLog");
 exports.getSystemLogs = async (req, res) => {
   try {
     const logs = await ActivityLog.find()
-      .populate("user", "user_name role_name")
+      .populate("user", "user_name role_name avatar")
       .sort({ createdAt: -1 }) 
       .limit(100); // ดึงแค่ 100 รายการล่าสุด
 

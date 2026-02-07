@@ -30,7 +30,7 @@ const router = createRouter({
           component: () => import('../views/my_profile.vue'),
         },
         {
-          path: 'user_management',
+          path: 'user-management',
           name: 'usermanagement',
           component: () => import('../views/user_management.vue'),
           meta: { roles: ['Administrator'] },
@@ -74,6 +74,18 @@ const router = createRouter({
           path: 'Issue/edit/:id',
           name: 'IssueEdit',
           component: () => import('../views/issue_edit.vue'),
+        },
+        {
+          path: 'Issue-management',
+          name: 'IssueManagement',
+          component: () => import('../views/issue_management.vue'),
+          meta: { roles: ['Administrator'] },
+        },
+        {
+          path: 'Issue/edit-admin/:id',
+          name: 'IssueEditAdmin',
+          component: () => import('../views/issue_edit_admin.vue'),
+          meta: { roles: ['Administrator'] },
         }
       ],
     },
@@ -110,7 +122,6 @@ router.beforeEach((to, from, next) => {
     })
     return next('/dashboard')
   }
-
   next()
 })
 

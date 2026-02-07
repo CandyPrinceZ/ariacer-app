@@ -43,6 +43,22 @@
                     size="middle" :scroll="{ x: 1000 }">
                     <template #bodyCell="{ column, record }">
 
+                        <template v-if="column.key === 'user_id'">
+                            <span class="id-badge">
+                                {{ record.user_id || '...' }}
+                            </span>
+                        </template>
+
+                        <template v-if="column.key === 'username'">
+                            <div class="user-cell">
+                                <a-avatar size="small" :src="record.avatar"
+                                    :style="{ backgroundColor: !record.avatar ? stringToColor(record.username) : 'transparent' }">
+                                    <span v-if="!record.avatar">{{ record.username?.[0]?.toUpperCase() }}</span>
+                                </a-avatar>
+                                <span class="username-text">{{ record.username }}</span>
+                            </div>
+                        </template>
+
                         <template v-if="column.key === 'role'">
                             <a-tag :color="getRoleColor(record.role_code)" class="role-tag">
                                 <template #icon>
@@ -155,8 +171,8 @@ export default {
             searchText: '',
             roleList: [],
             columns: [
-                { title: 'User ID', dataIndex: 'user_id', key: 'user_id', width: 120 },
-                { title: 'Username', dataIndex: 'username', key: 'username', width: 150 },
+                { title: 'User ID', dataIndex: 'user_id', key: 'user_id', width: 100 },
+                { title: 'Username', dataIndex: 'username', key: 'username', width: 200 }, // เพิ่ม width ให้แสดง Avatar พอดี
                 { title: 'Full Name', dataIndex: 'user_name', key: 'user_name' },
                 { title: 'Role', dataIndex: 'role_code', key: 'role', width: 160 },
                 { title: 'Joined Date', dataIndex: 'createdAt', key: 'created_at', width: 160, align: 'right' },
@@ -217,6 +233,13 @@ export default {
         },
         formatRoleName(record) {
             return record.role_name ? record.role_name : (record.role_code ? record.role_code.toUpperCase() : 'USER');
+        },
+        stringToColor(str) {
+            if (!str) return '#1890ff';
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            return '#' + '00000'.substring(0, 6 - c.length) + c;
         },
 
         async fetchRoles() {
@@ -404,6 +427,17 @@ export default {
 }
 
 /* 4. Table Customization */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.username-text {
+    font-weight: 500;
+    color: #262626;
+}
+
 .role-tag {
     min-width: 90px;
     text-align: center;
@@ -418,10 +452,18 @@ export default {
     padding: 2px 8px;
 }
 
+.id-badge {
+    background: #f5f5f5;
+    color: #888;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #e8e8e8;
+}
+
 .text-date {
-    color: #8c8c8c;
     font-size: 13px;
-    font-family: monospace;
 }
 
 .text-muted {
