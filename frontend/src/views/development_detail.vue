@@ -46,19 +46,26 @@
             <transition name="fade">
               <div v-if="issue.remarks" class="custom-alert error mb-3">
                 <div class="alert-icon">
-                  <CloseCircleOutlined />
+                  <CloseCircleFilled />
                 </div>
                 <div class="alert-content">
                   <h4 class="alert-title">งานถูกส่งกลับแก้ไข (Rejected)</h4>
-                  <p class="alert-desc">"{{ issue.remarks || 'No remark provided.' }}"</p>
+                  <p class="alert-desc">"{{ issue.remarks || 'ไม่ได้ระบุเหตุผล' }}"</p>
 
                   <div v-if="issue.remarks_images?.length" class="mini-gallery">
                     <div v-for="img in issue.remarks_images" :key="img._id" class="mini-img-wrapper">
                       <a-image :src="img.url" class="mini-img" />
                     </div>
                   </div>
+
                   <div v-if="issue.tester" class="alert-meta">
-                    <UserOutlined /> ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
+                    <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
+                      <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
+                        }}</span>
+                    </a-avatar>
+                    ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
+                    <span class="divider">|</span>
+                    <ClockCircleOutlined /> {{ formatDate(issue.updatedAt) }}
                   </div>
                 </div>
               </div>
@@ -214,7 +221,7 @@
 import {
   ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
   FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
-  CloseCircleOutlined, AlertOutlined, CloudUploadOutlined, ExperimentOutlined
+  CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined, CloseCircleOutlined
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import axios from 'axios';
@@ -225,7 +232,7 @@ export default {
   components: {
     ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
     FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
-    CloseCircleOutlined, AlertOutlined, CloudUploadOutlined, ExperimentOutlined
+    CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined, CloseCircleOutlined
   },
   data() {
     return {
@@ -748,51 +755,69 @@ export default {
 }
 
 .custom-alert.error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #b91c1c;
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+  padding: 16px;
+  border-radius: 8px;
+  display: flex;
+  gap: 16px;
+  color: #a8071a;
 }
 
 .alert-icon {
-  font-size: 20px;
-  color: #ef4444;
+  font-size: 24px;
+  color: #ff4d4f;
+}
+
+.alert-content {
+  flex: 1;
 }
 
 .alert-title {
   margin: 0 0 4px;
   font-weight: 700;
-  color: #991b1b;
-  font-size: 14px;
+  color: #cf1322;
+  font-size: 15px;
 }
 
+
 .alert-desc {
-  margin: 0 0 8px;
-  font-size: 13px;
+  margin: 0 0 12px;
+  font-size: 14px;
   line-height: 1.5;
+  color: #5c0011;
 }
 
 .alert-meta {
   font-size: 12px;
-  color: #ef4444;
+  color: #ff4d4f;
   margin-top: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 4px 8px;
+  border-radius: 4px;
+  width: fit-content;
 }
+
 
 .mini-gallery {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-bottom: 8px;
 }
 
+
 .mini-img-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 60px;
+  height: 60px;
   border-radius: 4px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
 }
 
 .mini-img {

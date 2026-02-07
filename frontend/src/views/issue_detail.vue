@@ -426,6 +426,13 @@ export default {
     border-radius: 4px;
 }
 
+.custom-alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    display: flex;
+    gap: 12px;
+}
+
 /* Rejected Alert */
 .custom-alert.error {
     background: #fff1f0;
