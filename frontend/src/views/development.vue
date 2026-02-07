@@ -116,13 +116,6 @@
                     <SearchOutlined class="text-muted" />
                   </template>
                 </a-input>
-                <a-select v-model:value="filterStatus" placeholder="Status" style="width: 120px" allow-clear
-                  size="small" class="modern-select">
-                  <a-select-option value="inProgress">In Progress</a-select-option>
-                  <a-select-option value="finished">Finished</a-select-option>
-                  <a-select-option value="upserver">Up Server</a-select-option>
-                  <a-select-option value="success">Success</a-select-option>
-                </a-select>
               </div>
             </div>
 
@@ -210,7 +203,6 @@ export default {
       loading: false,
       searchText: '',
       filterUrgency: undefined,
-      filterStatus: undefined,
       urgencies: [], // สำหรับ Dropdown
       columns: [
         { title: 'ID', dataIndex: 'id', key: 'id', width: 90, align: 'center' },
@@ -239,8 +231,8 @@ export default {
         const matchText = !this.searchText ||
           (issue.name && issue.name.toLowerCase().includes(this.searchText.toLowerCase())) ||
           (issue.issue_id && issue.issue_id.toLowerCase().includes(this.searchText.toLowerCase()));
-        const matchStatus = !this.filterStatus || (issue.status?.code === this.filterStatus);
-        return matchText && matchStatus;
+        const matchUrgency = !this.filterUrgency || (issue.urgency?._id === this.filterUrgency);
+        return matchText && matchUrgency;
       });
     }
   },
@@ -309,7 +301,6 @@ export default {
     activeTab() {
       this.searchText = '';
       this.filterUrgency = undefined;
-      this.filterStatus = undefined;
     }
   }
 };
