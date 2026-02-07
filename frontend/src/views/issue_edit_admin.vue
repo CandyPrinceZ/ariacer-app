@@ -24,7 +24,7 @@
           <a-button type="primary" :loading="submitting" @click="onSubmit" class="btn-save">
             <template #icon>
               <SaveOutlined />
-            </template> บันทึก
+            </template> บันทึกการแก้ไข
           </a-button>
         </div>
       </div>
