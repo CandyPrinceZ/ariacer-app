@@ -55,14 +55,14 @@
                     <template #bodyCell="{ column, record }">
 
                         <template v-if="column.key === 'id'">
-                            <span class="id-badge" @click="$router.push(`/issue/${record._id}`)">
+                            <span class="id-badge" @click="$router.push(`Issue/detail/${record._id}`)">
                                 {{ record.id || '...' }}
                             </span>
                         </template>
 
                         <template v-if="column.key === 'name'">
                             <div class="title-cell">
-                                <a class="issue-link" @click="$router.push(`/issue/${record._id}`)">
+                                <a class="issue-link" @click="$router.push(`Issue/detail/${record._id}`)">
                                     {{ record.name }}
                                 </a>
                                 <span class="issue-type-badge">{{ record.type?.name }}</span>
