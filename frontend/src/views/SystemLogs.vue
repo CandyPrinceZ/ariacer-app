@@ -37,11 +37,8 @@
               size="small" class="modern-select">
               <a-select-option value="LOGIN">Login</a-select-option>
               <a-select-option value="LOGIN_FAILED">Login Failed</a-select-option>
-              <a-select-option value="REGISTER">Register</a-select-option>
-
               <a-select-option value="CREATE_USER">Create User</a-select-option>
               <a-select-option value="UPDATE_USER">Update User</a-select-option>
-
               <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
               <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option> <a-select-option
                 value="UPDATE_ISSUE">Update
@@ -196,7 +193,7 @@ export default {
       if (action.includes('DELETE')) return 'red';
       // รวม UPDATE และ EDIT ให้เป็นสีส้มเหมือนกัน (เพราะเป็นการแก้ไข)
       if (action.includes('UPDATE') || action.includes('EDIT')) return 'orange';
-      if (action.includes('CREATE') || action.includes('REGISTER')) return 'green';
+      if (action.includes('CREATE')) return 'green';
 
       if (action.includes('LOGIN_FAILED')) return 'volcano';
       if (action.includes('LOGIN')) return 'blue';
