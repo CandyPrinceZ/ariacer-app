@@ -448,16 +448,54 @@ exports.deleteIssue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-// --- Discord Notification Helpers (Bulletproof Version) ---
-// --- Discord Notification Helpers ---
+// ============================================================
+// ✅ Discord Notification Helpers (Bulletproof + Auto Retry)
+// ============================================================
 
-// 1. แจ้งเตือน Issue ใหม่
+// 1. ฟังก์ชันหน่วงเวลา (Sleep)
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 2. ฟังก์ชันกลางสำหรับยิง Discord (รองรับ Retry เมื่อเจอ 429)
+async function postToDiscord(webhookUrl, payload, retryCount = 0) {
+  try {
+    await axios.post(webhookUrl, payload);
+    // console.log("✅ Discord sent successfully.");
+  } catch (err) {
+    // ถ้าเจอ 429 (Too Many Requests) และยัง Retry ไม่เกิน 3 ครั้ง
+    if (err.response && err.response.status === 429 && retryCount < 3) {
+      // ดึงเวลาที่ต้องรอจาก Header หรือ Body (Discord ส่งมาเป็นวินาที แปลงเป็น ms)
+      // ถ้าไม่มีค่ามา ให้รอ 1 วินาทีเป็นอย่างน้อย
+      const retryAfter = (err.response.data.retry_after || 1) * 1000;
+
+      console.warn(
+        `⏳ Rate Limited! Waiting ${retryAfter}ms before retry (Attempt ${retryCount + 1}/3)...`,
+      );
+
+      // รอจนกว่าจะครบเวลา + เผื่อไปอีก 500ms
+      await sleep(retryAfter + 500);
+
+      // เรียกตัวเองซ้ำ (Recursive)
+      return postToDiscord(webhookUrl, payload, retryCount + 1);
+    }
+
+    // ถ้าเป็น Error อื่น หรือ Retry ครบแล้ว ให้โยน Error ออกไปให้ฟังก์ชันหลักจัดการ
+    throw err;
+  }
+}
+
+// ------------------------------------------------------------
+
+// 3. แจ้งเตือน Issue ใหม่
 async function sendNewIssueNotification(issue, reporter) {
   try {
     const config = await SystemConfig.findOne({
       key: "discord_webhook_notifications",
     });
     if (!config?.value?.url) return;
+
+    const issueUrl = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`
+      : null;
 
     const embed = {
       title: `🆕 New Issue Created: ${issue.name || "Untitled"}`,
@@ -485,23 +523,26 @@ async function sendNewIssueNotification(issue, reporter) {
         },
       ],
       timestamp: new Date().toISOString(),
-      url: `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`,
     };
+
+    if (issueUrl) embed.url = issueUrl;
 
     if (issue.images?.length > 0 && issue.images[0].url.startsWith("http")) {
       embed.image = { url: issue.images[0].url };
     }
 
-    await axios.post(config.value.url, {
+    // ✅ ใช้ postToDiscord แทน axios.post
+    await postToDiscord(config.value.url, {
       username: "Issue Bot",
       embeds: [embed],
     });
+    console.log(`✅ New Issue Notification Sent: ${issue.name}`);
   } catch (err) {
     console.error("❌ Discord New Issue Error:", err.message);
   }
 }
 
-// 2. (ใหม่) แจ้งเตือนเมื่อสถานะเป็น Upserver 🚀
+// 4. แจ้งเตือนเมื่อสถานะเป็น Upserver 🚀
 async function sendUpserverNotification(issue, user) {
   try {
     const config = await SystemConfig.findOne({
@@ -509,10 +550,14 @@ async function sendUpserverNotification(issue, user) {
     });
     if (!config?.value?.url) return;
 
+    const issueUrl = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`
+      : null;
+
     const embed = {
       title: `🚀 Ready for Server (Upserver): ${issue.name}`,
       description: `User **${user?.user_name || "Unknown"}** has updated status to **Upserver**.\nReady for testing/deployment.`,
-      color: 10181046, // Purple (สีม่วง ดูเด่นสำหรับ Deploy/Test)
+      color: 10181046, // Purple
       fields: [
         {
           name: "Assignee",
@@ -527,10 +572,12 @@ async function sendUpserverNotification(issue, user) {
       ],
       timestamp: new Date().toISOString(),
       footer: { text: "System Deployment Update" },
-      url: `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`,
     };
 
-    await axios.post(config.value.url, {
+    if (issueUrl) embed.url = issueUrl;
+
+    // ✅ ใช้ postToDiscord แทน axios.post
+    await postToDiscord(config.value.url, {
       username: "Deploy Bot",
       embeds: [embed],
     });
@@ -540,7 +587,7 @@ async function sendUpserverNotification(issue, user) {
   }
 }
 
-// 3. แจ้งเตือนเมื่อ Success (แบบคำนวณยอดคงเหลือ)
+// 5. แจ้งเตือนเมื่อ Success (แบบคำนวณยอดคงเหลือ)
 async function sendSuccessStatusNotification(issue, user) {
   try {
     const config = await SystemConfig.findOne({
@@ -551,7 +598,7 @@ async function sendSuccessStatusNotification(issue, user) {
     const successStatus = await Status.findOne({ code: "success" });
     if (!successStatus) return;
 
-    // ✅ ใช้ .find() แบบธรรมดาแล้วนับใน JS (แก้ปัญหา aggregate ได้ค่าว่าง [])
+    // ✅ ใช้ .find() แบบธรรมดาแล้วนับใน JS (แก้ปัญหา aggregate ได้ค่าว่าง)
     const allActiveIssues = await Issue.find({
       status: { $ne: successStatus._id, $exists: true, $ne: null },
     }).populate("status");
@@ -590,7 +637,8 @@ async function sendSuccessStatusNotification(issue, user) {
       footer: { text: "System Status Update" },
     };
 
-    await axios.post(config.value.url, {
+    // ✅ ใช้ postToDiscord แทน axios.post
+    await postToDiscord(config.value.url, {
       username: "Status Bot",
       embeds: [embed],
     });
