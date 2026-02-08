@@ -12,51 +12,65 @@
             </div>
         </div>
 
-        <div style="padding: 12px; width: 100%;">
+        <div class="content-wrapper">
             <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0' }">
 
                 <div class="table-toolbar">
-                    <div class="filter-group">
-                        <a-input v-model:value="filters.search" placeholder="ค้นหา ID, หัวข้อ..." style="width: 250px"
-                            allow-clear class="modern-input" @pressEnter="fetchIssues">
-                            <template #prefix>
-                                <SearchOutlined class="text-muted" />
-                            </template>
-                        </a-input>
 
-                        <a-select v-model:value="filters.status" placeholder="สถานะ (Status)" style="width: 150px"
-                            allow-clear class="modern-select" @change="fetchIssues">
-                            <a-select-option v-for="s in options.statuses" :key="s._id" :value="s._id">{{ s.name
-                                }}</a-select-option>
-                        </a-select>
+                    <div class="filters-wrapper">
+                        <div class="filter-item search-box">
+                            <span class="label">ค้นหา</span>
+                            <a-input v-model:value="filters.search" placeholder="ID, หัวข้อ..." class="modern-input"
+                                allow-clear @pressEnter="fetchIssues">
+                                <template #prefix>
+                                    <SearchOutlined class="text-muted" />
+                                </template>
+                            </a-input>
+                        </div>
 
-                        <a-select v-model:value="filters.urgency" placeholder="ความเร่งด่วน" style="width: 150px"
-                            allow-clear class="modern-select" @change="fetchIssues">
-                            <a-select-option v-for="u in options.urgencies" :key="u._id" :value="u._id">
-                                <a-tag :color="u.color">{{ u.name }}</a-tag>
-                            </a-select-option>
-                        </a-select>
+                        <div class="filter-item">
+                            <span class="label">สถานะ</span>
+                            <a-select v-model:value="filters.status" placeholder="ทั้งหมด" allow-clear
+                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false">
+                                <a-select-option v-for="s in options.statuses" :key="s._id" :value="s._id">
+                                    {{ s.name }}
+                                </a-select-option>
+                            </a-select>
+                        </div>
 
-                        <a-button @click="fetchIssues">
-                            <FilterOutlined /> Filter
-                        </a-button>
-                        <a-button type="text" @click="resetFilters" v-if="hasFilters">
-                            Reset
-                        </a-button>
+                        <div class="filter-item">
+                            <span class="label">ความเร่งด่วน</span>
+                            <a-select v-model:value="filters.urgency" placeholder="ทั้งหมด" allow-clear
+                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false">
+                                <a-select-option v-for="u in options.urgencies" :key="u._id" :value="u._id">
+                                    <a-tag :color="u.color">{{ u.name }}</a-tag>
+                                </a-select-option>
+                            </a-select>
+                        </div>
+
+                        <div class="filter-actions">
+                            <a-button type="primary" class="btn-filter" @click="fetchIssues">
+                                <FilterOutlined /> กรองข้อมูล
+                            </a-button>
+                            <a-button v-if="hasFilters" type="dashed" class="btn-reset" @click="resetFilters">
+                                ล้างค่า
+                            </a-button>
+                        </div>
                     </div>
 
-                    <div class="toolbar-right">
-                        <span class="total-badge">Total: {{ pagination.total }}</span>
+                    <div class="toolbar-footer">
+                        <span class="total-badge">รายการทั้งหมด: <strong>{{ pagination.total }}</strong></span>
                     </div>
+
                 </div>
 
                 <a-table :columns="columns" :data-source="issues" :loading="loading" rowKey="_id"
-                    :pagination="pagination" @change="handleTableChange" size="middle">
+                    :pagination="pagination" @change="handleTableChange" size="middle" :scroll="{ x: 900 }">
                     <template #bodyCell="{ column, record }">
 
                         <template v-if="column.key === 'id'">
                             <span class="id-badge" @click="$router.push(`Issue/detail/${record._id}`)">
-                                {{ record.id || '...' }}
+                                {{ record.issue_id || record.id || '...' }}
                             </span>
                         </template>
 
@@ -167,13 +181,13 @@ export default {
                 showTotal: total => `Total ${total} items`
             },
             columns: [
-                { title: 'ID', key: 'id', width: 100 },
-                { title: 'Subject', key: 'name' },
+                { title: 'ID', key: 'id', width: 100, fixed: 'left' },
+                { title: 'Subject', key: 'name', width: 250 },
                 { title: 'Status', key: 'status', width: 120 },
                 { title: 'Priority', key: 'urgency', width: 120 },
-                { title: 'Assignee', key: 'assignee', width: 180 }, // เพิ่ม width นิดหน่อย
+                { title: 'Assignee', key: 'assignee', width: 180 },
                 { title: 'Last Update', key: 'updatedAt', width: 140 },
-                { title: 'Actions', key: 'actions', width: 120, align: 'center' },
+                { title: 'Actions', key: 'actions', width: 120, align: 'center', fixed: 'right' },
             ]
         };
     },
@@ -199,7 +213,6 @@ export default {
                 this.options.urgencies = resUrgency.data;
             } catch (e) { console.error("Error fetching options", e); }
         },
-
         async fetchIssues() {
             this.loading = true;
             try {
@@ -214,9 +227,7 @@ export default {
                         urgency: this.filters.urgency
                     }
                 };
-
                 const response = await axios.get(import.meta.env.VITE_API_URL + '/issues', config);
-
                 if (response.data.docs) {
                     this.issues = response.data.docs;
                     this.pagination.total = response.data.totalDocs;
@@ -224,7 +235,6 @@ export default {
                     this.issues = response.data;
                     this.pagination.total = response.data.length;
                 }
-
             } catch (error) {
                 console.error(error);
                 message.error('โหลดข้อมูลไม่สำเร็จ');
@@ -232,22 +242,19 @@ export default {
                 this.loading = false;
             }
         },
-
         handleTableChange(pag) {
             this.pagination.current = pag.current;
             this.pagination.pageSize = pag.pageSize;
             this.fetchIssues();
         },
-
         resetFilters() {
             this.filters = { search: '', status: undefined, urgency: undefined };
             this.fetchIssues();
         },
-
         async handleDelete(record) {
             Swal.fire({
                 title: 'ยืนยันการลบ?',
-                text: `ต้องการลบ Issue #${record.id} หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+                text: `ต้องการลบ Issue #${record.issue_id || record.id} หรือไม่?`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#d33',
@@ -270,8 +277,7 @@ export default {
                 }
             });
         },
-
-        formatDate(date) { return date ? dayjs(date).format('DD/MM/YYYY HH:mm') : '-' },
+        formatDate(date) { return date ? dayjs(date).format('D MMM YY HH:mm') : '-' },
         getStatusColor(code) {
             const map = { reported: 'red', received: 'blue', inProgress: 'processing', finished: 'cyan', upserver: 'purple', testing: 'orange', success: 'success', rejected: 'error' };
             return map[code] || 'default';
@@ -288,12 +294,12 @@ export default {
 </script>
 
 <style scoped>
+/* 1. Compact Header */
 .compact-header {
     background: #fff;
-    padding: 12px 16px;
+    padding: 16px 24px;
     border-bottom: 1px solid #e0e0e0;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    margin-bottom: 0;
 }
 
 .header-content {
@@ -334,6 +340,12 @@ export default {
     font-size: 18px;
 }
 
+/* 2. Content & Card */
+.content-wrapper {
+    padding: 16px;
+    width: 100%;
+}
+
 .main-card {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -341,27 +353,81 @@ export default {
     min-height: 600px;
 }
 
+/* 3. ✅ New Toolbar Style */
 .table-toolbar {
-    padding: 16px;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #f0f0f0;
-    background: #fafafa;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
-.filter-group {
+.filters-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-item .label {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.search-box {
+    flex: 1;
+    min-width: 200px;
+    max-width: 400px;
+}
+
+.modern-input,
+.modern-select {
+    width: 100%;
+    border-radius: 6px;
+}
+
+.modern-select {
+    width: 160px;
+    /* Fixed width for dropdowns */
+}
+
+.filter-actions {
     display: flex;
     gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
+    margin-bottom: 2px;
+    /* Align with inputs */
+}
+
+.btn-filter {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.toolbar-footer {
+    margin-bottom: 6px;
 }
 
 .total-badge {
-    color: #8c8c8c;
-    font-size: 12px;
+    color: #64748b;
+    font-size: 13px;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
 }
 
+/* 4. Table Elements */
 .id-badge {
     background: #f5f5f5;
     color: #888;
@@ -371,6 +437,7 @@ export default {
     font-weight: 600;
     border: 1px solid #e8e8e8;
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .title-cell {
@@ -383,6 +450,8 @@ export default {
     color: #262626;
     cursor: pointer;
     transition: 0.2s;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .issue-link:hover {
@@ -403,6 +472,10 @@ export default {
 .assignee-name {
     font-size: 13px;
     color: #595959;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
 }
 
 .unassigned-text {
@@ -413,6 +486,7 @@ export default {
 
 .date-text {
     font-size: 12px;
+    white-space: nowrap;
 }
 
 .btn-icon {
@@ -437,8 +511,70 @@ export default {
     color: #bfbfbf;
 }
 
-.modern-input,
-.modern-select {
-    border-radius: 4px;
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks
+   ========================================================================== */
+@media (max-width: 768px) {
+    .compact-header {
+        padding: 12px 16px;
+    }
+
+    .page-title {
+        font-size: 18px;
+    }
+
+    .page-subtitle {
+        display: none;
+    }
+
+    .content-wrapper {
+        padding: 10px;
+    }
+
+    .main-card {
+        min-height: auto;
+    }
+
+    /* Stack Filters on Mobile */
+    .table-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 16px;
+    }
+
+    .filters-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 12px;
+    }
+
+    .search-box,
+    .modern-select {
+        max-width: none;
+        width: 100%;
+    }
+
+    .filter-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    .btn-filter,
+    .btn-reset {
+        width: 100%;
+    }
+
+    .toolbar-footer {
+        width: 100%;
+        text-align: right;
+        margin-top: 8px;
+    }
+
+    :deep(.ant-table-cell) {
+        padding: 10px !important;
+    }
 }
 </style>

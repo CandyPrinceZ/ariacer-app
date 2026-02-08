@@ -21,7 +21,7 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <a-button @click="$router.go(-1)" type="default" size="small">
+                    <a-button @click="$router.go(-1)" class="btn-back" size="small">
                         <template #icon>
                             <ArrowLeftOutlined />
                         </template> Back
@@ -106,66 +106,81 @@
                 <a-col :xs="24" :lg="7" :xl="6">
                     <div class="sticky-sidebar">
 
-                        <a-card :bordered="false" class="main-card side-card mb-3"
-                            :class="{ 'view-only-card': !hasPermission && issue.assignee }">
+                        <div v-if="hasPermission || !issue.assignee">
+                            <a-card :bordered="false" class="main-card side-card mb-3">
 
-                            <div v-if="!issue.assignee">
-                                <div class="unassigned-state">
-                                    <div class="icon-circle pulse">
-                                        <ExclamationCircleOutlined />
-                                    </div>
-                                    <h3>งานรอผู้รับผิดชอบ</h3>
+                                <div v-if="!issue.assignee">
+                                    <div class="unassigned-state">
+                                        <div class="icon-circle pulse">
+                                            <ExclamationCircleOutlined />
+                                        </div>
+                                        <h3>งานรอผู้รับผิดชอบ</h3>
 
-                                    <div v-if="authProfile?.role_code !== 'imp'">
-                                        <p>กดปุ่มด้านล่างเพื่อรับงานนี้</p>
-                                        <a-button type="primary" block size="large" class="btn-claim"
-                                            :loading="actionLoading" @click="goToDevDetail">
-                                            ✋ รับงาน (Claim)
-                                        </a-button>
-                                    </div>
-                                    <div v-else>
-                                        <p class="text-muted">รอ Developer รับงาน</p>
+                                        <div v-if="authProfile?.role_code !== 'implement'">
+                                            <p>กดปุ่มด้านล่างเพื่อรับงานนี้</p>
+                                            <a-button type="primary" block size="large" class="btn-claim"
+                                                :loading="actionLoading" @click="goToDevDetail">
+                                                ✋ รับงาน (Claim)
+                                            </a-button>
+                                        </div>
+                                        <div v-else>
+                                            <p class="text-muted">รอ Developer รับงาน</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div v-else>
+                                <div v-else>
+                                    <div class="assignee-header">
+                                        <a-avatar :size="48" :src="issue.assignee.avatar"
+                                            :style="{ backgroundColor: !issue.assignee.avatar ? stringToColor(issue.assignee.user_name) : 'transparent' }">
+                                            <span v-if="!issue.assignee.avatar">{{ (issue.assignee.user_name || 'U')[0]
+                                                }}</span>
+                                        </a-avatar>
+                                        <div class="assignee-details">
+                                            <span class="label">ผู้รับผิดชอบ {{ isAssignee ? '(You)' : '' }}</span>
+                                            <h4 class="name text-ellipsis">{{ issue.assignee.user_name }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="action-area">
+                                    <template v-if="isAssignee">
+                                        <a-button v-if="issue.status?.code === 'rejected'" type="primary" block
+                                            class="btn-fix mb-2" @click="goToDevDetail">
+                                            <ToolOutlined /> แก้ไขงาน (Fix)
+                                        </a-button>
+                                        <a-button v-else-if="issue.status?.code === 'received'" type="primary" block
+                                            class="btn-start mb-2" @click="goToDevDetail">
+                                            <SyncOutlined /> เริ่มงาน (Start)
+                                        </a-button>
+                                    </template>
+
+                                    <a-button v-if="isReporter" type="dashed" block @click="goToEditDetail">
+                                        <EditOutlined /> แก้ไขรายละเอียด
+                                    </a-button>
+                                </div>
+
+                            </a-card>
+                        </div>
+
+                        <div v-else>
+                            <a-card :bordered="false" class="main-card side-card mb-3 view-only-card">
                                 <div class="assignee-header">
-                                    <a-avatar :size="48" :src="issue.assignee.avatar"
-                                        :style="{ backgroundColor: !issue.assignee.avatar ? stringToColor(issue.assignee.user_name) : 'transparent' }">
-                                        <span v-if="!issue.assignee.avatar">{{ (issue.assignee.user_name || 'U')[0]
+                                    <a-avatar :size="48" :src="issue.assignee?.avatar"
+                                        :style="{ backgroundColor: !issue.assignee?.avatar ? stringToColor(issue.assignee?.user_name) : 'transparent' }">
+                                        <span v-if="!issue.assignee?.avatar">{{ (issue.assignee?.user_name || 'U')[0]
                                             }}</span>
                                     </a-avatar>
                                     <div class="assignee-details">
-                                        <span class="label">ผู้รับผิดชอบ {{ isAssignee ? '(You)' : '' }}</span>
-                                        <h4 class="name text-ellipsis">{{ issue.assignee.user_name }}</h4>
+                                        <span class="label">ผู้รับผิดชอบ</span>
+                                        <h4 class="name text-ellipsis">{{ issue.assignee?.user_name }}</h4>
                                     </div>
                                 </div>
-
-                                <div v-if="!hasPermission" class="readonly-badge">
+                                <div class="readonly-badge">
                                     <EyeOutlined /> View Only
                                 </div>
-                            </div>
-
-                            <div class="action-area" v-if="hasPermission || (!issue.assignee && isReporter)">
-
-                                <template v-if="isAssignee">
-                                    <a-button v-if="issue.status?.code === 'rejected'" type="primary" block
-                                        class="btn-fix mb-2" @click="goToDevDetail">
-                                        <ToolOutlined /> แก้ไขงาน (Fix)
-                                    </a-button>
-                                    <a-button v-else-if="issue.status?.code === 'received'" type="primary" block
-                                        class="btn-start mb-2" @click="goToDevDetail">
-                                        <SyncOutlined /> เริ่มงาน (Start)
-                                    </a-button>
-                                </template>
-
-                                <a-button v-if="isReporter" type="dashed" block @click="goToEditDetail">
-                                    <EditOutlined /> แก้ไขรายละเอียด
-                                </a-button>
-                            </div>
-
-                        </a-card>
+                            </a-card>
+                        </div>
 
                         <a-card :bordered="false" class="main-card side-card">
                             <h4 class="side-title">ข้อมูล Ticket</h4>
@@ -210,7 +225,6 @@ import {
     ArrowLeftOutlined, FileTextOutlined, PaperClipOutlined, CodeOutlined,
     UserOutlined, ClockCircleOutlined, CloseCircleFilled,
     ExclamationCircleOutlined, ToolOutlined, EditOutlined, EyeOutlined,
-
     SoundOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
     CloudUploadOutlined, ExperimentOutlined, CheckCircleOutlined, CloseCircleOutlined,
     QuestionCircleOutlined
@@ -222,7 +236,6 @@ export default {
         ArrowLeftOutlined, FileTextOutlined, PaperClipOutlined, CodeOutlined,
         UserOutlined, ClockCircleOutlined, CloseCircleFilled,
         ExclamationCircleOutlined, ToolOutlined, EditOutlined, EyeOutlined,
-
         SoundOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
         CloudUploadOutlined, ExperimentOutlined, CheckCircleOutlined, CloseCircleOutlined,
         QuestionCircleOutlined
@@ -243,7 +256,6 @@ export default {
             return this.authProfile && this.issue.reporter && (this.authProfile._id === this.issue.reporter._id);
         },
         hasPermission() {
-            // Permission to see Action Buttons (Fix/Start/Edit)
             return this.isAssignee || this.isReporter;
         }
     },
@@ -258,7 +270,6 @@ export default {
     },
     methods: {
         formatDate(date) { return date ? dayjs(date).format('D MMM YY, HH:mm') : '-'; },
-
         async getAuthProfile() {
             try {
                 const token = localStorage.getItem('token');
@@ -269,30 +280,20 @@ export default {
                 this.authProfile = res.data;
             } catch (e) { console.error(e); }
         },
-
         async fetchIssue() {
             try {
                 const issueId = this.$route.params.id;
                 const token = localStorage.getItem('token');
-
-                if (!token) {
-                    this.$router.push('/login');
-                    return;
-                }
-
+                if (!token) { this.$router.push('/login'); return; }
                 const config = { headers: { Authorization: `Bearer ${token}` } };
                 const response = await axios.get(import.meta.env.VITE_API_URL + `/issues/${issueId}`, config);
                 this.issue = response.data;
-
             } catch (error) {
                 console.error('Error fetching issue:', error);
                 message.error('ไม่สามารถโหลดข้อมูล Ticket ได้');
-                if (error.response && error.response.status === 401) {
-                    this.$router.push('/login');
-                }
+                if (error.response && error.response.status === 401) this.$router.push('/login');
             }
         },
-
         getStatusColor(code) {
             const colorMap = { reported: 'error', received: 'blue', inProgress: 'processing', finished: 'cyan', upserver: 'purple', testing: 'orange', success: 'success', rejected: 'red' };
             return colorMap[code] || 'default';
@@ -323,7 +324,7 @@ export default {
 </script>
 
 <style scoped>
-/* Compact Header */
+/* 1. COMPACT HEADER */
 .compact-header {
     background: #fff;
     padding: 12px 16px;
@@ -338,16 +339,17 @@ export default {
     align-items: center;
 }
 
-.header-left {
+.header-text {
     display: flex;
     flex-direction: column;
-    gap: 4px;
 }
 
 .title-row {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
+    /* ให้ตกบรรทัดได้เมื่อจอเล็ก */
 }
 
 .id-badge {
@@ -365,7 +367,9 @@ export default {
     font-size: 20px;
     font-weight: 700;
     color: #1f1f1f;
-    line-height: 1.2;
+    line-height: 1.3;
+    word-break: break-word;
+    /* ให้ตัดคำยาวๆ */
 }
 
 .status-tag {
@@ -375,13 +379,13 @@ export default {
     font-size: 12px;
 }
 
-/* Layout & Cards */
-.loading-container {
-    display: flex;
-    justify-content: center;
-    padding-top: 50px;
+.btn-back {
+    border-radius: 6px;
+    color: #595959;
+    border-color: #d9d9d9;
 }
 
+/* 2. Layout Cards */
 .main-card {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -389,6 +393,7 @@ export default {
     background: #fff;
 }
 
+/* ✅ บน Desktop ให้มีความสูงขั้นต่ำ แต่บน Mobile ปล่อยฟรี */
 .content-card {
     min-height: 600px;
 }
@@ -405,7 +410,41 @@ export default {
     margin-bottom: 8px;
 }
 
-/* View Only Card */
+/* 3. Responsive Adjustments */
+@media (max-width: 768px) {
+
+    /* ปรับ Header บนมือถือ */
+    .compact-header {
+        padding: 12px;
+    }
+
+    .page-title {
+        font-size: 18px;
+    }
+
+    /* ให้เนื้อหาในการ์ดไม่ฟิกความสูงบนมือถือ */
+    .content-card {
+        min-height: auto;
+    }
+
+    /* ปิด Sticky Sidebar บนมือถือ */
+    .sticky-sidebar {
+        position: static !important;
+    }
+
+    /* ปรับ Grid รูปภาพให้เหลือ 2 คอลัมน์ */
+    .image-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+/* Sticky Sidebar (Desktop Only) */
+.sticky-sidebar {
+    position: sticky;
+    top: 12px;
+}
+
+/* 4. Other Elements */
 .view-only-card {
     background: #fafafa;
     border: 1px dashed #d9d9d9;
@@ -426,14 +465,7 @@ export default {
     border-radius: 4px;
 }
 
-.custom-alert {
-    padding: 12px 16px;
-    border-radius: 6px;
-    display: flex;
-    gap: 12px;
-}
-
-/* Rejected Alert */
+/* Alert */
 .custom-alert.error {
     background: #fff1f0;
     border: 1px solid #ffccc7;
@@ -442,6 +474,8 @@ export default {
     display: flex;
     gap: 16px;
     color: #a8071a;
+    flex-wrap: wrap;
+    /* รองรับเนื้อหาเยอะ */
 }
 
 .alert-icon {
@@ -465,6 +499,7 @@ export default {
     font-size: 14px;
     line-height: 1.5;
     color: #5c0011;
+    word-break: break-word;
 }
 
 .alert-meta {
@@ -478,74 +513,10 @@ export default {
     padding: 4px 8px;
     border-radius: 4px;
     width: fit-content;
-}
-
-.divider {
-    color: #ffccc7;
-    margin: 0 4px;
-}
-
-/* Mini Gallery */
-.mini-gallery {
-    display: flex;
-    gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 8px;
 }
 
-.mini-img-wrapper {
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 2px solid #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-}
-
-.mini-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Sections */
-.section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.count-badge {
-    background: #f1f5f9;
-    color: #64748b;
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 10px;
-}
-
-.desc-box {
-    background: #fdfdfd;
-    padding: 16px;
-    border-radius: 6px;
-    border: 1px solid #f0f0f0;
-    color: #334155;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    font-size: 14px;
-}
-
-.desc-box.note {
-    background: #fffbe6;
-    border-color: #ffe58f;
-    color: #d48806;
-}
-
-/* Attachments */
+/* Images */
 .image-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -575,21 +546,7 @@ export default {
     color: #94a3b8;
 }
 
-/* Sidebar & Actions */
-.sticky-sidebar {
-    position: sticky;
-    top: 12px;
-}
-
-.side-title {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #94a3b8;
-    font-weight: 700;
-    margin-bottom: 12px;
-}
-
-/* Unassigned State */
+/* Action States */
 .unassigned-state {
     text-align: center;
     padding: 10px 0;
@@ -617,13 +574,6 @@ export default {
     font-size: 16px;
 }
 
-.unassigned-state p {
-    color: #ff4d4f;
-    font-size: 13px;
-    margin-bottom: 16px;
-    opacity: 0.8;
-}
-
 .btn-claim {
     background-color: #ff4d4f;
     border-color: #ff4d4f;
@@ -631,12 +581,7 @@ export default {
     box-shadow: 0 2px 4px rgba(255, 77, 79, 0.2);
 }
 
-.btn-claim:hover {
-    background-color: #ff7875;
-    border-color: #ff7875;
-}
-
-/* Assigned State */
+/* Assignee */
 .assignee-header {
     display: flex;
     align-items: center;
@@ -711,15 +656,27 @@ export default {
     align-items: center;
 }
 
-/* Transitions */
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.5s;
+.desc-box {
+    background: #fdfdfd;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #f0f0f0;
+    color: #334155;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-size: 14px;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-    opacity: 0;
+.desc-box.note {
+    background: #fffbe6;
+    border-color: #ffe58f;
+    color: #d48806;
+}
+
+.loading-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 50px;
 }
 
 .pulse {

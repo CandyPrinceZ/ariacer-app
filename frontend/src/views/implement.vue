@@ -11,13 +11,13 @@
         </div>
         <div class="header-actions">
           <a-button type="default" size="small" @click="fetchTasks" :loading="loading">
-            <ReloadOutlined /> Refresh
+            <ReloadOutlined /> <span class="btn-text">Refresh</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div style="padding: 10px; width: 100%;">
+    <div class="content-wrapper">
 
       <a-row :gutter="[10, 10]" class="fade-in-up" style="margin-bottom: 10px;">
         <a-col :xs="24" :sm="8">
@@ -69,7 +69,7 @@
 
         <a-table :dataSource="filteredTableData" :columns="columns" rowKey="_id"
           :pagination="{ pageSize: 10, showSizeChanger: false }" :loading="loading" size="middle"
-          :scroll="{ y: 'calc(100vh - 280px)' }" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }"
+          :scroll="{ x: 800, y: 'calc(100vh - 280px)' }" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอตรวจสอบ' }"
           class="qa-table">
           <template #bodyCell="{ column, record }">
 
@@ -155,12 +155,12 @@ export default {
       statusOptions: [],
       filterMode: 'all',
       columns: [
-        { title: 'ID', dataIndex: 'id', key: 'id', width: 80, align: 'center' },
-        { title: 'Task / Subject', dataIndex: 'name', key: 'name', ellipsis: true },
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 80, align: 'center', fixed: 'left' }, // Fix ID column on mobile
+        { title: 'Task / Subject', dataIndex: 'name', key: 'name', width: 200, ellipsis: true },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 120, align: 'center' },
         { title: 'Urgency', dataIndex: 'urgency', key: 'urgency', width: 100, align: 'center' },
         { title: 'Submitted', dataIndex: 'updatedAt', key: 'updatedAt', width: 130, align: 'center', customRender: ({ text }) => dayjs(text).format('DD/MM/YY HH:mm') },
-        { title: 'Action', key: 'action', width: 100, align: 'center' },
+        { title: 'Action', key: 'action', width: 100, align: 'center', fixed: 'right' }, // Fix Action column on mobile
       ]
     };
   },
@@ -252,13 +252,18 @@ export default {
 </script>
 
 <style scoped>
-/* 1. Compact Header */
+/* 1. Header & Layout */
 .compact-header {
   background: #fff;
   padding: 12px 16px;
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   margin-bottom: 0;
+}
+
+.content-wrapper {
+  padding: 10px;
+  width: 100%;
 }
 
 .header-content {
@@ -299,40 +304,18 @@ export default {
   font-size: 18px;
 }
 
-/* 2. Stat Cards (Tight) */
+/* 2. Stat Cards */
 .stat-card {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
   transition: all 0.2s;
+  height: 100%;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-}
-
-.icon-orange-bg :deep(.ant-statistic-title) {
-  color: #fa8c16;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.icon-blue-bg :deep(.ant-statistic-title) {
-  color: #1890ff;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-.icon-green-bg :deep(.ant-statistic-title) {
-  color: #52c41a;
-  font-size: 12px;
-  margin-bottom: 4px;
-}
-
-:deep(.ant-statistic-content) {
-  font-size: 22px;
-  font-weight: 700;
 }
 
 /* 3. Main Card & Toolbar */
@@ -451,6 +434,72 @@ export default {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Colors for Stats */
+.icon-orange-bg :deep(.ant-statistic-title) {
+  color: #fa8c16;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.icon-blue-bg :deep(.ant-statistic-title) {
+  color: #1890ff;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.icon-green-bg :deep(.ant-statistic-title) {
+  color: #52c41a;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+:deep(.ant-statistic-content) {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* Header */
+  .compact-header {
+    padding: 10px 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    display: none;
+    /* Hide subtitle on mobile to save space */
+  }
+
+  /* Toolbar */
+  .table-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .toolbar-right {
+    width: 100%;
+    overflow-x: auto;
+    /* Allow scrolling for filters if needed */
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  /* Table */
+  :deep(.ant-table-cell) {
+    padding: 8px 6px !important;
   }
 }
 </style>

@@ -20,27 +20,26 @@
             </div>
         </div>
 
-        <div style="padding: 12px; width: 100%;">
-
+        <div class="content-wrapper">
             <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0' }">
 
                 <div class="table-toolbar">
-                    <div class="search-area">
+                    <div class="toolbar-left">
                         <a-input v-model:value="searchText" placeholder="Search by username or name..."
-                            style="width: 300px;" allow-clear>
+                            class="modern-input search-input" allow-clear size="small">
                             <template #prefix>
                                 <SearchOutlined class="text-muted" />
                             </template>
                         </a-input>
                     </div>
 
-                    <div class="filter-area">
+                    <div class="toolbar-right">
                     </div>
                 </div>
 
                 <a-table :columns="columns" :data-source="filteredUsers" :loading="loading" rowKey="_id"
                     :pagination="{ pageSize: 10, showSizeChanger: true, showTotal: total => `Total ${total} users` }"
-                    size="middle" :scroll="{ x: 1000 }">
+                    size="middle" :scroll="{ x: 800 }">
                     <template #bodyCell="{ column, record }">
 
                         <template v-if="column.key === 'user_id'">
@@ -150,6 +149,7 @@
 </template>
 
 <script>
+// (Script เหมือนเดิม ใช้ Logic เดิมได้เลย)
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import dayjs from 'dayjs';
@@ -171,12 +171,12 @@ export default {
             searchText: '',
             roleList: [],
             columns: [
-                { title: 'User ID', dataIndex: 'user_id', key: 'user_id', width: 100 },
-                { title: 'Username', dataIndex: 'username', key: 'username', width: 200 }, // เพิ่ม width ให้แสดง Avatar พอดี
-                { title: 'Full Name', dataIndex: 'user_name', key: 'user_name' },
-                { title: 'Role', dataIndex: 'role_code', key: 'role', width: 160 },
-                { title: 'Joined Date', dataIndex: 'createdAt', key: 'created_at', width: 160, align: 'right' },
-                { title: 'Action', key: 'action', width: 100, align: 'center', fixed: 'right' },
+                { title: 'User ID', dataIndex: 'user_id', key: 'user_id', width: 100, fixed: 'left' }, // Fix left column
+                { title: 'Username', dataIndex: 'username', key: 'username', width: 180 },
+                { title: 'Full Name', dataIndex: 'user_name', key: 'user_name', minWidth: 150 },
+                { title: 'Role', dataIndex: 'role_code', key: 'role', width: 140 },
+                { title: 'Joined Date', dataIndex: 'createdAt', key: 'created_at', width: 140, align: 'right' },
+                { title: 'Action', key: 'action', width: 100, align: 'center', fixed: 'right' }, // Fix right column
             ],
             modal: {
                 visible: false,
@@ -365,10 +365,15 @@ export default {
 /* 1. Compact Header */
 .compact-header {
     background: #fff;
-    padding: 12px 16px;
+    padding: 16px 24px;
     border-bottom: 1px solid #e0e0e0;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     margin-bottom: 0;
+}
+
+.content-wrapper {
+    padding: 12px;
+    width: 100%;
 }
 
 .header-content {
@@ -414,16 +419,21 @@ export default {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid #f0f0f0;
-    height: 100%;
+    min-height: 600px;
 }
 
-/* 3. Toolbar (Inside Card) */
+/* 3. Toolbar */
 .table-toolbar {
     padding: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f5f5f5;
+    background: #fafafa;
+}
+
+.search-input {
+    width: 300px;
 }
 
 /* 4. Table Customization */
@@ -495,7 +505,7 @@ export default {
 /* 6. Form Elements */
 .modern-input,
 .modern-select {
-    border-radius: 6px;
+    border-radius: 4px;
 }
 
 /* Transition */
@@ -519,5 +529,49 @@ export default {
 
 .mb-0 {
     margin-bottom: 0;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+    /* Header */
+    .compact-header {
+        padding: 10px 12px;
+    }
+
+    .page-title {
+        font-size: 18px;
+    }
+
+    .page-subtitle {
+        display: none;
+        /* Hide subtitle */
+    }
+
+    /* Card */
+    .main-card {
+        min-height: auto;
+    }
+
+    /* Toolbar */
+    .table-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .toolbar-left,
+    .search-input {
+        width: 100% !important;
+        /* Full width input */
+    }
+
+    /* Table */
+    :deep(.ant-table-cell) {
+        padding: 8px 6px !important;
+    }
 }
 </style>

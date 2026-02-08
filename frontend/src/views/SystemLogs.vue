@@ -11,14 +11,13 @@
         </div>
         <div class="header-actions">
           <a-button type="default" size="small" @click="fetchLogs" :loading="loading">
-            <ReloadOutlined /> Refresh Data
+            <ReloadOutlined /> <span class="btn-text">Refresh Data</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div style="padding: 12px; width: 100%;">
-
+    <div class="content-wrapper">
       <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0' }">
 
         <div class="table-toolbar">
@@ -26,23 +25,22 @@
             <span class="section-title">Transaction History</span>
           </div>
           <div class="toolbar-right">
-            <a-input v-model:value="searchText" placeholder="Search User, Detail..." style="width: 220px" allow-clear
-              size="small" class="modern-input">
+            <a-input v-model:value="searchText" placeholder="Search User, Detail..." class="modern-input search-input"
+              allow-clear size="small">
               <template #prefix>
                 <SearchOutlined class="text-muted" />
               </template>
             </a-input>
 
-            <a-select v-model:value="filterAction" placeholder="Filter Action" style="width: 160px" allow-clear
-              size="small" class="modern-select">
+            <a-select v-model:value="filterAction" placeholder="Filter Action" class="modern-select action-select"
+              allow-clear size="small">
               <a-select-option value="LOGIN">Login</a-select-option>
               <a-select-option value="LOGIN_FAILED">Login Failed</a-select-option>
               <a-select-option value="CREATE_USER">Create User</a-select-option>
               <a-select-option value="UPDATE_USER">Update User</a-select-option>
               <a-select-option value="CREATE_ISSUE">Create Issue</a-select-option>
-              <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option> <a-select-option
-                value="UPDATE_ISSUE">Update
-                Status</a-select-option>
+              <a-select-option value="EDIT_ISSUE">Edit Issue</a-select-option>
+              <a-select-option value="UPDATE_ISSUE">Update Status</a-select-option>
               <a-select-option value="DELETE_ISSUE">Delete Issue</a-select-option>
             </a-select>
           </div>
@@ -50,7 +48,7 @@
 
         <a-table :columns="columns" :data-source="filteredLogs" :loading="loading" rowKey="_id"
           :pagination="{ pageSize: 15, showSizeChanger: true, showTotal: total => `Total ${total} logs` }" size="middle"
-          class="log-table">
+          class="log-table" :scroll="{ x: 900 }">
           <template #bodyCell="{ column, record }">
 
             <template v-if="column.key === 'user'">
@@ -118,6 +116,7 @@
 </template>
 
 <script>
+// (Script เหมือนเดิมทุกประการ)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -141,11 +140,11 @@ export default {
         data: null
       },
       columns: [
-        { title: 'Date/Time', key: 'createdAt', width: 160 },
+        { title: 'Date/Time', key: 'createdAt', width: 150, fixed: 'left' }, // Fixed Date column
         { title: 'Actor', key: 'user', width: 220 },
         { title: 'Action', key: 'action', width: 160, align: 'center' },
-        { title: 'Detail', dataIndex: 'detail', key: 'detail' },
-        { title: 'Data', key: 'metadata', width: 100, align: 'center' },
+        { title: 'Detail', dataIndex: 'detail', key: 'detail', minWidth: 200 },
+        { title: 'Data', key: 'metadata', width: 100, align: 'center', fixed: 'right' }, // Fixed Data column
       ]
     };
   },
@@ -185,22 +184,15 @@ export default {
         this.loading = false;
       }
     },
-
-    // ✅ อัปเดต Logic สีตรงนี้
     getActionColor(action) {
       if (!action) return 'default';
-
       if (action.includes('DELETE')) return 'red';
-      // รวม UPDATE และ EDIT ให้เป็นสีส้มเหมือนกัน (เพราะเป็นการแก้ไข)
       if (action.includes('UPDATE') || action.includes('EDIT')) return 'orange';
       if (action.includes('CREATE')) return 'green';
-
       if (action.includes('LOGIN_FAILED')) return 'volcano';
       if (action.includes('LOGIN')) return 'blue';
-
       return 'default';
     },
-
     openMetadata(record) {
       this.modal.data = record;
       this.modal.visible = true;
@@ -230,6 +222,11 @@ export default {
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   margin-bottom: 0;
+}
+
+.content-wrapper {
+  padding: 12px;
+  width: 100%;
 }
 
 .header-content {
@@ -297,7 +294,18 @@ export default {
 .toolbar-right {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
+
+/* ตั้งค่าความกว้าง default บน desktop */
+.search-input {
+  width: 220px;
+}
+
+.action-select {
+  width: 160px;
+}
+
 
 /* 4. Table Elements */
 .user-cell {
@@ -325,7 +333,6 @@ export default {
 
 .action-tag {
   min-width: 100px;
-  /* เพิ่มความกว้างนิดหน่อยเผื่อชื่อยาว */
   text-align: center;
   border-radius: 4px;
   font-weight: 500;
@@ -399,5 +406,68 @@ export default {
   margin: 0;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* 1. Header */
+  .compact-header {
+    padding: 10px 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    display: none;
+    /* ซ่อน subtitle บนมือถือ */
+  }
+
+  .btn-text {
+    display: none;
+    /* ซ่อนข้อความปุ่ม Refresh เหลือแต่ไอคอน */
+  }
+
+  /* 2. Content */
+  .content-wrapper {
+    padding: 8px;
+  }
+
+  .main-card {
+    min-height: auto;
+  }
+
+  /* 3. Toolbar */
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .toolbar-left {
+    margin-bottom: 0;
+  }
+
+  .toolbar-right {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  /* บังคับ Input/Select ให้เต็มความกว้าง */
+  .search-input,
+  .action-select {
+    width: 100% !important;
+  }
+
+  /* 4. Table */
+  :deep(.ant-table-cell) {
+    padding: 10px !important;
+  }
 }
 </style>

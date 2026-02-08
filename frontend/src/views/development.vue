@@ -11,13 +11,13 @@
         </div>
         <div class="header-actions">
           <a-button type="default" size="small" @click="refreshData" :loading="loading">
-            <ReloadOutlined /> Refresh
+            <ReloadOutlined /> <span class="btn-text">Refresh</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div style="padding: 12px; width: 100%;">
+    <div class="content-wrapper">
       <a-card :bordered="false" class="main-card" :bodyStyle="{ padding: '0' }">
 
         <a-tabs v-model:activeKey="activeTab" @change="refreshData" type="line" size="large" class="custom-tabs">
@@ -45,21 +45,21 @@
                 <span class="section-title">รายการงานทั้งหมด</span>
               </div>
               <div class="toolbar-right">
-                <a-input v-model:value="searchText" placeholder="Search ID or Subject..." style="width: 200px"
-                  allow-clear size="small" class="modern-input">
+                <a-input v-model:value="searchText" placeholder="Search ID or Subject..." size="small"
+                  class="modern-input filter-item" allow-clear>
                   <template #prefix>
                     <SearchOutlined class="text-muted" />
                   </template>
                 </a-input>
-                <a-select v-model:value="filterUrgency" placeholder="Urgency" style="width: 120px" allow-clear
-                  size="small" class="modern-select">
+                <a-select v-model:value="filterUrgency" placeholder="Urgency" size="small" allow-clear
+                  class="modern-select filter-item">
                   <a-select-option v-for="u in urgencies" :key="u._id" :value="u._id">{{ u.name }}</a-select-option>
                 </a-select>
               </div>
             </div>
 
             <a-table :dataSource="filteredUnassigned" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
-              size="middle" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอรับ' }">
+              size="middle" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอรับ' }" :scroll="{ x: 800 }">
               <template #bodyCell="{ column, record }">
 
                 <template v-if="column.key === 'id'">
@@ -110,8 +110,8 @@
                 <span class="section-title">งานที่กำลังทำ</span>
               </div>
               <div class="toolbar-right">
-                <a-input v-model:value="searchText" placeholder="Search ID or Subject..." style="width: 200px"
-                  allow-clear size="small" class="modern-input">
+                <a-input v-model:value="searchText" placeholder="Search ID or Subject..." size="small"
+                  class="modern-input filter-item" allow-clear>
                   <template #prefix>
                     <SearchOutlined class="text-muted" />
                   </template>
@@ -126,7 +126,7 @@
             </div>
 
             <a-table v-else :dataSource="filteredMyIssues" :columns="columns" rowKey="_id"
-              :pagination="{ pageSize: 10 }" size="middle">
+              :pagination="{ pageSize: 10 }" size="middle" :scroll="{ x: 800 }">
               <template #bodyCell="{ column, record }">
 
                 <template v-if="column.key === 'id'">
@@ -181,6 +181,7 @@
 </template>
 
 <script>
+// (Script เหมือนเดิม ใช้ Logic เดิมได้เลยครับ)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -203,14 +204,14 @@ export default {
       loading: false,
       searchText: '',
       filterUrgency: undefined,
-      urgencies: [], // สำหรับ Dropdown
+      urgencies: [],
       columns: [
-        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, align: 'center' },
-        { title: 'Subject', dataIndex: 'name', key: 'name', ellipsis: true },
-        { title: 'Type / Urgency', dataIndex: 'type', key: 'type', width: 180 },
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, align: 'center', fixed: 'left' }, // Fix ID Column
+        { title: 'Subject', dataIndex: 'name', key: 'name', width: 200, ellipsis: true }, // Set min width
+        { title: 'Type / Urgency', dataIndex: 'type', key: 'type', width: 160 },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, align: 'center' },
         { title: 'Submitted', dataIndex: 'createdAt', key: 'createdAt', width: 150, align: 'right' },
-        { title: 'Action', key: 'action', width: 110, align: 'center' },
+        { title: 'Action', key: 'action', width: 110, align: 'center', fixed: 'right' }, // Fix Action Column
       ],
       unassignedIssues: [],
       myIssues: []
@@ -315,6 +316,11 @@ export default {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
+.content-wrapper {
+  padding: 12px;
+  width: 100%;
+}
+
 .header-content {
   display: flex;
   justify-content: space-between;
@@ -353,6 +359,28 @@ export default {
   font-size: 18px;
 }
 
+/* Mobile Header */
+@media (max-width: 768px) {
+  .compact-header {
+    padding: 10px 12px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .page-subtitle {
+    display: none;
+  }
+
+  /* Hide subtitle on mobile */
+  .btn-text {
+    display: none;
+  }
+
+  /* Hide button text on mobile */
+}
+
 /* 2. Main Card */
 .main-card {
   border-radius: 8px;
@@ -361,7 +389,7 @@ export default {
   min-height: 600px;
 }
 
-/* 3. Alert Section (Full Width) */
+/* 3. Alert Section */
 .alert-section {
   padding: 16px 24px 0 24px;
 }
@@ -380,6 +408,9 @@ export default {
   align-items: center;
   border-bottom: 1px solid #f5f5f5;
   margin-top: 10px;
+  flex-wrap: wrap;
+  /* Allow wrapping */
+  gap: 10px;
 }
 
 .section-title {
@@ -391,6 +422,33 @@ export default {
 .toolbar-right {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.filter-item {
+  min-width: 140px;
+}
+
+/* Mobile Toolbar */
+@media (max-width: 768px) {
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .toolbar-left {
+    margin-bottom: 8px;
+  }
+
+  .toolbar-right {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .filter-item {
+    width: 100% !important;
+  }
 }
 
 /* 5. Table & Tags */
@@ -470,6 +528,15 @@ export default {
   align-items: center;
   gap: 6px;
   font-weight: 500;
+}
+
+/* Mobile Tabs */
+@media (max-width: 768px) {
+  .custom-tabs :deep(.ant-tabs-tab) {
+    margin: 0;
+    padding: 12px 16px;
+    font-size: 14px;
+  }
 }
 
 /* Input */

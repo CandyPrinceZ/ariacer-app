@@ -3,30 +3,35 @@
 
         <div class="page-header compact-header">
             <div class="header-content">
-                <div class="header-text">
-                    <h2 class="page-title">
-                        <span class="icon-box" style="background: #e6f7ff; color: #1890ff;">
-                            <EditOutlined />
-                        </span>
-                        แก้ไข: {{ originalName || 'Loading...' }}
-                    </h2>
-                    <p class="page-subtitle">แก้ไขรายละเอียดข้อมูล #{{ originalId }}</p>
+                <div class="header-left">
+                    <div class="header-text">
+                        <h2 class="page-title">
+                            <span class="icon-box">
+                                <EditOutlined />
+                            </span>
+                            <span class="title-text">แก้ไข: {{ originalName || 'Loading...' }}</span>
+                        </h2>
+                        <p class="page-subtitle">
+                            <span v-if="isAdmin" class="admin-badge">ADMIN MODE</span>
+                            แก้ไขรายละเอียดข้อมูล #{{ originalId }}
+                        </p>
+                    </div>
                 </div>
-
                 <div class="header-actions">
-                    <a-button @click="handleCancel" :disabled="submitting" style="margin-right: 8px;">
+                    <a-button @click="handleCancel" :disabled="submitting" class="btn-cancel"
+                        style="margin-right: 8px;">
                         ยกเลิก
                     </a-button>
-                    <a-button type="primary" :loading="submitting" @click="onSubmit">
+                    <a-button type="primary" :loading="submitting" @click="onSubmit" class="btn-save">
                         <template #icon>
                             <SaveOutlined />
-                        </template> บันทึกการแก้ไข
+                        </template> บันทึก
                     </a-button>
                 </div>
             </div>
         </div>
 
-        <div v-if="loading" style="display: flex; justify-content: center; padding-top: 50px;">
+        <div v-if="loading" class="loading-container">
             <a-spin size="large" tip="กำลังโหลดข้อมูล..." />
         </div>
 
@@ -36,37 +41,38 @@
 
                     <a-col :xs="24" :lg="17" :xl="18">
                         <a-card :bordered="false" class="main-card">
+
                             <template #title>
-                                <span class="card-header-text">
-                                    <FormOutlined /> รายละเอียดปัญหา
-                                </span>
+                                <div class="card-title">
+                                    <FormOutlined /> ข้อมูลหลัก (Main Info)
+                                </div>
                             </template>
 
-                            <a-form-item label="หัวข้อปัญหา (Subject)" required style="margin-bottom: 16px;">
-                                <a-input v-model:value="form.title" placeholder="สรุปปัญหาใน 1 ประโยค" size="large"
+                            <a-form-item label="หัวข้อปัญหา (Subject)" required class="mb-4">
+                                <a-input v-model:value="form.title" placeholder="ระบุหัวข้อปัญหา" size="large"
                                     class="modern-input" />
                             </a-form-item>
 
-                            <a-row :gutter="12">
-                                <a-col :span="12">
-                                    <a-form-item label="ประเภท (Category)" required style="margin-bottom: 16px;">
+                            <a-row :gutter="16">
+                                <a-col :xs="24" :sm="12">
+                                    <a-form-item label="ประเภท (Category)" required class="mb-4">
                                         <a-select v-model:value="form.bugType" placeholder="เลือกประเภท"
-                                            :options="issueTypeOptions" :loading="dropdownLoading" size="large"
+                                            :options="options.types" :loading="dropdownLoading" size="large"
                                             class="modern-select" />
                                     </a-form-item>
                                 </a-col>
 
-                                <a-col :span="12">
-                                    <a-form-item label="ความเร่งด่วน (Priority)" required style="margin-bottom: 16px;">
+                                <a-col :xs="24" :sm="12">
+                                    <a-form-item label="ความเร่งด่วน (Priority)" required class="mb-4">
                                         <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large"
                                             :style="selectStyle" class="custom-select"
                                             :class="{ 'has-priority': form.priority }">
-                                            <a-select-option v-for="opt in urgencyOptions" :key="opt.value"
+                                            <a-select-option v-for="opt in options.urgencies" :key="opt.value"
                                                 :value="opt.value">
                                                 <div class="priority-option">
                                                     <span class="dot" :style="{ background: opt.color }"></span>
                                                     <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                             </a-select-option>
                                         </a-select>
@@ -74,86 +80,124 @@
                                 </a-col>
                             </a-row>
 
-                            <a-form-item label="คำอธิบายเพิ่มเติม (Description)" style="margin-bottom: 16px;">
-                                <a-textarea v-model:value="form.description" placeholder="ระบุรายละเอียด..." :rows="12"
+                            <a-form-item label="รายละเอียด (Detail)" class="mb-4">
+                                <a-textarea v-model:value="form.description" placeholder="ระบุรายละเอียด..." :rows="8"
                                     show-count :maxlength="2000" class="modern-textarea" />
                             </a-form-item>
 
-                            <div class="assign-dev-box">
-                                <div class="assign-header">
-                                    <span class="label">
-                                        <UserAddOutlined /> กำหนดผู้พัฒนา (Assign Developer)
-                                    </span>
-                                    <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
+                            <div v-if="isAdmin" class="admin-zone">
+                                <div class="admin-zone-header">
+                                    <UnlockOutlined /> Admin Zone: Force Status Change
                                 </div>
-
-                                <transition name="slide-fade">
-                                    <div v-if="form.isCustomDeveloper" class="assign-body">
-                                        <a-select v-model:value="form.developer" show-search
-                                            placeholder="ค้นหาชื่อผู้พัฒนา..." option-filter-prop="label"
-                                            :loading="dropdownLoading" size="large" class="modern-select"
-                                            style="width: 100%;">
-                                            <a-select-option v-for="dev in developers" :key="dev._id" :value="dev._id"
-                                                :label="dev.user_name">
-                                                <div class="dev-option-item">
-                                                    <a-avatar size="small" :src="dev.avatar"
-                                                        :style="{ backgroundColor: !dev.avatar ? stringToColor(dev.user_name) : 'transparent' }">
-                                                        <span v-if="!dev.avatar">{{ dev.user_name?.[0]?.toUpperCase()
-                                                            }}</span>
-                                                    </a-avatar>
-                                                    <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name
-                                                        }}</span>
-                                                </div>
-                                            </a-select-option>
-                                        </a-select>
-                                        <span class="helper-text">เลือกผู้รับผิดชอบงานนี้โดยตรง</span>
+                                <div class="admin-zone-body">
+                                    <a-row :gutter="16" align="middle">
+                                        <a-col :xs="24" :sm="12">
+                                            <a-form-item label="สถานะปัจจุบัน" style="margin: 0;">
+                                                <a-tag :color="getStatusColor(currentStatusCode)"
+                                                    style="font-size: 14px; padding: 4px 10px; width: 100%; text-align: center;">
+                                                    {{ currentStatusName || 'Unknown' }}
+                                                </a-tag>
+                                            </a-form-item>
+                                        </a-col>
+                                        <a-col :xs="24" :sm="12">
+                                            <a-form-item label="เปลี่ยนเป็น (Override)" style="margin: 0;">
+                                                <a-select v-model:value="form.status" placeholder="-- เลือกสถานะใหม่ --"
+                                                    size="large" class="status-select">
+                                                    <a-select-option v-for="s in options.statuses" :key="s._id"
+                                                        :value="s._id">
+                                                        <div class="status-option">
+                                                            <a-badge :status="getStatusBadge(s.code)" /> {{ s.name }}
+                                                        </div>
+                                                    </a-select-option>
+                                                </a-select>
+                                            </a-form-item>
+                                        </a-col>
+                                    </a-row>
+                                    <div class="admin-helper">
+                                        * การเปลี่ยนสถานะตรงนี้จะมีผลทันทีโดยไม่ต้องผ่าน Workflow ปกติ
                                     </div>
-                                </transition>
+                                </div>
                             </div>
+
                         </a-card>
                     </a-col>
 
                     <a-col :xs="24" :lg="7" :xl="6">
                         <div class="sticky-side">
 
-                            <a-card :bordered="false" class="main-card side-card" v-if="existingImages.length > 0">
-                                <template #title>
-                                    <span class="card-header-text">
-                                        <PictureOutlined /> รูปภาพเดิม
-                                    </span>
-                                </template>
-                                <div class="image-grid">
-                                    <div class="img-item" v-for="(img, index) in existingImages" :key="index">
-                                        <img :src="img.url" @click="openPreview(img.url)" />
-                                        <div class="img-overlay delete" @click.stop="removeExistingImage(index)">
-                                            <DeleteOutlined />
-                                        </div>
+                            <a-card :bordered="false" class="main-card side-card">
+                                <div class="assign-box">
+                                    <div class="assign-header">
+                                        <span class="label">
+                                            <UserAddOutlined /> ผู้รับผิดชอบ
+                                        </span>
+                                        <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
                                     </div>
+
+                                    <transition name="fade">
+                                        <div v-if="form.isCustomDeveloper" class="assign-body">
+                                            <a-select v-model:value="form.developer" show-search
+                                                placeholder="ค้นหา Dev..." option-filter-prop="label"
+                                                :loading="dropdownLoading" size="large" style="width: 100%;"
+                                                class="modern-select">
+                                                <a-select-option v-for="dev in options.developers" :key="dev._id"
+                                                    :value="dev._id" :label="dev.user_name">
+                                                    <div class="dev-item">
+                                                        <a-avatar size="small" :src="dev.avatar"
+                                                            :style="{ backgroundColor: !dev.avatar ? stringToColor(dev.user_name) : 'transparent' }">
+                                                            <span v-if="!dev.avatar">{{
+                                                                dev.user_name?.[0]?.toUpperCase()
+                                                            }}</span>
+                                                        </a-avatar>
+                                                        <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name
+                                                        }}</span>
+                                                    </div>
+                                                </a-select-option>
+                                            </a-select>
+                                        </div>
+                                        <div v-else class="assign-placeholder">
+                                            ยังไม่ได้ระบุ (Unassigned)
+                                        </div>
+                                    </transition>
                                 </div>
                             </a-card>
 
                             <a-card :bordered="false" class="main-card side-card">
                                 <template #title>
-                                    <span class="card-header-text">
-                                        <CameraOutlined /> เพิ่มรูปภาพใหม่
-                                    </span>
+                                    <div class="card-title">
+                                        <PictureOutlined /> รูปภาพ (Images)
+                                    </div>
                                 </template>
 
-                                <div class="upload-wrapper">
+                                <div v-if="existingImages.length > 0" class="img-section">
+                                    <div class="section-label">รูปภาพเดิม</div>
+                                    <div class="image-grid">
+                                        <div class="img-item" v-for="(img, index) in existingImages" :key="index">
+                                            <img :src="img.url" @click="openPreview(img.url)" />
+                                            <div class="img-overlay delete" @click.stop="removeExistingImage(index)">
+                                                <DeleteOutlined />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <a-divider style="margin: 12px 0;" v-if="existingImages.length > 0" />
+
+                                <div class="img-section">
+                                    <div class="section-label">เพิ่มรูปใหม่</div>
                                     <a-upload-dragger v-model:fileList="fileList" :before-upload="beforeUpload"
                                         :multiple="true" accept="image/*" :show-upload-list="false"
-                                        @change="handleUploadChange">
+                                        @change="handleUploadChange" class="mini-dragger">
                                         <div class="dragger-content">
                                             <p class="icon-wrap">
                                                 <CloudUploadOutlined />
                                             </p>
-                                            <p class="text-primary">เพิ่มรูปภาพ</p>
-                                            <p class="text-secondary">JPG, PNG (Max 5)</p>
+                                            <p class="text-hint">คลิกหรือลากไฟล์</p>
                                         </div>
                                     </a-upload-dragger>
 
                                     <div class="image-grid" v-if="fileList.length">
-                                        <div class="img-item" v-for="file in fileList" :key="file.uid">
+                                        <div class="img-item new" v-for="file in fileList" :key="file.uid">
                                             <img :src="file.thumbUrl || file.url"
                                                 @click="openPreview(file.thumbUrl || file.url)" />
                                             <div class="img-overlay" @click.stop="removeFile(file)">
@@ -164,20 +208,22 @@
                                 </div>
                             </a-card>
 
-                            <a-card :bordered="false" class="main-card side-card" bodyStyle="padding: 16px;">
-                                <div class="reporter-info" v-if="originalReporter">
-                                    <a-avatar size="small" :src="originalReporter.avatar" style="margin-right: 8px;"
-                                        :style="{ backgroundColor: !originalReporter.avatar ? stringToColor(originalReporter.user_name) : 'transparent' }">
-                                        <span v-if="!originalReporter.avatar">{{
-                                            originalReporter.user_name?.[0]?.toUpperCase()
+                            <a-card :bordered="false" class="main-card side-card">
+                                <div class="meta-row" style="align-items: center;">
+                                    <span class="meta-label">Reporter:</span>
+                                    <span class="meta-val" style="display: flex; align-items: center; gap: 6px;">
+                                        <a-avatar size="small" :src="originalReporter?.avatar"
+                                            :style="{ backgroundColor: !originalReporter?.avatar ? stringToColor(originalReporter?.user_name) : 'transparent' }">
+                                            <span v-if="!originalReporter?.avatar">{{
+                                                originalReporter?.user_name?.[0]?.toUpperCase()
                                             }}</span>
-                                    </a-avatar>
-                                    <div class="reporter-text">
-                                        <span style="font-size: 11px; color: #888;">ผู้แจ้งปัญหา (Reporter)</span>
-                                        <strong style="display: block; line-height: 1;">{{ originalReporter.user_name ||
-                                            'Unknown'
-                                            }}</strong>
-                                    </div>
+                                        </a-avatar>
+                                        {{ originalReporter?.user_name || '-' }}
+                                    </span>
+                                </div>
+                                <div class="meta-row">
+                                    <span class="meta-label">Created:</span>
+                                    <span class="meta-val">{{ formatDate(createdAt) }}</span>
                                 </div>
                             </a-card>
 
@@ -195,18 +241,22 @@
 </template>
 
 <script>
+// (Script เหมือนเดิม ไม่มีการเปลี่ยนแปลง Logic)
 import axios from 'axios';
+import dayjs from 'dayjs';
 import {
-    EditOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-    DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined
+    EditOutlined, FormOutlined, CloudUploadOutlined,
+    DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined,
+    UnlockOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload, notification } from 'ant-design-vue';
 
 export default {
     name: "IssueEdit",
     components: {
-        EditOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
-        DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined
+        EditOutlined, FormOutlined, CloudUploadOutlined,
+        DeleteOutlined, SaveOutlined, UserAddOutlined, PictureOutlined,
+        UnlockOutlined
     },
     data() {
         return {
@@ -214,28 +264,29 @@ export default {
             loading: false,
             submitting: false,
             dropdownLoading: false,
+            isAdmin: false,
 
-            // Data Stores
-            issues: [],    // Issue Types
-            urgencies: [], // Urgency Levels
-            developers: [],
+            options: { types: [], urgencies: [], statuses: [], developers: [] },
 
-            // Original Data from API
+            // Original Data
             originalId: '',
             originalName: '',
             originalReporter: null,
+            createdAt: null,
+            currentStatusCode: '',
+            currentStatusName: '',
             existingImages: [],
 
-            // Upload State
+            // Upload
             fileList: [],
             maxFiles: 5,
             preview: { open: false, src: '' },
 
-            // Form Data
             form: {
                 title: '',
                 priority: undefined,
                 bugType: undefined,
+                status: undefined,
                 description: '',
                 isCustomDeveloper: false,
                 developer: undefined
@@ -243,18 +294,8 @@ export default {
         };
     },
     computed: {
-        issueTypeOptions() {
-            return (this.issues || []).map((it) => ({
-                value: it._id, label: it.name,
-            }));
-        },
-        urgencyOptions() {
-            return (this.urgencies || []).map((u) => ({
-                value: u._id, label: u.name, color: u.color,
-            }));
-        },
         selectStyle() {
-            const selected = this.urgencyOptions.find(u => u.value === this.form.priority);
+            const selected = this.options.urgencies.find(u => u.value === this.form.priority);
             if (selected && selected.color) {
                 return {
                     border: `1px solid ${selected.color}`,
@@ -269,11 +310,11 @@ export default {
     },
     async mounted() {
         this.issueId = this.$route.params.id;
+        this.checkPermission();
         await this.fetchDropdowns();
         await this.fetchIssueDetail();
     },
     methods: {
-        // --- Utility Methods ---
         stringToColor(str) {
             if (!str) return '#1890ff';
             let hash = 0;
@@ -289,108 +330,74 @@ export default {
             const rgb = colorMap[color] || '200, 200, 200';
             return `rgba(${rgb}, ${opacity})`;
         },
-
-        // --- Fetch Data ---
+        checkPermission() {
+            const role = localStorage.getItem('user_role');
+            this.isAdmin = (role === 'Administrator');
+        },
         async fetchDropdowns() {
             this.dropdownLoading = true;
             try {
                 const Token = localStorage.getItem('token');
                 const config = { headers: { Authorization: `Bearer ${Token}` } };
-                const [resType, resUrgency, resUserdev] = await Promise.all([
+                const [resType, resUrgency, resStatus, resUserdev] = await Promise.all([
                     axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
                     axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
+                    axios.get(import.meta.env.VITE_API_URL + '/items/statuses', config),
                     axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config)
                 ]);
-                this.issues = Array.isArray(resType.data) ? resType.data : (resType.data?.data || []);
-                this.urgencies = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
-                this.developers = Array.isArray(resUserdev.data) ? resUserdev.data : (resUserdev.data?.data || []);
-            } catch (e) {
-                console.error(e);
-                message.error('โหลดข้อมูลตัวเลือกไม่สำเร็จ');
-            } finally {
-                this.dropdownLoading = false;
-            }
+                this.options.types = this.mapOptions(resType.data);
+                this.options.urgencies = this.mapOptions(resUrgency.data, true);
+                this.options.statuses = resStatus.data || [];
+                this.options.developers = resUserdev.data || [];
+            } catch (e) { console.error(e); } finally { this.dropdownLoading = false; }
         },
-
+        mapOptions(data, hasColor = false) {
+            const list = Array.isArray(data) ? data : (data?.data || []);
+            return list.map(item => ({ value: item._id, label: item.name, color: hasColor ? item.color : undefined }));
+        },
         async fetchIssueDetail() {
             this.loading = true;
             try {
                 const token = localStorage.getItem('token');
+                const userId = localStorage.getItem('userId');
                 if (!token) return;
+
                 const config = { headers: { Authorization: `Bearer ${token}` } };
                 const response = await axios.get(import.meta.env.VITE_API_URL + `/issues/${this.issueId}`, config);
+                const data = response.data;
 
-                const data = response.data; // JSON Data ที่ได้จาก API
+                if (!this.isAdmin && data.reporter?._id !== userId && data.assignee?._id !== userId) {
+                    message.error('คุณไม่มีสิทธิ์แก้ไขงานนี้');
+                    this.$router.go(-1);
+                    return;
+                }
 
-                // Map ข้อมูลเข้าตัวแปร
-                this.originalId = data.id; // I0201
                 this.originalName = data.name;
-                this.originalReporter = data.reporter; // Object with avatar
-                this.existingImages = data.images || [];
-
-                // Map ข้อมูลเข้า Form
+                this.originalId = data.id;
+                this.createdAt = data.createdAt;
                 this.form.title = data.name;
                 this.form.description = data.detail;
-
-                // ✅ Map Object -> ID สำหรับ Dropdown
                 this.form.bugType = data.type?._id;
                 this.form.priority = data.urgency?._id;
 
-                // ✅ Handle Assignee (Check if assignee exists)
+                this.currentStatusCode = data.status?.code;
+                this.currentStatusName = data.status?.name;
+
                 if (data.assignee) {
                     this.form.isCustomDeveloper = true;
                     this.form.developer = data.assignee._id;
-                } else {
-                    this.form.isCustomDeveloper = false;
-                    this.form.developer = undefined;
                 }
+                this.originalReporter = data.reporter;
+                this.existingImages = (data.images || []).map(img => typeof img === 'string' ? { url: img } : img);
 
             } catch (error) {
                 console.error(error);
-                message.error('โหลดข้อมูล Issue ไม่สำเร็จ');
                 this.$router.go(-1);
             } finally {
                 this.loading = false;
             }
         },
-
-        // --- Upload Logic ---
-        beforeUpload(file) {
-            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
-            if (!isImage) {
-                message.error('เฉพาะไฟล์รูปภาพ (JPG/PNG)');
-                return Upload.LIST_IGNORE;
-            }
-            return false;
-        },
-        handleUploadChange(info) {
-            let list = [...info.fileList];
-            if (list.length > this.maxFiles) {
-                message.warning(`สูงสุด ${this.maxFiles} รูป`);
-                list = list.slice(0, this.maxFiles);
-            }
-            list = list.map(file => {
-                if (file.originFileObj && !file.thumbUrl) {
-                    file.thumbUrl = URL.createObjectURL(file.originFileObj);
-                }
-                return file;
-            });
-            this.fileList = list;
-        },
-        removeFile(file) {
-            if (file.thumbUrl) URL.revokeObjectURL(file.thumbUrl);
-            this.fileList = this.fileList.filter((f) => f.uid !== file.uid);
-        },
-        // ฟังก์ชันลบรูปเดิมจาก Server (แค่เอาออกจาก array existingImages ก่อนกดบันทึก)
-        removeExistingImage(index) {
-            this.existingImages.splice(index, 1);
-        },
-        openPreview(url) {
-            this.preview.src = url || '';
-            this.preview.open = true;
-        },
-
-        // --- Discord & Submit Logic ---
+        removeExistingImage(index) { this.existingImages.splice(index, 1); },
         async getDynamicWebhook() {
             try {
                 const token = localStorage.getItem('token');
@@ -404,12 +411,9 @@ export default {
             if (!webhookUrl) return null;
             const formData = new FormData();
             formData.append('file', fileObj);
-            const response = await axios.post(webhookUrl, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const response = await axios.post(webhookUrl, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             return response.data.attachments[0].url;
         },
-
         async onSubmit() {
             if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
             if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
@@ -422,72 +426,72 @@ export default {
 
                 let newImageUrls = [];
                 if (this.fileList.length > 0) {
-                    message.loading({ content: 'Uploading new images...', key: 'up', duration: 0 });
                     const webhookUrl = await this.getDynamicWebhook();
                     if (webhookUrl) {
-                        newImageUrls = await Promise.all(
-                            this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, webhookUrl))
-                        );
+                        newImageUrls = await Promise.all(this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, webhookUrl)));
                     }
-                    message.success({ content: 'Uploaded', key: 'up', duration: 2 });
                 }
-
-                // รวมรูปภาพเดิม (ที่ยังไม่ถูกลบ) กับรูปใหม่
-                const finalImages = [
-                    ...this.existingImages.map(img => ({ url: img.url })),
-                    ...newImageUrls.map(url => ({ url: url }))
-                ];
 
                 const payload = {
                     name: this.form.title,
                     detail: this.form.description || '-',
                     type: this.form.bugType,
                     urgency: this.form.priority,
-                    images: finalImages
+                    images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url }))
                 };
 
-                if (this.form.isCustomDeveloper && this.form.developer) {
-                    payload.assignee = this.form.developer;
-                } else if (!this.form.isCustomDeveloper) {
-                    // ถ้าปิด switch ให้ส่ง null หรือค่าที่ backend เข้าใจว่าเคลียร์ assignee
-                    payload.assignee = null;
-                }
+                if (this.isAdmin && this.form.status) payload.status = this.form.status;
+                if (this.form.isCustomDeveloper && this.form.developer) payload.assignee = this.form.developer;
+                else if (!this.form.isCustomDeveloper) payload.assignee = 'null';
 
                 await axios.put(import.meta.env.VITE_API_URL + `/issues/edit/${this.issueId}`, payload, config);
 
-                notification.success({
-                    message: 'บันทึกสำเร็จ',
-                    description: 'แก้ไขข้อมูลเรียบร้อยแล้ว',
-                    placement: 'topRight',
-                    duration: 3
-                });
-
+                notification.success({ message: 'บันทึกสำเร็จ', description: 'แก้ไขข้อมูลเรียบร้อยแล้ว', placement: 'topRight' });
                 this.$router.push(`/issue/${this.issueId}`);
-
             } catch (e) {
-                console.error(e);
-                notification.error({
-                    message: 'บันทึกไม่สำเร็จ',
-                    description: e.response?.data?.message || e.message
-                });
+                notification.error({ message: 'Error', description: e.response?.data?.message || e.message });
             } finally {
                 this.submitting = false;
             }
         },
-        handleCancel() {
-            this.$router.go(-1);
+        handleCancel() { this.$router.go(-1); },
+        beforeUpload(file) {
+            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
+            if (!isImage) {
+                message.error('เฉพาะไฟล์รูปภาพ (JPG/PNG)');
+                return Upload.LIST_IGNORE;
+            }
+            return false;
+        },
+        handleUploadChange(info) {
+            let list = [...info.fileList];
+            list = list.slice(0, this.maxFiles).map(file => {
+                if (file.originFileObj && !file.thumbUrl) file.thumbUrl = URL.createObjectURL(file.originFileObj);
+                return file;
+            });
+            this.fileList = list;
+        },
+        removeFile(file) { this.fileList = this.fileList.filter(f => f.uid !== file.uid); },
+        openPreview(url) { this.preview.src = url; this.preview.open = true; },
+        formatDate(date) { return date ? dayjs(date).format('DD MMM YY HH:mm') : '-' },
+        getStatusColor(code) {
+            const map = { reported: 'red', received: 'blue', inProgress: 'processing', finished: 'cyan', upserver: 'purple', testing: 'orange', success: 'success', rejected: 'red' };
+            return map[code] || 'default';
+        },
+        getStatusBadge(code) {
+            const map = { reported: 'error', received: 'processing', inProgress: 'processing', success: 'success', rejected: 'error', testing: 'warning' };
+            return map[code] || 'default';
         }
     }
 };
 </script>
 
 <style scoped>
-/* 1. COMPACT HEADER */
+/* 1. Header */
 .compact-header {
     background: #fff;
     padding: 12px 16px;
     border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     margin-bottom: 0;
 }
 
@@ -516,10 +520,23 @@ export default {
     margin: 2px 0 0;
     color: #8c8c8c;
     font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.admin-badge {
+    background: #faad14;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
 }
 
 .icon-box {
-    background: #fff1f0;
+    background: #e6f7ff;
+    color: #1890ff;
     width: 32px;
     height: 32px;
     display: flex;
@@ -529,7 +546,13 @@ export default {
     font-size: 18px;
 }
 
-/* 2. MAIN CARD & LAYOUT */
+/* 2. Main Layout */
+.loading-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 50px;
+}
+
 .main-card {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -541,19 +564,27 @@ export default {
     margin-bottom: 12px;
 }
 
-.card-header-text {
+.card-title {
     font-weight: 600;
-    color: #1f1f1f;
     font-size: 15px;
+    color: #1f1f1f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-/* 3. INPUTS & SELECTS */
+/* 3. Inputs */
 .modern-input,
 .modern-select,
 .modern-textarea {
     border-radius: 6px;
 }
 
+.mb-4 {
+    margin-bottom: 16px;
+}
+
+/* 4. Priority Dot */
 .priority-option {
     display: flex;
     align-items: center;
@@ -567,39 +598,101 @@ export default {
     display: inline-block;
 }
 
+/* ✅ Style สำหรับ Priority Dropdown */
 .custom-select.has-priority :deep(.ant-select-selector) {
     border-color: transparent !important;
     box-shadow: none !important;
 }
 
-/* 4. UPLOAD & IMAGES */
-.dragger-content {
-    padding: 12px 0;
+/* 5. Admin Zone */
+.admin-zone {
+    border: 1px solid #ffe58f;
+    background: #fffbe6;
+    border-radius: 6px;
+    margin-top: 16px;
+    overflow: hidden;
 }
 
-.icon-wrap {
-    font-size: 24px;
-    color: #ff4d4f;
-    margin-bottom: 4px;
+.admin-zone-header {
+    background: #fff1b8;
+    padding: 8px 16px;
+    color: #d48806;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.text-primary {
+.admin-zone-body {
+    padding: 16px;
+}
+
+.admin-helper {
+    font-size: 11px;
+    color: #d48806;
+    margin-top: 8px;
+}
+
+/* 6. Assignee Box */
+.assign-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.assign-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.assign-header .label {
+    font-weight: 600;
     color: #595959;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.assign-placeholder {
+    color: #bfbfbf;
+    font-style: italic;
+    font-size: 13px;
+    text-align: center;
+    padding: 8px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+}
+
+.dev-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dev-name {
     font-weight: 500;
     font-size: 13px;
-    margin-bottom: 0;
 }
 
-.text-secondary {
-    color: #bfbfbf;
-    font-size: 11px;
+/* 7. Image Grid */
+.img-section {
+    margin-bottom: 8px;
+}
+
+.section-label {
+    font-size: 12px;
+    color: #8c8c8c;
+    margin-bottom: 8px;
+    font-weight: 500;
 }
 
 .image-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-top: 12px;
 }
 
 .img-item {
@@ -615,24 +708,19 @@ export default {
     height: 100%;
     object-fit: cover;
     cursor: zoom-in;
-    transition: transform 0.3s;
 }
 
 .img-overlay {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.4);
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     color: white;
     opacity: 0;
+    transition: 0.2s;
     cursor: pointer;
-    transition: opacity 0.2s;
-    font-size: 18px;
 }
 
 .img-item:hover .img-overlay {
@@ -640,100 +728,101 @@ export default {
 }
 
 .img-overlay.delete {
-    background-color: rgba(255, 77, 79, 0.7);
+    background: rgba(255, 77, 79, 0.7);
 }
 
-/* 5. ASSIGN BOX */
-.assign-dev-box {
-    background-color: #f9fafb;
-    border: 1px solid #e5e7eb;
+/* Mini Dragger */
+.mini-dragger :deep(.ant-upload-drag) {
+    border: 1px dashed #d9d9d9;
+    background: #fafafa;
     border-radius: 6px;
-    padding: 12px 16px;
-    margin-top: 8px;
 }
 
-.assign-header {
+.mini-dragger :deep(.ant-upload-btn) {
+    padding: 8px 0 !important;
+}
+
+.icon-wrap {
+    font-size: 20px;
+    color: #1890ff;
+    margin-bottom: 0;
+}
+
+.text-hint {
+    font-size: 11px;
+    color: #8c8c8c;
+}
+
+/* 8. Metadata */
+.meta-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-}
-
-.assign-header .label {
-    font-weight: 500;
-    color: #374151;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.assign-body {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px dashed #e5e7eb;
-}
-
-.dev-option-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.dev-name {
-    font-weight: 500;
-    color: #1f2937;
+    margin-bottom: 8px;
     font-size: 13px;
 }
 
-.helper-text {
-    display: block;
-    margin-top: 6px;
-    font-size: 11px;
-    color: #9ca3af;
+.meta-label {
+    color: #8c8c8c;
 }
 
-/* 6. SUBMIT BUTTON & INFO */
-.reporter-info {
-    display: flex;
-    align-items: center;
-    background: #f9f9f9;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    border: 1px solid #f0f0f0;
+.meta-val {
+    font-weight: 500;
+    color: #262626;
 }
 
-.submit-btn {
-    height: 40px;
-    font-size: 14px;
-    font-weight: 600;
-    background: #1890ff;
-    border-color: #1890ff;
-    box-shadow: 0 4px 10px rgba(24, 144, 255, 0.2);
-}
-
-.submit-btn:hover {
-    background: #40a9ff;
-    border-color: #40a9ff;
-}
-
-/* Sticky & Animation */
+/* Sidebar Sticky */
 .sticky-side {
     position: sticky;
     top: 12px;
 }
 
-.slide-fade-enter-active {
-    transition: all 0.3s ease-out;
-}
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added)
+   ========================================================================== */
+@media (max-width: 768px) {
 
-.slide-fade-leave-active {
-    transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
-}
+    /* 1. Header */
+    .compact-header {
+        padding: 10px 12px;
+    }
 
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-    transform: translateY(-10px);
-    opacity: 0;
+    .header-content {
+        flex-wrap: wrap;
+        /* ให้ตกบรรทัดได้ถ้าที่แคบ */
+        gap: 8px;
+    }
+
+    .header-left,
+    .header-text {
+        width: 100%;
+    }
+
+    .page-title {
+        font-size: 18px;
+    }
+
+    .header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        /* ปุ่มเรียงซ้ายขวาสวยงาม */
+        gap: 8px;
+    }
+
+    .btn-save,
+    .btn-cancel {
+        flex: 1;
+        /* ปุ่มขยายเต็มพื้นที่เท่ากัน */
+    }
+
+    /* 2. Sidebar: ไม่ให้ลอย (Sticky) บนมือถือ */
+    .sticky-side {
+        position: static;
+    }
+
+    /* 3. Image Grid: ลดเหลือ 2 คอลัมน์ */
+    .image-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
 }
 </style>

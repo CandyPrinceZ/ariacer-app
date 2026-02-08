@@ -19,17 +19,17 @@
                                 <h1 class="page-title">{{ issue.name }}</h1>
                             </div>
                             <div class="status-row">
-                                <a-tag color="orange" class="status-tag">
+                                <a-tag :color="getStatusColor(issue.status?.code)" class="status-tag">
                                     <template #icon>
-                                        <ExperimentOutlined />
+                                        <component :is="getStatusIcon(issue.status?.code)" />
                                     </template>
-                                    UNDER TESTING
+                                    {{ (issue.status?.name || 'Unknown') }}
                                 </a-tag>
                             </div>
                         </div>
                     </div>
                     <div class="header-actions">
-                        <a-button @click="$router.go(-1)" type="default" size="small">
+                        <a-button @click="goBack" type="default" size="small">
                             <template #icon>
                                 <ArrowLeftOutlined />
                             </template> Back
@@ -46,11 +46,11 @@
                         <transition name="fade">
                             <div v-if="issue.remarks" class="custom-alert error mb-3">
                                 <div class="alert-icon">
-                                    <CloseCircleOutlined />
+                                    <CloseCircleFilled />
                                 </div>
                                 <div class="alert-content">
-                                    <h4 class="alert-title">งานถูกส่งกลับแก้ไข (Rejected History)</h4>
-                                    <p class="alert-desc">"{{ issue.remarks || 'No remark provided.' }}"</p>
+                                    <h4 class="alert-title">งานถูกส่งกลับแก้ไข (Rejected)</h4>
+                                    <p class="alert-desc">"{{ issue.remarks || 'ไม่ได้ระบุเหตุผล' }}"</p>
 
                                     <div v-if="issue.remarks_images?.length" class="mini-gallery">
                                         <div v-for="img in issue.remarks_images" :key="img._id"
@@ -58,6 +58,7 @@
                                             <a-image :src="img.url" class="mini-img" />
                                         </div>
                                     </div>
+
                                     <div v-if="issue.tester" class="alert-meta">
                                         <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                                             <span v-if="!issue.tester.avatar">{{
@@ -65,12 +66,14 @@
                                                 }}</span>
                                         </a-avatar>
                                         ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
+                                        <span class="divider">|</span>
+                                        <ClockCircleOutlined /> {{ formatDate(issue.updatedAt) }}
                                     </div>
                                 </div>
                             </div>
                         </transition>
 
-                        <a-card :bordered="false" class="main-card">
+                        <a-card :bordered="false" class="main-card content-card">
 
                             <div class="card-section">
                                 <h3 class="section-title">
@@ -81,24 +84,31 @@
                                 </div>
                             </div>
 
-                            <div class="card-section mt-4">
+                            <a-divider style="margin: 24px 0;" />
+
+                            <div class="card-section">
                                 <h3 class="section-title">
                                     <PaperClipOutlined /> Attachments
-                                    <span class="count-badge" v-if="issue.images">{{ issue.images?.length || 0 }}</span>
+                                    <span class="count-badge" v-if="issue.images">{{ issue.images.length }}</span>
                                 </h3>
+
                                 <div class="image-grid" v-if="issue.images && issue.images.length > 0">
                                     <div v-for="img in issue.images" :key="img._id" class="img-wrapper">
                                         <a-image :src="img.url" class="img-preview" />
                                     </div>
                                 </div>
-                                <div v-else class="empty-state small">
-                                    <p class="text-muted">No attachments</p>
+                                <div v-else class="empty-state">
+                                    <p class="text-muted">
+                                        <FileTextOutlined /> No attachments
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="card-section mt-4">
+                            <a-divider style="margin: 24px 0;" />
+
+                            <div class="card-section">
                                 <h3 class="section-title">
-                                    <CodeOutlined /> Note From Developer
+                                    <UserOutlined /> Developer Note
                                 </h3>
                                 <div class="desc-box note">
                                     {{ issue.note || 'No note provided.' }}
@@ -192,6 +202,19 @@
                                         <a-tag :color="issue.urgency?.color" class="tag-pill">{{ issue.urgency?.name
                                             }}</a-tag>
                                     </div>
+                                    <div class="info-row">
+                                        <span class="label">Reporter</span>
+                                        <div class="reporter-pill">
+                                            <a-avatar v-if="issue.reporter?.avatar" size="small"
+                                                :src="issue.reporter.avatar" style="margin-right: 4px;" />
+                                            <UserOutlined v-else style="margin-right: 4px;" />
+                                            {{ issue.reporter?.user_name || 'Unknown' }}
+                                        </div>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">Created</span>
+                                        <span class="val-text">{{ formatDate(issue.createdAt) }}</span>
+                                    </div>
                                 </div>
                             </a-card>
 
@@ -205,13 +228,15 @@
 </template>
 
 <script>
+// (Script เหมือนเดิม ไม่ต้องแก้ครับ ใช้ Logic เดิมได้เลย)
 import axios from 'axios';
 import {
     ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
     CloudUploadOutlined, ExperimentOutlined, CheckCircleFilled, CloseCircleFilled,
-    PaperClipOutlined, CloseCircleOutlined
+    PaperClipOutlined, CloseCircleOutlined, UserOutlined, ClockCircleOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload } from 'ant-design-vue';
+import dayjs from 'dayjs'; // Import dayjs
 
 function getBase64(file) {
     return new Promise((resolve, reject) => {
@@ -227,7 +252,7 @@ export default {
     components: {
         ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
         CloudUploadOutlined, ExperimentOutlined, PaperClipOutlined,
-        CheckCircleFilled, CloseCircleFilled, CloseCircleOutlined
+        CheckCircleFilled, CloseCircleFilled, CloseCircleOutlined, UserOutlined, ClockCircleOutlined
     },
     data() {
         return {
@@ -255,6 +280,8 @@ export default {
         }
     },
     methods: {
+        goBack() { this.$router.go(-1); },
+        formatDate(date) { return date ? dayjs(date).format('D MMM YYYY, HH:mm') : '-'; },
         handleCancel() { this.previewVisible = false; },
         async handlePreview(file) {
             if (!file.url && !file.preview) {
@@ -308,6 +335,14 @@ export default {
                 });
                 this.statusOptions = res.data;
             } catch (e) { console.error(e); }
+        },
+        getStatusColor(code) {
+            const map = { reported: 'red', received: 'default', inProgress: 'blue', finished: 'cyan', testing: 'orange', success: 'green', upserver: 'purple', rejected: 'red' };
+            return map[code] || 'default';
+        },
+        getStatusIcon(code) {
+            const iconMap = { reported: 'SoundOutlined', received: 'InboxOutlined', inProgress: 'SyncOutlined', finished: 'CheckSquareOutlined', upserver: 'CloudUploadOutlined', testing: 'ExperimentOutlined', success: 'CheckCircleOutlined', rejected: 'CloseCircleOutlined' };
+            return iconMap[code] || 'QuestionCircleOutlined';
         },
         async getDynamicWebhook() {
             try {
@@ -446,6 +481,8 @@ export default {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
+    /* ให้ตกบรรทัดบนมือถือ */
 }
 
 .id-badge {
@@ -456,6 +493,7 @@ export default {
     font-size: 13px;
     font-weight: 600;
     border: 1px solid #e8e8e8;
+    white-space: nowrap;
 }
 
 .page-title {
@@ -482,6 +520,11 @@ export default {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     border: 1px solid #f0f0f0;
+}
+
+/* ✅ Mobile Height Fix */
+.content-card {
+    min-height: 600px;
 }
 
 .side-card {
@@ -773,12 +816,14 @@ export default {
     gap: 4px;
 }
 
+
 .mini-gallery {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     margin-top: 6px;
 }
+
 
 .mini-img-wrapper {
     width: 40px;
@@ -811,5 +856,47 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added Logic)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+    /* Header */
+    .compact-header {
+        padding: 12px 16px;
+        /* ลด Padding Header */
+    }
+
+    .page-title {
+        font-size: 18px;
+        /* ลดขนาด Font Title */
+    }
+
+    /* Content Card Height */
+    .content-card {
+        min-height: auto;
+        /* ยกเลิก Fixed Height บนมือถือ */
+    }
+
+    /* Sidebar */
+    .sticky-sidebar {
+        position: static;
+        /* ปิด Sticky บนมือถือ */
+    }
+
+    /* Image Grid */
+    .image-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        /* เหลือ 2 คอลัมน์บนมือถือ */
+    }
+
+    /* Alert */
+    .custom-alert.error {
+        flex-direction: column;
+        /* เรียง Alert แนวตั้งถ้ายาว */
+        gap: 8px;
+    }
 }
 </style>

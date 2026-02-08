@@ -175,11 +175,9 @@ export default defineComponent({
 /* --- MOBILE HAMBURGER --- */
 .mobile-hamburger {
   position: fixed;
-  top: 18px;
-  /* ปรับตำแหน่งให้ตรงกับ Header */
+  bottom: 18px;
   left: 18px;
   z-index: 1000;
-  /* อยู่บนสุด */
   width: 40px;
   height: 40px;
   background: #001529;

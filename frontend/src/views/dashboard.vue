@@ -11,16 +11,16 @@
         </div>
         <div class="header-actions">
           <a-button type="default" size="small" @click="refreshData" :loading="loading">
-            <ReloadOutlined /> Refresh Data
+            <ReloadOutlined /> <span class="btn-text">Refresh Data</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div style="padding: 12px; width: 100%;">
+    <div class="dashboard-content">
 
-      <a-row :gutter="[12, 12]" class="fade-in-up">
-        <a-col :xs="24" :sm="12" :md="6" :lg="24">
+      <a-row :gutter="[8, 8]" class="fade-in-up">
+        <a-col :xs="24" :sm="24" :md="6" :lg="24">
           <a-card class="stat-card hero-card" :bordered="false">
             <div class="stat-content">
               <div>
@@ -39,7 +39,7 @@
           </a-card>
         </a-col>
 
-        <a-col v-for="(stat, key) in statusCards" :key="key" :xs="24" :sm="12" :md="6" :lg="3">
+        <a-col v-for="(stat, key) in statusCards" :key="key" :xs="12" :sm="12" :md="6" :lg="3">
           <a-card class="stat-card hover-lift" :bordered="false">
             <div class="stat-content-mini">
               <div :class="['stat-icon-mini', stat.colorClass]">
@@ -58,7 +58,7 @@
         </a-col>
       </a-row>
 
-      <a-row :gutter="[12, 12]" style="margin-top: 12px;">
+      <a-row :gutter="[8, 8]" style="margin-top: 12px;">
 
         <a-col :xs="24" :lg="8">
           <a-card :bordered="false" class="main-card chart-card">
@@ -82,26 +82,26 @@
                 <span class="card-header-text">Issue List</span>
               </div>
               <div class="toolbar-right">
-                <a-input v-model:value="filters.text" placeholder="Search..." style="width: 160px;" size="small"
-                  class="modern-input" allow-clear>
+                <a-input v-model:value="filters.text" placeholder="Search..." size="small"
+                  class="modern-input filter-item" allow-clear>
                   <template #prefix>
                     <SearchOutlined class="text-muted" />
                   </template>
                 </a-input>
 
-                <a-select v-model:value="filters.status" placeholder="Status" style="width: 110px;" size="small"
-                  allow-clear class="modern-select">
+                <a-select v-model:value="filters.status" placeholder="Status" size="small" allow-clear
+                  class="modern-select filter-item">
                   <a-select-option v-for="s in dropdowns.statuses" :key="s._id" :value="s._id">{{ s.name
                     }}</a-select-option>
                 </a-select>
 
-                <a-select v-model:value="filters.urgency" placeholder="Urgency" style="width: 110px;" size="small"
-                  allow-clear class="modern-select">
+                <a-select v-model:value="filters.urgency" placeholder="Urgency" size="small" allow-clear
+                  class="modern-select filter-item">
                   <a-select-option v-for="u in dropdowns.urgencies" :key="u._id" :value="u._id">{{ u.name
                     }}</a-select-option>
                 </a-select>
-                <a-select v-model:value="filters.type" placeholder="Type" style="width: 110px;" size="small" allow-clear
-                  class="modern-select">
+                <a-select v-model:value="filters.type" placeholder="Type" size="small" allow-clear
+                  class="modern-select filter-item">
                   <a-select-option v-for="t in dropdowns.types" :key="t._id" :value="t._id">{{ t.name
                     }}</a-select-option>
                 </a-select>
@@ -109,7 +109,7 @@
             </div>
 
             <a-table :dataSource="filteredIssues" :columns="columns" rowKey="_id"
-              :pagination="{ pageSize: 6, showSizeChanger: false }" size="middle">
+              :pagination="{ pageSize: 6, showSizeChanger: false }" size="middle" :scroll="{ x: 800 }">
               <template #bodyCell="{ column, record }">
 
                 <template v-if="column.key === 'id'">
@@ -117,7 +117,7 @@
                 </template>
 
                 <template v-if="column.key === 'name'">
-                  <div class="text-ellipsis" style="max-width: 250px;">
+                  <div class="text-ellipsis" style="max-width: 200px;">
                     <span style="font-weight: 500; color: #2c3e50;">{{ record.name }}</span>
                   </div>
                 </template>
@@ -150,18 +150,17 @@
                           {{ record.assignee.user_name?.[0]?.toUpperCase() }}
                         </span>
                       </a-avatar>
-
                     </a-tooltip>
                   </div>
                   <span v-else class="text-muted" style="color: #bfbfbf;">-</span>
                 </template>
 
                 <template v-if="column.key === 'createdAt'">
-                  {{ formatDate(record.createdAt) || '-' }}
+                  <span class="date-text">{{ formatDate(record.createdAt) || '-' }}</span>
                 </template>
 
                 <template v-if="column.key === 'action'">
-                  <a-button type="link" size="small" @click="goToIssueDetail(record._id)">View Details</a-button>
+                  <a-button type="link" size="small" @click="goToIssueDetail(record._id)">View</a-button>
                 </template>
 
               </template>
@@ -200,13 +199,11 @@ export default {
       dropdowns: { statuses: [], urgencies: [], types: [] },
       filters: { text: '', status: undefined, urgency: undefined, type: undefined },
 
-      // ✅ เพิ่ม finished และ rejected เข้ามา
       stats: {
         total: 0, reported: 0, received: 0, inProgress: 0,
         finished: 0, upserver: 0, testing: 0, success: 0, rejected: 0
       },
 
-      // ✅ เพิ่มการ์ด Rejected และ Finished ให้ครบ
       statusCards: [
         { key: 'reported', label: 'Reported', icon: 'AlertOutlined', colorClass: 'icon-red', hexColor: '#ff4d4f', textColor: '#ff4d4f' },
         { key: 'received', label: 'Received', icon: 'InboxOutlined', colorClass: 'icon-gray', hexColor: '#8c8c8c', textColor: '#595959' },
@@ -218,13 +215,13 @@ export default {
         { key: 'success', label: 'Success', icon: 'CheckCircleOutlined', colorClass: 'icon-green', hexColor: '#52c41a', textColor: '#52c41a' },
       ],
       columns: [
-        { title: 'ID', dataIndex: 'id', key: 'id', width: 90 },
-        { title: 'Subject', dataIndex: 'name', key: 'name', ellipsis: true },
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, fixed: 'left' }, // Fix ID column
+        { title: 'Subject', dataIndex: 'name', key: 'name', width: 200 },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
         { title: 'Urgency', dataIndex: 'urgency', key: 'urgency', width: 110 },
-        { title: 'Submitted', dataIndex: 'createdAt', key: 'createdAt', width: 150, align: 'right' },
-        { title: 'Dev', dataIndex: 'assignee', key: 'assignee', width: 60, align: 'center' },
-        { title: 'Action', key: 'action', width: 100, align: 'center' },
+        { title: 'Submitted', dataIndex: 'createdAt', key: 'createdAt', width: 140, align: 'right' },
+        { title: 'Dev', dataIndex: 'assignee', key: 'assignee', width: 80, align: 'center' },
+        { title: 'Action', key: 'action', width: 80, align: 'center', fixed: 'right' }, // Fix Action
       ]
     };
   },
@@ -241,10 +238,9 @@ export default {
         return matchText && matchStatus && matchUrgency && matchType;
       });
     },
-    // ✅ กราฟ: เอา Success ออก
     chartData() {
       return {
-        labels: ['Report', 'Inbox', 'Dev', 'Done(Dev)', 'Server', 'Test', 'Reject'],
+        labels: ['Report', 'Inbox', 'Dev', 'Done', 'Server', 'Test', 'Reject'],
         datasets: [
           {
             label: 'Issues',
@@ -252,7 +248,6 @@ export default {
               this.stats.reported, this.stats.received, this.stats.inProgress,
               this.stats.finished, this.stats.upserver, this.stats.testing, this.stats.rejected
             ],
-            // สีของแท่งกราฟแต่ละแท่ง
             backgroundColor: [
               '#ff4d4f', '#8c8c8c', '#1890ff', '#13c2c2',
               '#722ed1', '#fa8c16', '#cf1322'
@@ -310,7 +305,6 @@ export default {
       } catch (error) { console.error(error); }
     },
     calculateStats(issues) {
-      // ✅ Reset Stats ให้ครบทุก field
       const counts = { total: issues.length, reported: 0, received: 0, inProgress: 0, finished: 0, upserver: 0, testing: 0, success: 0, rejected: 0 };
       issues.forEach(issue => {
         const code = issue.status?.code || '';
@@ -354,13 +348,18 @@ export default {
     },
     formatDate(date) {
       if (!date) return '-';
-      return dayjs(date).format('DD/MM/YYYY HH:mm');
+      return dayjs(date).format('DD/MM/YY');
     }
   }
 };
 </script>
 
 <style scoped>
+.dashboard-content {
+  padding: 12px;
+  width: 100%;
+}
+
 /* 1. Compact Header */
 .compact-header {
   background: #fff;
@@ -405,6 +404,22 @@ export default {
   justify-content: center;
   border-radius: 6px;
   font-size: 18px;
+}
+
+/* Mobile responsive header */
+@media (max-width: 768px) {
+  .compact-header {
+    padding: 10px 12px;
+  }
+  .page-title {
+    font-size: 16px;
+  }
+  .page-subtitle {
+    display: none; /* Hide subtitle on mobile to save space */
+  }
+  .btn-text {
+    display: none; /* Show only icon on mobile */
+  }
 }
 
 /* 2. Stat Cards */
@@ -457,17 +472,9 @@ export default {
   font-size: 20px;
 }
 
-.text-white {
-  color: #fff;
-}
-
-.text-white-70 {
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.bg-white-20 {
-  background: rgba(255, 255, 255, 0.2);
-}
+.text-white { color: #fff; }
+.text-white-70 { color: rgba(255, 255, 255, 0.7); }
+.bg-white-20 { background: rgba(255, 255, 255, 0.2); }
 
 .stat-footer {
   font-size: 12px;
@@ -529,45 +536,14 @@ export default {
 }
 
 /* Colors */
-.icon-red {
-  background: rgba(255, 77, 79, 0.1);
-  color: #ff4d4f;
-}
-
-.icon-red-dark {
-  background: rgba(207, 19, 34, 0.1);
-  color: #cf1322;
-}
-
-.icon-gray {
-  background: rgba(140, 140, 140, 0.1);
-  color: #595959;
-}
-
-.icon-blue {
-  background: rgba(24, 144, 255, 0.1);
-  color: #1890ff;
-}
-
-.icon-cyan {
-  background: rgba(19, 194, 194, 0.1);
-  color: #13c2c2;
-}
-
-.icon-purple {
-  background: rgba(114, 46, 209, 0.1);
-  color: #722ed1;
-}
-
-.icon-orange {
-  background: rgba(250, 140, 22, 0.1);
-  color: #fa8c16;
-}
-
-.icon-green {
-  background: rgba(82, 196, 26, 0.1);
-  color: #52c41a;
-}
+.icon-red { background: rgba(255, 77, 79, 0.1); color: #ff4d4f; }
+.icon-red-dark { background: rgba(207, 19, 34, 0.1); color: #cf1322; }
+.icon-gray { background: rgba(140, 140, 140, 0.1); color: #595959; }
+.icon-blue { background: rgba(24, 144, 255, 0.1); color: #1890ff; }
+.icon-cyan { background: rgba(19, 194, 194, 0.1); color: #13c2c2; }
+.icon-purple { background: rgba(114, 46, 209, 0.1); color: #722ed1; }
+.icon-orange { background: rgba(250, 140, 22, 0.1); color: #fa8c16; }
+.icon-green { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
 
 /* 3. Main Cards & Toolbar */
 .main-card {
@@ -576,22 +552,9 @@ export default {
   height: 100%;
 }
 
-.card-header-wrap {
-  display: flex;
-  flex-direction: column;
-}
-
-.card-header-text {
-  font-weight: 600;
-  color: #1f1f1f;
-  font-size: 15px;
-}
-
-.card-header-sub {
-  font-size: 11px;
-  color: #8c8c8c;
-  font-weight: 400;
-}
+.card-header-wrap { display: flex; flex-direction: column; }
+.card-header-text { font-weight: 600; color: #1f1f1f; font-size: 15px; }
+.card-header-sub { font-size: 11px; color: #8c8c8c; font-weight: 400; }
 
 .table-toolbar {
   padding: 12px 16px;
@@ -607,6 +570,32 @@ export default {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  min-width: 110px;
+}
+
+/* Mobile responsive toolbar */
+@media (max-width: 768px) {
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+  }
+  .toolbar-left { margin-bottom: 8px; }
+  .toolbar-right {
+    width: 100%;
+    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+  }
+  .filter-item { width: 100% !important; min-width: 0; }
+  /* Make search input full width */
+  .toolbar-right .ant-input-affix-wrapper {
+      grid-column: 1 / -1;
+  }
 }
 
 /* 4. Table Elements */
@@ -643,9 +632,8 @@ export default {
   display: inline-block;
 }
 
-.text-muted {
-  color: #bfbfbf;
-}
+.text-muted { color: #bfbfbf; }
+.date-text { font-size: 11px; color: #595959; }
 
 /* Animations */
 .fade-in-up {
@@ -654,14 +642,16 @@ export default {
 }
 
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@media (max-width: 768px) {
+  .stat-number { font-size: 22px; }
+  .stat-number-mini { font-size: 18px; }
+  .stat-label-mini { font-size: 10px; }
+  :deep(.ant-card) { border-radius: 6px; }
+  :deep(.ant-table) { font-size: 12px; }
+  :deep(.ant-table-cell) { padding: 8px 6px !important; }
 }
 </style>

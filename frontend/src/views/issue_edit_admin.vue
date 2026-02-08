@@ -9,11 +9,11 @@
               <span class="icon-box">
                 <EditOutlined />
               </span>
-              แก้ไข: {{ originalName || 'Loading...' }}
+              <span class="title-text">แก้ไข: {{ originalName || 'Loading...' }}</span>
             </h2>
             <p class="page-subtitle">
               <span v-if="isAdmin" class="admin-badge">ADMIN MODE</span>
-              แก้ไขรายละเอียดข้อมูล  #{{ originalId }}
+              แก้ไขรายละเอียดข้อมูล #{{ originalId }}
             </p>
           </div>
         </div>
@@ -24,7 +24,7 @@
           <a-button type="primary" :loading="submitting" @click="onSubmit" class="btn-save">
             <template #icon>
               <SaveOutlined />
-            </template> บันทึกการแก้ไข
+            </template> บันทึก
           </a-button>
         </div>
       </div>
@@ -51,15 +51,15 @@
                 <a-input v-model:value="form.title" placeholder="ระบุหัวข้อปัญหา" size="large" class="modern-input" />
               </a-form-item>
 
-              <a-row :gutter="16">
-                <a-col :span="12">
+              <a-row :gutter="[16, 16]">
+                <a-col :xs="24" :sm="12">
                   <a-form-item label="ประเภท (Category)" required class="mb-4">
                     <a-select v-model:value="form.bugType" placeholder="เลือกประเภท" :options="options.types"
                       :loading="dropdownLoading" size="large" class="modern-select" />
                   </a-form-item>
                 </a-col>
 
-                <a-col :span="12">
+                <a-col :xs="24" :sm="12">
                   <a-form-item label="ความเร่งด่วน (Priority)" required class="mb-4">
                     <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
                       class="custom-select" :class="{ 'has-priority': form.priority }">
@@ -84,15 +84,16 @@
                   <UnlockOutlined /> Admin Zone: Force Status Change
                 </div>
                 <div class="admin-zone-body">
-                  <a-row :gutter="16" align="middle">
-                    <a-col :span="12">
+                  <a-row :gutter="[16, 16]" align="middle">
+                    <a-col :xs="24" :sm="12">
                       <a-form-item label="สถานะปัจจุบัน" style="margin: 0;">
-                        <a-tag :color="getStatusColor(currentStatusCode)" style="font-size: 14px; padding: 4px 10px;">
+                        <a-tag :color="getStatusColor(currentStatusCode)"
+                          style="font-size: 14px; padding: 4px 10px; width: 100%; text-align: center;">
                           {{ currentStatusName || 'Unknown' }}
                         </a-tag>
                       </a-form-item>
                     </a-col>
-                    <a-col :span="12">
+                    <a-col :xs="24" :sm="12">
                       <a-form-item label="เปลี่ยนเป็น (Override)" style="margin: 0;">
                         <a-select v-model:value="form.status" placeholder="-- เลือกสถานะใหม่ --" size="large"
                           class="status-select">
@@ -175,10 +176,12 @@
                   <div class="section-label">เพิ่มรูปใหม่</div>
                   <a-upload-dragger v-model:fileList="fileList" :before-upload="beforeUpload" :multiple="true"
                     accept="image/*" :show-upload-list="false" @change="handleUploadChange" class="mini-dragger">
-                    <p class="icon-wrap">
-                      <CloudUploadOutlined />
-                    </p>
-                    <p class="text-hint">คลิกหรือลากไฟล์</p>
+                    <div class="dragger-content">
+                      <p class="icon-wrap">
+                        <CloudUploadOutlined />
+                      </p>
+                      <p class="text-hint">คลิกหรือลากไฟล์</p>
+                    </div>
                   </a-upload-dragger>
 
                   <div class="image-grid" v-if="fileList.length">
@@ -199,7 +202,7 @@
                     <a-avatar size="small" :src="originalReporter?.avatar"
                       :style="{ backgroundColor: !originalReporter?.avatar ? stringToColor(originalReporter?.user_name) : 'transparent' }">
                       <span v-if="!originalReporter?.avatar">{{ originalReporter?.user_name?.[0]?.toUpperCase()
-                        }}</span>
+                      }}</span>
                     </a-avatar>
                     {{ originalReporter?.user_name || '-' }}
                   </span>
@@ -224,6 +227,7 @@
 </template>
 
 <script>
+// (ส่วน Script เหมือนเดิม ไม่มีการเปลี่ยนแปลง Logic)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -276,7 +280,6 @@ export default {
     };
   },
   computed: {
-    // ✅ เพิ่ม computed สำหรับ Style ของ Priority Dropdown
     selectStyle() {
       const selected = this.options.urgencies.find(u => u.value === this.form.priority);
       if (selected && selected.color) {
@@ -298,7 +301,6 @@ export default {
     await this.fetchIssueDetail();
   },
   methods: {
-    // --- Utility Methods ---
     stringToColor(str) {
       if (!str) return '#1890ff';
       let hash = 0;
@@ -306,7 +308,6 @@ export default {
       const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
       return '#' + '00000'.substring(0, 6 - c.length) + c;
     },
-    // ✅ Helper สำหรับสร้างสีจางๆ
     getColorWithOpacity(color, opacity) {
       const colorMap = {
         'red': '255, 77, 79', 'orange': '250, 140, 22', 'green': '82, 196, 26',
@@ -365,11 +366,9 @@ export default {
         this.form.bugType = data.type?._id;
         this.form.priority = data.urgency?._id;
 
-        // Status Info
         this.currentStatusCode = data.status?.code;
         this.currentStatusName = data.status?.name;
 
-        // Assignee
         if (data.assignee) {
           this.form.isCustomDeveloper = true;
           this.form.developer = data.assignee._id;
@@ -384,7 +383,6 @@ export default {
         this.loading = false;
       }
     },
-    // --- Image Logic ---
     removeExistingImage(index) { this.existingImages.splice(index, 1); },
     async getDynamicWebhook() {
       try {
@@ -402,7 +400,6 @@ export default {
       const response = await axios.post(webhookUrl, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
       return response.data.attachments[0].url;
     },
-    // --- Submit Logic ---
     async onSubmit() {
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
@@ -443,8 +440,6 @@ export default {
         this.submitting = false;
       }
     },
-
-    // --- Helpers ---
     handleCancel() { this.$router.go(-1); },
     beforeUpload(file) {
       const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
@@ -589,7 +584,6 @@ export default {
   display: inline-block;
 }
 
-/* ✅ Style สำหรับ Priority Dropdown */
 .custom-select.has-priority :deep(.ant-select-selector) {
   border-color: transparent !important;
   box-shadow: none !important;
@@ -759,5 +753,66 @@ export default {
 .meta-val {
   font-weight: 500;
   color: #262626;
+}
+
+/* Sidebar Sticky (Desktop) */
+.sticky-side {
+  position: sticky;
+  top: 12px;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* 1. Sidebar: ไม่ให้ลอย (Sticky) บนมือถือ */
+  .sticky-side {
+    position: static;
+  }
+
+  /* 2. Header: ปรับให้ยืดหยุ่น */
+  .compact-header {
+    padding: 10px 12px;
+  }
+
+  .header-content {
+    flex-wrap: wrap;
+    /* ให้ตกบรรทัดได้ถ้าที่แคบ */
+    gap: 8px;
+  }
+
+  .header-left,
+  .header-text {
+    width: 100%;
+  }
+
+  .header-actions {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    /* ปุ่มเรียงซ้ายขวาสวยงาม */
+    gap: 8px;
+  }
+
+  .btn-save,
+  .btn-cancel {
+    flex: 1;
+    /* ปุ่มขยายเต็มพื้นที่เท่ากัน */
+  }
+
+  /* 3. Image Grid: ลดเหลือ 2 คอลัมน์ */
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* 4. Font & Spacing: ปรับลดขนาด */
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+  }
 }
 </style>

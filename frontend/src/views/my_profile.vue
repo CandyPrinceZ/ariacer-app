@@ -12,7 +12,7 @@
             </div>
         </div>
 
-        <div style="padding: 12px; width: 100%;">
+        <div class="content-wrapper">
             <a-row :gutter="[12, 12]">
 
                 <a-col :xs="24" :lg="8" :xl="6">
@@ -118,7 +118,7 @@
 
                                         <div class="form-actions">
                                             <a-button type="primary" size="large" :loading="loading"
-                                                @click="updateProfile" class="btn-save">
+                                                @click="updateProfile" class="btn-save btn-block-mobile">
                                                 บันทึกการเปลี่ยนแปลง
                                             </a-button>
                                         </div>
@@ -169,7 +169,7 @@
 
                                         <div class="form-actions">
                                             <a-button type="primary" danger ghost size="large" :loading="loading"
-                                                @click="updatePassword" class="btn-danger">
+                                                @click="updatePassword" class="btn-danger btn-block-mobile">
                                                 ยืนยันเปลี่ยนรหัสผ่าน
                                             </a-button>
                                         </div>
@@ -187,12 +187,13 @@
 </template>
 
 <script>
+// (ส่วน Script ไม่มีเปลี่ยนแปลง)
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import dayjs from 'dayjs';
 import {
     UserOutlined, IdcardOutlined, CalendarOutlined, LockOutlined,
-    CameraOutlined, LoadingOutlined // ✅ เพิ่มไอคอน
+    CameraOutlined, LoadingOutlined
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
@@ -211,7 +212,7 @@ export default {
 
         return {
             loading: false,
-            uploadLoading: false, // ✅ สถานะอัปโหลดรูป
+            uploadLoading: false,
             activeTab: 'general',
             user: { user_name: '', username: '', role_name: '', role_code: '', user_id: '', createdAt: null, avatar: '' },
             formProfile: { user_name: '' },
@@ -225,7 +226,6 @@ export default {
     },
     async mounted() { await this.fetchProfile(); },
     methods: {
-        // --- 1. Fetch Profile ---
         async fetchProfile() {
             try {
                 const token = localStorage.getItem('token');
@@ -238,7 +238,6 @@ export default {
             }
         },
 
-        // --- 2. Upload Avatar Logic (New) ---
         beforeUpload(file) {
             const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
             if (!isJpgOrPng) {
@@ -256,8 +255,6 @@ export default {
             try {
                 const token = localStorage.getItem('token');
 
-                // 2.1 Get Discord Webhook URL from backend
-                // (สมมติว่า backend มี endpoint นี้ ถ้าไม่มีคุณอาจต้อง hardcode หรือใช้วิธีอื่น)
                 const configRes = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -265,22 +262,19 @@ export default {
 
                 if (!webhookUrl) throw new Error("Webhook URL not found");
 
-                // 2.2 Upload to Discord
                 const formData = new FormData();
                 formData.append('file', file);
                 const discordRes = await axios.post(webhookUrl, formData);
 
                 const newAvatarUrl = discordRes.data.attachments[0].url;
 
-                // 2.3 Update Avatar in Backend
                 const updateRes = await axios.put(
                     import.meta.env.VITE_API_URL + '/auth/update-avatar',
                     { avatar: newAvatarUrl },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                // 2.4 Update Local State
-                this.user.avatar = updateRes.data.avatar; // หรือ newAvatarUrl
+                this.user.avatar = updateRes.data.avatar;
                 message.success('อัปโหลดรูปโปรไฟล์สำเร็จ!');
 
             } catch (error) {
@@ -291,7 +285,6 @@ export default {
             }
         },
 
-        // --- 3. Update Text Profile ---
         async updateProfile() {
             if (!this.formProfile.user_name) { Swal.fire('Warning', 'กรุณาระบุชื่อ', 'warning'); return; }
             this.loading = true;
@@ -305,7 +298,6 @@ export default {
             } finally { this.loading = false; }
         },
 
-        // --- 4. Update Password ---
         updatePassword() {
             this.$refs.passwordForm.validate().then(async () => {
                 this.loading = true;
@@ -323,7 +315,6 @@ export default {
             }).catch(() => { });
         },
 
-        // --- Helpers ---
         getInitial(name) { return name ? name.charAt(0).toUpperCase() : '?'; },
         getAvatarColor(username) {
             const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff', '#52c41a'];
@@ -343,7 +334,6 @@ export default {
     margin-bottom: 12px;
 }
 
-/* ซ่อนกรอบสี่เหลี่ยมเดิมของ upload */
 :deep(.avatar-uploader .ant-upload) {
     width: auto !important;
     height: auto !important;
@@ -370,7 +360,6 @@ export default {
     transition: filter 0.3s;
 }
 
-/* Effect ตอนเอาเมาส์ชี้ */
 .avatar-overlay {
     position: absolute;
     top: 0;
@@ -386,14 +375,11 @@ export default {
     transition: opacity 0.3s;
     border-radius: 50%;
     border: 4px solid transparent;
-    /* เพื่อให้ขนาดเท่ากับ avatar */
 }
 
 .avatar-wrapper:hover .avatar-overlay {
     opacity: 1;
 }
-
-/* ... (CSS ส่วนอื่นๆ เหมือนเดิม) ... */
 
 /* 1. Compact Header */
 .compact-header {
@@ -443,6 +429,11 @@ export default {
 }
 
 /* 2. Main Cards */
+.content-wrapper {
+    padding: 12px;
+    width: 100%;
+}
+
 .main-card {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -641,5 +632,52 @@ export default {
     margin: 0 32px 0 0;
     padding: 12px 0;
     font-size: 15px;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added Logic)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+    /* 1. Header */
+    .compact-header {
+        padding: 12px 16px;
+    }
+
+    .page-title {
+        font-size: 18px;
+    }
+
+    .page-subtitle {
+        font-size: 12px;
+    }
+
+    /* 2. Content Margin */
+    .content-wrapper {
+        padding: 12px;
+    }
+
+    /* 3. Make Buttons Full Width on Mobile */
+    .form-actions {
+        justify-content: stretch;
+        /* ให้เต็มขอบเขต */
+    }
+
+    .btn-block-mobile {
+        width: 100%;
+        /* ปุ่มขยายเต็ม */
+    }
+
+    /* 4. Tabs scrollable if too many */
+    .custom-tabs :deep(.ant-tabs-nav-list) {
+        overflow-x: auto;
+        /* เผื่อในอนาคตมี Tab เพิ่ม */
+    }
+
+    .custom-tabs :deep(.ant-tabs-tab) {
+        margin: 0 16px 0 0;
+        /* ลดระยะห่าง Tab */
+        font-size: 14px;
+    }
 }
 </style>

@@ -61,7 +61,7 @@
                   <div v-if="issue.tester" class="alert-meta">
                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                       <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                        }}</span>
+                      }}</span>
                     </a-avatar>
                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                     <span class="divider">|</span>
@@ -71,7 +71,7 @@
               </div>
             </transition>
 
-            <a-card :bordered="false" class="main-card">
+            <a-card :bordered="false" class="main-card content-card">
 
               <div class="card-section">
                 <h3 class="section-title">
@@ -393,12 +393,16 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  /* Allow left part to take available space */
 }
 
 .title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+  /* Wrap on small screens */
 }
 
 .id-badge {
@@ -409,6 +413,7 @@ export default {
   font-size: 13px;
   font-weight: 600;
   border: 1px solid #e8e8e8;
+  white-space: nowrap;
 }
 
 .page-title {
@@ -435,6 +440,10 @@ export default {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
+}
+
+.content-card {
+  min-height: 600px;
 }
 
 .side-card {
@@ -780,7 +789,6 @@ export default {
   font-size: 15px;
 }
 
-
 .alert-desc {
   margin: 0 0 12px;
   font-size: 14px;
@@ -835,5 +843,47 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* ==========================================================================
+   📱 Mobile Responsive Tweaks (Added Logic)
+   ========================================================================== */
+@media (max-width: 768px) {
+
+  /* Header */
+  .compact-header {
+    padding: 12px 16px;
+    /* ลด Padding Header */
+  }
+
+  .page-title {
+    font-size: 18px;
+    /* ลดขนาด Font Title */
+  }
+
+  /* Content Card Height */
+  .content-card {
+    min-height: auto;
+    /* ยกเลิก Fixed Height บนมือถือ */
+  }
+
+  /* Sidebar */
+  .sticky-sidebar {
+    position: static;
+    /* ปิด Sticky บนมือถือ */
+  }
+
+  /* Image Grid */
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    /* เหลือ 2 คอลัมน์บนมือถือ */
+  }
+
+  /* Alert */
+  .custom-alert.error {
+    flex-direction: column;
+    /* เรียง Alert แนวตั้งถ้ายาว */
+    gap: 8px;
+  }
 }
 </style>

@@ -7,24 +7,25 @@
           <h2 class="page-title">
             <span class="icon-box">
               <BugOutlined />
-            </span> Report Issues
+            </span>
+            <span class="title-text">Report Issues</span>
           </h2>
           <p class="page-subtitle">แจ้งปัญหาการใช้งานเพื่อให้ทีมพัฒนาตรวจสอบ</p>
         </div>
 
         <div class="header-actions">
-          <a-button type="text" size="small" @click="onReset">
-            <ReloadOutlined /> ล้างข้อมูล
+          <a-button type="text" size="small" @click="onReset" class="btn-reset">
+            <ReloadOutlined /> <span class="reset-text">ล้างข้อมูล</span>
           </a-button>
         </div>
       </div>
     </div>
 
-    <div style="padding: 12px; width: 100%;">
+    <div class="content-wrapper">
       <a-form layout="vertical" :model="form">
-        <a-row :gutter="[12, 12]">
+        <a-row :gutter="[16, 16]">
 
-          <a-col :xs="24" :lg="17" :xl="18">
+          <a-col :xs="24" :lg="16" :xl="18">
             <a-card :bordered="false" class="main-card">
               <template #title>
                 <span class="card-header-text">
@@ -32,21 +33,21 @@
                 </span>
               </template>
 
-              <a-form-item label="หัวข้อปัญหา (Subject)" required style="margin-bottom: 16px;">
+              <a-form-item label="หัวข้อปัญหา (Subject)" required class="form-item-mb">
                 <a-input v-model:value="form.title" placeholder="สรุปปัญหาใน 1 ประโยค" size="large"
                   class="modern-input" />
               </a-form-item>
 
-              <a-row :gutter="12">
-                <a-col :span="12">
-                  <a-form-item label="ประเภท (Category)" required style="margin-bottom: 16px;">
+              <a-row :gutter="[12, 12]">
+                <a-col :xs="24" :sm="12">
+                  <a-form-item label="ประเภท (Category)" required class="form-item-mb">
                     <a-select v-model:value="form.bugType" placeholder="เลือกประเภท" :options="issueTypeOptions"
                       :loading="dropdownLoading" size="large" class="modern-select" />
                   </a-form-item>
                 </a-col>
 
-                <a-col :span="12">
-                  <a-form-item label="ความเร่งด่วน (Priority)" required style="margin-bottom: 16px;">
+                <a-col :xs="24" :sm="12">
+                  <a-form-item label="ความเร่งด่วน (Priority)" required class="form-item-mb">
                     <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
                       class="custom-select" :class="{ 'has-priority': form.priority }">
                       <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
@@ -60,9 +61,9 @@
                 </a-col>
               </a-row>
 
-              <a-form-item label="คำอธิบายเพิ่มเติม (Description)" style="margin-bottom: 16px;">
+              <a-form-item label="คำอธิบายเพิ่มเติม (Description)" class="form-item-mb">
                 <a-textarea v-model:value="form.description"
-                  placeholder="ระบุรายละเอียด, ขั้นตอนการเกิดปัญหา (Steps to reproduce), หรือสิ่งที่คาดหวัง" :rows="12"
+                  placeholder="ระบุรายละเอียด, ขั้นตอนการเกิดปัญหา (Steps to reproduce), หรือสิ่งที่คาดหวัง" :rows="8"
                   show-count :maxlength="2000" class="modern-textarea" />
               </a-form-item>
 
@@ -101,7 +102,7 @@
             </a-card>
           </a-col>
 
-          <a-col :xs="24" :lg="7" :xl="6">
+          <a-col :xs="24" :lg="8" :xl="6">
             <div class="sticky-side">
 
               <a-card :bordered="false" class="main-card side-card">
@@ -135,10 +136,7 @@
               </a-card>
 
               <a-card :bordered="false" class="main-card side-card" :bodyStyle="{ padding: '20px' }">
-
-                <div class="reporter-info" v-if="Authprofile"
-                  style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
-
+                <div class="reporter-info" v-if="Authprofile">
                   <a-avatar size="large" :src="Authprofile.avatar" :style="{
                     backgroundColor: Authprofile.avatar ? 'transparent' : stringToColor(Authprofile.user_name),
                     border: Authprofile.avatar ? '1px solid #f0f0f0' : 'none',
@@ -150,21 +148,19 @@
                     <UserOutlined v-else-if="!Authprofile.avatar" />
                   </a-avatar>
 
-                  <div style="display: flex; flex-direction: column; line-height: 1.3;">
-                    <span style="font-size: 12px; color: #8c8c8c;">ผู้แจ้ง (Reporter)</span>
-                    <span style="font-size: 15px; font-weight: 600; color: #262626;">
+                  <div class="reporter-detail">
+                    <span class="label">ผู้แจ้ง (Reporter)</span>
+                    <span class="name">
                       {{ Authprofile.user_name || 'ไม่ระบุตัวตน' }}
                     </span>
                   </div>
-
                 </div>
 
                 <a-divider style="margin: 0 0 16px 0;" />
 
                 <a-button type="primary" block size="large" class="submit-btn" :loading="submitting" @click="onSubmit">
-                  <SendOutlined /> ส่งแจ้งปัญหา
+                  <SendOutlined /> <span class="submit-text">ส่งแจ้งปัญหา</span>
                 </a-button>
-
               </a-card>
 
             </div>
@@ -181,12 +177,13 @@
 </template>
 
 <script>
+// (Script ส่วนนี้เหมือนเดิม ไม่ต้องแก้ครับ ใช้ Logic เดิมได้เลย)
 import axios from 'axios';
 import {
   BugOutlined, FormOutlined, CameraOutlined, CloudUploadOutlined,
   DeleteOutlined, SendOutlined, ReloadOutlined, UserAddOutlined, UserOutlined
 } from '@ant-design/icons-vue';
-import { message, Upload } from 'ant-design-vue';
+import { message, Upload, notification } from 'ant-design-vue';
 
 export default {
   name: "ReportBugFull",
@@ -368,7 +365,7 @@ export default {
           status: "65b000000000000000000001",
           urgency: this.form.priority,
           reporter: this.Authprofile._id,
-          images: imageUrls
+          images: imageUrls.map(url => ({ url: url }))
         };
 
         if (this.form.isCustomDeveloper && this.form.developer) {
@@ -376,11 +373,20 @@ export default {
         }
 
         await axios.post(import.meta.env.VITE_API_URL + '/issues', payload, config);
-        message.success('ส่งแจ้งปัญหาเรียบร้อย!');
+
+        notification.success({
+          message: 'ส่งแจ้งปัญหาเรียบร้อย!',
+          description: 'ข้อมูลถูกบันทึกเข้าระบบแล้ว',
+          placement: 'topRight'
+        });
+
         this.onReset();
       } catch (e) {
         console.error(e);
-        message.error('Failed: ' + (e.response?.data?.message || e.message));
+        notification.error({
+          message: 'เกิดข้อผิดพลาด',
+          description: e.response?.data?.message || e.message
+        });
       } finally {
         this.submitting = false;
       }
@@ -394,20 +400,22 @@ export default {
 </script>
 
 <style scoped>
-/* 1. COMPACT HEADER */
+/* 1. Header & Layout */
 .compact-header {
   background: #fff;
-  padding: 12px 16px;
-  /* ลด Padding */
+  padding: 12px 24px;
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  margin-bottom: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: 0 auto;
 }
 
 .header-text {
@@ -422,7 +430,7 @@ export default {
   color: #1f1f1f;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .page-subtitle {
@@ -442,20 +450,23 @@ export default {
   font-size: 18px;
 }
 
-/* 2. MAIN CARD & LAYOUT */
+.content-wrapper {
+  padding: 12px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 2. Main Card */
 .main-card {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
   height: 100%;
-  /* เอา Margin ออก เพราะ Grid Gutter จัดการให้แล้ว */
 }
 
 .side-card {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
-
-/* เว้นระยะห่างเฉพาะการ์ดด้านขวาที่เรียงกัน */
 
 .card-header-text {
   font-weight: 600;
@@ -463,7 +474,11 @@ export default {
   font-size: 15px;
 }
 
-/* 3. INPUTS & SELECTS */
+.form-item-mb {
+  margin-bottom: 20px;
+}
+
+/* 3. Inputs & Selects */
 .modern-input,
 .modern-select,
 .modern-textarea {
@@ -488,26 +503,27 @@ export default {
   box-shadow: none !important;
 }
 
+/* 4. Upload Area */
 .dragger-content {
-  padding: 12px 0;
+  padding: 16px 0;
 }
 
 .icon-wrap {
-  font-size: 24px;
+  font-size: 28px;
   color: #ff4d4f;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .text-primary {
   color: #595959;
   font-weight: 500;
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 0;
 }
 
 .text-secondary {
   color: #bfbfbf;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .image-grid {
@@ -523,14 +539,18 @@ export default {
   border-radius: 6px;
   overflow: hidden;
   border: 1px solid #f0f0f0;
+  cursor: pointer;
 }
 
 .img-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  cursor: zoom-in;
   transition: transform 0.3s;
+}
+
+.img-item:hover img {
+  transform: scale(1.05);
 }
 
 .img-overlay {
@@ -545,7 +565,6 @@ export default {
   align-items: center;
   color: white;
   opacity: 0;
-  cursor: pointer;
   transition: opacity 0.2s;
   font-size: 18px;
 }
@@ -554,12 +573,12 @@ export default {
   opacity: 1;
 }
 
-/* 5. ASSIGN BOX */
+/* 5. Assign Box */
 .assign-dev-box {
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
-  padding: 12px 16px;
+  padding: 16px;
   margin-top: 8px;
 }
 
@@ -599,28 +618,51 @@ export default {
 .helper-text {
   display: block;
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: #9ca3af;
 }
 
-/* 6. SUBMIT BUTTON & INFO */
+/* 6. Reporter & Submit */
 .reporter-info {
   display: flex;
   align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
   background: #f9f9f9;
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
   border: 1px solid #f0f0f0;
 }
 
+.reporter-detail {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  overflow: hidden;
+}
+
+.reporter-detail .label {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.reporter-detail .name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #262626;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .submit-btn {
-  height: 40px;
-  font-size: 14px;
+  height: 44px;
+  font-size: 15px;
   font-weight: 600;
   background: #ff4d4f;
   border-color: #ff4d4f;
   box-shadow: 0 4px 10px rgba(255, 77, 79, 0.2);
+  border-radius: 6px;
 }
 
 .submit-btn:hover {
@@ -628,12 +670,60 @@ export default {
   border-color: #ff7875;
 }
 
-/* Sticky & Animation */
+/* 7. Sticky Sidebar Logic */
 .sticky-side {
   position: sticky;
-  top: 12px;
+  top: 70px;
+  /* Offset from header */
 }
 
+/* 📱 Mobile Responsive Tweaks 📱 */
+@media (max-width: 992px) {
+  .sticky-side {
+    position: static;
+    /* เลิก Sticky บน Tablet/Mobile */
+  }
+}
+
+@media (max-width: 768px) {
+  .compact-header {
+    padding: 12px 16px;
+  }
+
+  .content-wrapper {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .page-subtitle {
+    font-size: 12px;
+  }
+
+  .reset-text {
+    display: none;
+    /* ซ่อนข้อความปุ่ม Reset เหลือแต่ Icon */
+  }
+
+  .image-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .submit-btn {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .image-grid {
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 คอลัมน์บนมือถือเล็ก */
+  }
+}
+
+/* Transitions */
 .slide-fade-enter-active {
   transition: all 0.3s ease-out;
 }
