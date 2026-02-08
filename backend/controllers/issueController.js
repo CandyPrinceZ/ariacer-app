@@ -456,29 +456,51 @@ exports.deleteIssue = async (req, res) => {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // 2. ฟังก์ชันกลางสำหรับยิง Discord (รองรับ Retry เมื่อเจอ 429)
+a; // 2. ฟังก์ชันกลางสำหรับยิง Discord (Heavy Duty Version - แก้ปัญหา Shared IP)
 async function postToDiscord(webhookUrl, payload, retryCount = 0) {
   try {
     await axios.post(webhookUrl, payload);
     // console.log("✅ Discord sent successfully.");
   } catch (err) {
-    // ถ้าเจอ 429 (Too Many Requests) และยัง Retry ไม่เกิน 3 ครั้ง
-    if (err.response && err.response.status === 429 && retryCount < 3) {
-      // ดึงเวลาที่ต้องรอจาก Header หรือ Body (Discord ส่งมาเป็นวินาที แปลงเป็น ms)
-      // ถ้าไม่มีค่ามา ให้รอ 1 วินาทีเป็นอย่างน้อย
-      const retryAfter = (err.response.data.retry_after || 1) * 1000;
+    // ถ้าเจอ 429 (Too Many Requests)
+    if (err.response && err.response.status === 429) {
+      // ยอมแพ้ถ้าลองเกิน 5 ครั้ง (กัน Loop ไม่รู้จบ)
+      if (retryCount >= 5) {
+        console.error(
+          "❌ Gave up after 5 retries. Discord API is strictly blocking this IP.",
+        );
+        throw err;
+      }
 
-      console.warn(
-        `⏳ Rate Limited! Waiting ${retryAfter}ms before retry (Attempt ${retryCount + 1}/3)...`,
+      // 1. หาเวลาที่ Discord บอกให้รอ (ถ้าไม่มีให้เป็น 0)
+      let discordAskToWait = err.response.data.retry_after || 0;
+
+      // 2. กำหนดเวลาขั้นต่ำ (Hard Wait) = 5 วินาที
+      // Server แบบ Shared IP มักต้องรอ 5-10 วินาทีถึงจะหลุด Cloudflare Block
+      const baseWaitTime = 5000;
+
+      // 3. สูตรคำนวณ: (Discord บอก * 1000) หรือ (5วิ + เวลาทวีคูณ) เอาค่าที่มากกว่า
+      // รอบที่ 1: รอ 5 + 1 = 6 วินาที
+      // รอบที่ 2: รอ 5 + 4 = 9 วินาที
+      // รอบที่ 3: รอ 5 + 9 = 14 วินาที ...
+      const backoff = Math.pow(retryCount + 1, 2) * 1000;
+      const finalWaitTime = Math.max(
+        discordAskToWait * 1000,
+        baseWaitTime + backoff,
       );
 
-      // รอจนกว่าจะครบเวลา + เผื่อไปอีก 500ms
-      await sleep(retryAfter + 500);
+      console.warn(
+        `⏳ Rate Limited! Waiting ${(finalWaitTime / 1000).toFixed(1)}s before retry (Attempt ${retryCount + 1}/5)...`,
+      );
 
-      // เรียกตัวเองซ้ำ (Recursive)
+      // รอ...
+      await sleep(finalWaitTime);
+
+      // ลองใหม่
       return postToDiscord(webhookUrl, payload, retryCount + 1);
     }
 
-    // ถ้าเป็น Error อื่น หรือ Retry ครบแล้ว ให้โยน Error ออกไปให้ฟังก์ชันหลักจัดการ
+    // Error อื่นๆ (เช่น 404, 500) ให้โยนทิ้งไปเลย
     throw err;
   }
 }
