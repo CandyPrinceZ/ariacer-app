@@ -452,11 +452,8 @@ exports.deleteIssue = async (req, res) => {
 // ✅ Discord Notification Helpers (Bulletproof + Auto Retry)
 // ============================================================
 
-// 1. ฟังก์ชันหน่วงเวลา (Sleep)
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 2. ฟังก์ชันกลางสำหรับยิง Discord (รองรับ Retry เมื่อเจอ 429)
-a; // 2. ฟังก์ชันกลางสำหรับยิง Discord (Heavy Duty Version - แก้ปัญหา Shared IP)
 async function postToDiscord(webhookUrl, payload, retryCount = 0) {
   try {
     await axios.post(webhookUrl, payload);
