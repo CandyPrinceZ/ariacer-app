@@ -1,13 +1,12 @@
 const SystemConfig = require("../models/SystemConfig");
 const ActivityLog = require("../models/activityLog");
 
-// --- 1. ดึง Log การใช้งานระบบ (System Activity Logs) ---
 exports.getSystemLogs = async (req, res) => {
   try {
     const logs = await ActivityLog.find()
       .populate("user", "user_name role_name avatar")
-      .sort({ createdAt: -1 }) 
-      .limit(100); // ดึงแค่ 100 รายการล่าสุด
+      .sort({ createdAt: -1 })
+      .limit(100);
 
     res.json(logs);
   } catch (error) {
@@ -16,13 +15,35 @@ exports.getSystemLogs = async (req, res) => {
   }
 };
 
-// --- 2. ดึง Webhook URL ปัจจุบัน (สำหรับ Frontend ใช้อัปโหลดรูป) ---
-exports.getDiscordWebhook = async (req, res) => {
+exports.getDiscordWebhookForImages = async (req, res) => {
   try {
-    const config = await SystemConfig.findOne({ key: "discord_webhook" });
+    const config = await SystemConfig.findOne({
+      key: "discord_webhook_images",
+    });
 
     if (!config || !config.value || !config.value.url) {
-      return res.status(404).json({ message: "Webhook not found/generated yet" });
+      return res
+        .status(404)
+        .json({ message: "Image Webhook not found/generated yet" });
+    }
+
+    res.json({ url: config.value.url });
+  } catch (error) {
+    console.error("Error fetching webhook:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getDiscordWebhookForNotifications = async (req, res) => {
+  try {
+    const config = await SystemConfig.findOne({
+      key: "discord_webhook_notifications",
+    });
+
+    if (!config || !config.value || !config.value.url) {
+      return res
+        .status(404)
+        .json({ message: "Notification Webhook not found/generated yet" });
     }
 
     res.json({ url: config.value.url });

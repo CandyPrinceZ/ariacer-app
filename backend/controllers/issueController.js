@@ -1,10 +1,12 @@
+const mongoose = require("mongoose");
 const Issue = require("../models/issue");
 const IssueType = require("../models/issue_type");
 const Urgency = require("../models/urgency");
 const Status = require("../models/status");
 const User = require("../models/auth");
-const mongoose = require("mongoose");
-const { saveLog } = require("../services/logger"); 
+const { saveLog } = require("../services/logger");
+const SystemConfig = require("../models/SystemConfig");
+const axios = require("axios");
 
 // --- Create Issue ---
 exports.createIssue = async (req, res) => {
@@ -40,6 +42,8 @@ exports.createIssue = async (req, res) => {
         issue_name: populatedIssue.name,
       },
     );
+
+    sendNewIssueNotification(populatedIssue, req.user);
 
     res.status(201).json(populatedIssue);
   } catch (error) {
@@ -103,7 +107,7 @@ exports.getIssueById = async (req, res) => {
 
     // ถ้าไม่เจอ หรือไม่ใช่ ObjectId ให้หาด้วย id (Custom ID)
     if (!issue) {
-      issue = await Issue.findOne({ id: id }) 
+      issue = await Issue.findOne({ id: id })
         .populate("type")
         .populate("urgency")
         .populate("status")
@@ -307,6 +311,13 @@ exports.updateIssue = async (req, res) => {
       metadata.assignee = updatedIssue.assignee?._id;
     }
 
+    if (req.body.status && updatedIssue.status) {
+      if (updatedIssue.status.code === "success") {
+        sendSuccessStatusNotification(updatedIssue, req.user);
+      } else if (updatedIssue.status.code === "upserver") {
+        sendUpserverNotification(updatedIssue, req.user);
+      }
+    }
     saveLog(req, req.user, "UPDATE_ISSUE", logDetail, metadata);
 
     res.json(updatedIssue);
@@ -339,18 +350,18 @@ exports.editIssue = async (req, res) => {
 
     if (updateData.images && Array.isArray(updateData.images)) {
       updateData.images = updateData.images.map((img) => {
-        return typeof img === 'string' ? { url: img } : img;
+        return typeof img === "string" ? { url: img } : img;
       });
     }
 
-    if (updateData.assignee === 'null' || updateData.assignee === '') {
-        updateData.assignee = null;
+    if (updateData.assignee === "null" || updateData.assignee === "") {
+      updateData.assignee = null;
     }
 
     const updatedIssue = await Issue.findByIdAndUpdate(
       issueToEdit._id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     )
       .populate("type")
       .populate("urgency")
@@ -369,16 +380,29 @@ exports.editIssue = async (req, res) => {
       metadata.new_status = updatedIssue.status?._id;
     }
 
-    const newAssigneeId = updatedIssue.assignee ? updatedIssue.assignee._id.toString() : null;
+    const newAssigneeId = updatedIssue.assignee
+      ? updatedIssue.assignee._id.toString()
+      : null;
     const oldAssigneeId = oldAssignee ? oldAssignee.toString() : null;
 
-    if (updateData.hasOwnProperty('assignee') && newAssigneeId !== oldAssigneeId) {
+    if (
+      updateData.hasOwnProperty("assignee") &&
+      newAssigneeId !== oldAssigneeId
+    ) {
       if (updatedIssue.assignee) {
-         logDetail += ` (Assigned to ${updatedIssue.assignee.user_name})`;
+        logDetail += ` (Assigned to ${updatedIssue.assignee.user_name})`;
       } else {
-         logDetail += ` (Unassigned)`;
+        logDetail += ` (Unassigned)`;
       }
       metadata.assignee = updatedIssue.assignee?._id;
+    }
+
+    if (updateData.status && updatedIssue.status) {
+      if (updatedIssue.status.code === "success") {
+        sendSuccessStatusNotification(updatedIssue, req.user);
+      } else if (updatedIssue.status.code === "upserver") {
+        sendUpserverNotification(updatedIssue, req.user);
+      }
     }
 
     saveLog(req, req.user, "EDIT_ISSUE", logDetail, metadata);
@@ -408,7 +432,6 @@ exports.deleteIssue = async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
-    // ✅ Log: Delete Issue
     saveLog(
       req,
       req.user,
@@ -425,3 +448,154 @@ exports.deleteIssue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// --- Discord Notification Helpers (Bulletproof Version) ---
+// --- Discord Notification Helpers ---
+
+// 1. แจ้งเตือน Issue ใหม่
+async function sendNewIssueNotification(issue, reporter) {
+  try {
+    const config = await SystemConfig.findOne({
+      key: "discord_webhook_notifications",
+    });
+    if (!config?.value?.url) return;
+
+    const embed = {
+      title: `🆕 New Issue Created: ${issue.name || "Untitled"}`,
+      description: (issue.detail || issue.description || "-").substring(
+        0,
+        4096,
+      ),
+      color: 3447003, // Blue
+      fields: [
+        {
+          name: "Priority",
+          value: String(issue.urgency?.name || "-"),
+          inline: true,
+        },
+        { name: "Type", value: String(issue.type?.name || "-"), inline: true },
+        {
+          name: "Reporter",
+          value: String(reporter?.user_name || "Unknown"),
+          inline: true,
+        },
+        {
+          name: "Status",
+          value: String(issue.status?.name || "Reported"),
+          inline: true,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+      url: `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`,
+    };
+
+    if (issue.images?.length > 0 && issue.images[0].url.startsWith("http")) {
+      embed.image = { url: issue.images[0].url };
+    }
+
+    await axios.post(config.value.url, {
+      username: "Issue Bot",
+      embeds: [embed],
+    });
+  } catch (err) {
+    console.error("❌ Discord New Issue Error:", err.message);
+  }
+}
+
+// 2. (ใหม่) แจ้งเตือนเมื่อสถานะเป็น Upserver 🚀
+async function sendUpserverNotification(issue, user) {
+  try {
+    const config = await SystemConfig.findOne({
+      key: "discord_webhook_notifications",
+    });
+    if (!config?.value?.url) return;
+
+    const embed = {
+      title: `🚀 Ready for Server (Upserver): ${issue.name}`,
+      description: `User **${user?.user_name || "Unknown"}** has updated status to **Upserver**.\nReady for testing/deployment.`,
+      color: 10181046, // Purple (สีม่วง ดูเด่นสำหรับ Deploy/Test)
+      fields: [
+        {
+          name: "Assignee",
+          value: String(issue.assignee?.user_name || "Unassigned"),
+          inline: true,
+        },
+        {
+          name: "Priority",
+          value: String(issue.urgency?.name || "-"),
+          inline: true,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+      footer: { text: "System Deployment Update" },
+      url: `${process.env.FRONTEND_URL}/issue/detail/${issue._id}`,
+    };
+
+    await axios.post(config.value.url, {
+      username: "Deploy Bot",
+      embeds: [embed],
+    });
+    console.log(`✅ Upserver Notification Sent: ${issue.name}`);
+  } catch (err) {
+    console.error("❌ Discord Upserver Error:", err.message);
+  }
+}
+
+// 3. แจ้งเตือนเมื่อ Success (แบบคำนวณยอดคงเหลือ)
+async function sendSuccessStatusNotification(issue, user) {
+  try {
+    const config = await SystemConfig.findOne({
+      key: "discord_webhook_notifications",
+    });
+    if (!config?.value?.url) return;
+
+    const successStatus = await Status.findOne({ code: "success" });
+    if (!successStatus) return;
+
+    // ✅ ใช้ .find() แบบธรรมดาแล้วนับใน JS (แก้ปัญหา aggregate ได้ค่าว่าง [])
+    const allActiveIssues = await Issue.find({
+      status: { $ne: successStatus._id, $exists: true, $ne: null },
+    }).populate("status");
+
+    const statsMap = {};
+    allActiveIssues.forEach((item) => {
+      if (!item.status?.name) return;
+      const name = item.status.name;
+      statsMap[name] = (statsMap[name] || 0) + 1;
+    });
+
+    let remainingText =
+      Object.keys(statsMap).length > 0
+        ? Object.entries(statsMap)
+            .map(([k, v]) => `• **${k}**: ${v}`)
+            .join("\n")
+        : "🎉 No active issues remaining!";
+
+    const totalRemaining = allActiveIssues.length;
+
+    const embed = {
+      title: `✅ Issue Resolved: ${issue.name || "Untitled"}`,
+      description: `User **${user?.user_name || "Unknown"}** marked this issue as **Success**.`,
+      color: 3066993, // Green
+      fields: [
+        {
+          name: "📉 Remaining Issues",
+          value: `Total: **${totalRemaining}**\n${remainingText}`.substring(
+            0,
+            1024,
+          ),
+          inline: false,
+        },
+      ],
+      timestamp: new Date().toISOString(),
+      footer: { text: "System Status Update" },
+    };
+
+    await axios.post(config.value.url, {
+      username: "Status Bot",
+      embeds: [embed],
+    });
+    console.log(`✅ Success Notification Sent: ${issue.name}`);
+  } catch (err) {
+    console.error("❌ Discord Success Error:", err.message);
+  }
+}
