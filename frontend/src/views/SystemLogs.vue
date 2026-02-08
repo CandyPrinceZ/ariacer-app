@@ -46,9 +46,8 @@
           </div>
         </div>
 
-        <a-table :columns="columns" :data-source="filteredLogs" :loading="loading" rowKey="_id"
-          :pagination="{ pageSize: 15, showSizeChanger: true, showTotal: total => `Total ${total} logs` }" size="middle"
-          class="log-table" :scroll="{ x: 900 }">
+        <a-table :columns="columns" :data-source="filteredLogs" :loading="loading" rowKey="_id" :pagination="pagination"
+          @change="handleTableChange" size="middle" class="log-table" :scroll="{ x: 900 }">
           <template #bodyCell="{ column, record }">
 
             <template v-if="column.key === 'user'">
@@ -116,7 +115,6 @@
 </template>
 
 <script>
-// (Script เหมือนเดิมทุกประการ)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -139,23 +137,32 @@ export default {
         visible: false,
         data: null
       },
+      // ✅ ย้าย Pagination มาไว้ใน Data เพื่อให้แก้ไขค่าได้
+      pagination: {
+        current: 1,
+        pageSize: 15,
+        showSizeChanger: true,
+        pageSizeOptions: ['10', '15', '20', '50', '100'],
+        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} logs`
+      },
       columns: [
-        { title: 'Date/Time', key: 'createdAt', width: 150, fixed: 'left' }, // Fixed Date column
+        { title: 'Date/Time', key: 'createdAt', width: 150, fixed: 'left' },
         { title: 'Actor', key: 'user', width: 220 },
         { title: 'Action', key: 'action', width: 160, align: 'center' },
         { title: 'Detail', dataIndex: 'detail', key: 'detail', minWidth: 200 },
-        { title: 'Data', key: 'metadata', width: 100, align: 'center', fixed: 'right' }, // Fixed Data column
+        { title: 'Data', key: 'metadata', width: 100, align: 'center', fixed: 'right' },
       ]
     };
   },
   computed: {
     filteredLogs() {
       return this.logs.filter(log => {
+        const term = (this.searchText || '').toLowerCase();
         const matchesSearch =
           this.searchText === '' ||
-          log.detail?.toLowerCase().includes(this.searchText.toLowerCase()) ||
-          log.user?.user_name?.toLowerCase().includes(this.searchText.toLowerCase()) ||
-          log.action?.toLowerCase().includes(this.searchText.toLowerCase());
+          (log.detail || '').toLowerCase().includes(term) ||
+          (log.user?.user_name || '').toLowerCase().includes(term) ||
+          (log.action || '').toLowerCase().includes(term);
 
         const matchesAction =
           !this.filterAction ||
@@ -163,6 +170,15 @@ export default {
 
         return matchesSearch && matchesAction;
       });
+    }
+  },
+  // ✅ เพิ่ม Watcher เพื่อรีเซ็ตหน้าเป็น 1 เวลาค้นหา
+  watch: {
+    searchText() {
+      this.pagination.current = 1;
+    },
+    filterAction() {
+      this.pagination.current = 1;
     }
   },
   mounted() {
@@ -176,13 +192,18 @@ export default {
         const res = await axios.get(import.meta.env.VITE_API_URL + '/config/system-logs', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        this.logs = res.data;
+        this.logs = res.data || [];
       } catch (error) {
         console.error(error);
         message.error('Failed to load logs');
       } finally {
         this.loading = false;
       }
+    },
+    // ✅ เพิ่มฟังก์ชันจัดการเมื่อเปลี่ยนหน้าหรือจำนวนต่อหน้า
+    handleTableChange(pag) {
+      this.pagination.current = pag.current;
+      this.pagination.pageSize = pag.pageSize;
     },
     getActionColor(action) {
       if (!action) return 'default';
@@ -297,7 +318,6 @@ export default {
   align-items: center;
 }
 
-/* ตั้งค่าความกว้าง default บน desktop */
 .search-input {
   width: 220px;
 }
@@ -409,11 +429,9 @@ export default {
 }
 
 /* ==========================================================================
-   📱 Mobile Responsive Tweaks (Added)
+   📱 Mobile Responsive Tweaks
    ========================================================================== */
 @media (max-width: 768px) {
-
-  /* 1. Header */
   .compact-header {
     padding: 10px 12px;
   }
@@ -424,15 +442,12 @@ export default {
 
   .page-subtitle {
     display: none;
-    /* ซ่อน subtitle บนมือถือ */
   }
 
   .btn-text {
     display: none;
-    /* ซ่อนข้อความปุ่ม Refresh เหลือแต่ไอคอน */
   }
 
-  /* 2. Content */
   .content-wrapper {
     padding: 8px;
   }
@@ -441,7 +456,6 @@ export default {
     min-height: auto;
   }
 
-  /* 3. Toolbar */
   .table-toolbar {
     flex-direction: column;
     align-items: stretch;
@@ -459,13 +473,11 @@ export default {
     gap: 8px;
   }
 
-  /* บังคับ Input/Select ให้เต็มความกว้าง */
   .search-input,
   .action-select {
     width: 100% !important;
   }
 
-  /* 4. Table */
   :deep(.ant-table-cell) {
     padding: 10px !important;
   }

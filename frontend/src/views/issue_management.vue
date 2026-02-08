@@ -19,9 +19,8 @@
 
                     <div class="filters-wrapper">
                         <div class="filter-item search-box">
-                            <span class="label">ค้นหา</span>
-                            <a-input v-model:value="filters.search" placeholder="ID, หัวข้อ..." class="modern-input"
-                                allow-clear @pressEnter="fetchIssues">
+                            <a-input v-model:value="filters.search" placeholder="Search by title or detail..."
+                                class="modern-input" allow-clear @pressEnter="fetchIssues" size="small">
                                 <template #prefix>
                                     <SearchOutlined class="text-muted" />
                                 </template>
@@ -29,9 +28,9 @@
                         </div>
 
                         <div class="filter-item">
-                            <span class="label">สถานะ</span>
-                            <a-select v-model:value="filters.status" placeholder="ทั้งหมด" allow-clear
-                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false">
+                            <a-select v-model:value="filters.status" placeholder="Status" allow-clear
+                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false"
+                                size="small">
                                 <a-select-option v-for="s in options.statuses" :key="s._id" :value="s._id">
                                     {{ s.name }}
                                 </a-select-option>
@@ -39,9 +38,9 @@
                         </div>
 
                         <div class="filter-item">
-                            <span class="label">ความเร่งด่วน</span>
-                            <a-select v-model:value="filters.urgency" placeholder="ทั้งหมด" allow-clear
-                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false">
+                            <a-select v-model:value="filters.urgency" placeholder="Urgency" allow-clear
+                                class="modern-select" @change="fetchIssues" :dropdownMatchSelectWidth="false"
+                                size="small">
                                 <a-select-option v-for="u in options.urgencies" :key="u._id" :value="u._id">
                                     <a-tag :color="u.color">{{ u.name }}</a-tag>
                                 </a-select-option>
@@ -49,11 +48,11 @@
                         </div>
 
                         <div class="filter-actions">
-                            <a-button type="primary" class="btn-filter" @click="fetchIssues">
-                                <FilterOutlined /> กรองข้อมูล
+                            <a-button type="primary" class="btn-filter" @click="fetchIssues" size="small">
+                                <FilterOutlined /> Filter
                             </a-button>
                             <a-button v-if="hasFilters" type="dashed" class="btn-reset" @click="resetFilters">
-                                ล้างค่า
+                                Reset Filters
                             </a-button>
                         </div>
                     </div>
@@ -539,7 +538,8 @@ export default {
     .table-toolbar {
         flex-direction: column;
         align-items: stretch;
-        padding: 16px;
+        padding: 12px;
+        gap: 12px;
     }
 
     .filters-wrapper {
