@@ -365,7 +365,7 @@ export default {
           status: "65b000000000000000000001",
           urgency: this.form.priority,
           reporter: this.Authprofile._id,
-          images: imageUrls.map(url => ({ url: url }))
+          images: imageUrls
         };
 
         if (this.form.isCustomDeveloper && this.form.developer) {
