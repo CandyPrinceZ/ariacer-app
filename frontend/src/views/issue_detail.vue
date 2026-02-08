@@ -57,7 +57,7 @@
                                 <div v-if="issue.tester" class="alert-meta">
                                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                                         <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                                            }}</span>
+                                        }}</span>
                                     </a-avatar>
                                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                                     <span class="divider">|</span>
@@ -134,7 +134,7 @@
                                         <a-avatar :size="48" :src="issue.assignee.avatar"
                                             :style="{ backgroundColor: !issue.assignee.avatar ? stringToColor(issue.assignee.user_name) : 'transparent' }">
                                             <span v-if="!issue.assignee.avatar">{{ (issue.assignee.user_name || 'U')[0]
-                                                }}</span>
+                                            }}</span>
                                         </a-avatar>
                                         <div class="assignee-details">
                                             <span class="label">ผู้รับผิดชอบ {{ isAssignee ? '(You)' : '' }}</span>
@@ -169,7 +169,7 @@
                                     <a-avatar :size="48" :src="issue.assignee?.avatar"
                                         :style="{ backgroundColor: !issue.assignee?.avatar ? stringToColor(issue.assignee?.user_name) : 'transparent' }">
                                         <span v-if="!issue.assignee?.avatar">{{ (issue.assignee?.user_name || 'U')[0]
-                                            }}</span>
+                                        }}</span>
                                     </a-avatar>
                                     <div class="assignee-details">
                                         <span class="label">ผู้รับผิดชอบ</span>
@@ -579,6 +579,12 @@ export default {
     border-color: #ff4d4f;
     font-weight: 600;
     box-shadow: 0 2px 4px rgba(255, 77, 79, 0.2);
+}
+
+.btn-claim:hover,
+.btn-claim:focus {
+    background-color: #d9363e;
+    border-color: #d9363e;
 }
 
 /* Assignee */
