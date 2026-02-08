@@ -255,7 +255,7 @@ export default {
             try {
                 const token = localStorage.getItem('token');
 
-                const configRes = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook', {
+                const configRes = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook-images', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 const webhookUrl = configRes.data.url;
