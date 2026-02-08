@@ -164,7 +164,8 @@
                     class="text-muted">
                     <CheckCircleOutlined /> Done
                   </a-button>
-                  <a-button v-else type="primary" size="small" ghost class="manage-btn" @click="goToDetail(record._id)">
+                  <a-button v-else type="primary" size="small" ghost class="manage-btn"
+                    @click="goToManageDetail(record)">
                     <EditOutlined /> Manage
                   </a-button>
                 </template>
@@ -289,6 +290,30 @@ export default {
         upserver: 'purple', rejected: 'red'
       };
       return map[code] || 'default';
+    },
+    async goToManageDetail(issue) {
+      try {
+        if (!issue || !issue._id) throw new Error('Invalid issue data');
+        if (!this.user) {
+          await this.fetchProfile();
+          if (!this.user) throw new Error('User not authenticated');
+        }
+        if (issue.status?.code === 'reported') {
+          // Auto-claim the issue
+          const token = localStorage.getItem('token');
+          const config = { headers: { Authorization: `Bearer ${token}` } };
+          const statusResponse = await axios.get(import.meta.env.VITE_API_URL + `/items/statuses`, config);
+          const receivedStatus = statusResponse.data.find(s => s.code === 'received');
+          await axios.put(import.meta.env.VITE_API_URL + `/issues/${issue._id}`, {
+            status: receivedStatus._id
+          }, config);
+        }
+        this.$router.push(`/development/detail/${issue._id}`);
+      } catch (error) {
+        console.error('Error navigating to manage detail:', error);
+        this.$message.error('เกิดข้อผิดพลาดในการไปยังหน้าจัดการงาน');
+      }
+
     },
     goToDetail(issueId) {
       this.$router.push(`/development/detail/${issueId}`);
