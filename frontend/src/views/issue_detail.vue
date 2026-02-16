@@ -183,7 +183,7 @@
                         </div>
 
                         <a-card :bordered="false" class="main-card side-card">
-                            <h4 class="side-title">ข้อมูล Ticket</h4>
+                            <h4 class="side-title">Ticket Info</h4>
                             <div class="info-list">
                                 <div class="info-row">
                                     <span class="label">Type</span>
@@ -205,6 +205,16 @@
                                 <div class="info-row">
                                     <span class="label">Updated</span>
                                     <span class="val-text">{{ formatDate(issue.updatedAt) }}</span>
+                                </div>
+                                <div v-if="issue.deadline" class="info-row">
+                                    <span class="label">Deadline</span>
+                                    <span class="val-text" style="color: red;">{{ formatDate(issue.deadline) }}</span>
+                                </div>
+                                <div v-if="deadlineInfo" class="info-row" style="margin-top: 8px;">
+                                    <span class="label">Time Left</span>
+                                    <a-tag :color="deadlineInfo.color" style="margin: 0; font-weight: 600;">
+                                        <component :is="deadlineInfo.icon" /> {{ deadlineInfo.text }}
+                                    </a-tag>
                                 </div>
                             </div>
                         </a-card>
@@ -243,12 +253,48 @@ export default {
     data() {
         return {
             loading: false,
+            currentTime: dayjs(),
+            timerInterval: null,
             actionLoading: false,
             issue: {},
             authProfile: null
         };
     },
     computed: {
+        deadlineInfo() {
+            if (!this.issue.deadline) return null;
+
+            const now = this.currentTime;
+            const end = dayjs(this.issue.deadline);
+            const diffMs = end.diff(now);
+
+            const isOverdue = diffMs < 0;
+            const absDiff = Math.abs(diffMs);
+
+            const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+            let text = '';
+            if (days > 0) text += `${days}d `;
+            if (hours > 0) text += `${hours}h `;
+            text += `${minutes}m`;
+
+            if (isOverdue) {
+                return {
+                    text: `Overdue by ${text}`,
+                    color: 'error',
+                    icon: 'CloseCircleOutlined'
+                };
+            } else {
+                const isUrgent = days === 0;
+                return {
+                    text: `${text} remaining`,
+                    color: isUrgent ? 'warning' : 'success',
+                    icon: 'ClockCircleOutlined'
+                };
+            }
+        },
         isAssignee() {
             return this.authProfile && this.issue.assignee && (this.authProfile._id === this.issue.assignee._id);
         },
@@ -267,6 +313,12 @@ export default {
         } finally {
             this.loading = false;
         }
+        this.timerInterval = setInterval(() => {
+            this.currentTime = dayjs();
+        }, 60000);
+    },
+    beforeUnmount() {
+        clearInterval(this.timerInterval);
     },
     methods: {
         formatDate(date) { return date ? dayjs(date).format('D MMM YY, HH:mm') : '-'; },
@@ -318,7 +370,8 @@ export default {
         },
         goToEditDetail() {
             this.$router.push({ name: 'IssueEdit', params: { id: this.issue._id } });
-        }
+        },
+
     }
 };
 </script>

@@ -24,6 +24,11 @@ const issueSchema = new mongoose.Schema(
       required: true,
     },
 
+    deadline: {
+      type: Date,
+      default: null,
+    },
+
     remarks: {
       type: String,
       default: null,

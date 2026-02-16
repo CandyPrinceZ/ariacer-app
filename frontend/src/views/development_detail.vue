@@ -205,6 +205,16 @@
                     <span class="label">Created</span>
                     <span class="val-text">{{ formatDate(issue.createdAt) }}</span>
                   </div>
+                  <div v-if="issue.deadline" class="info-row">
+                    <span class="label">Deadline</span>
+                    <span class="val-text" style="color: red;">{{ formatDate(issue.deadline) }}</span>
+                  </div>
+                  <div v-if="deadlineInfo" class="info-row" style="margin-top: 8px;">
+                    <span class="label">Time Left</span>
+                    <a-tag :color="deadlineInfo.color" style="margin: 0; font-weight: 600;">
+                      <component :is="deadlineInfo.icon" /> {{ deadlineInfo.text }}
+                    </a-tag>
+                  </div>
                 </div>
               </a-card>
 
@@ -237,6 +247,8 @@ export default {
   data() {
     return {
       loading: false,
+      currentTime: dayjs(),
+      timerInterval: null,
       actionLoading: false,
       authProfile: null,
       selectedStatus: undefined,
@@ -249,6 +261,40 @@ export default {
     isMyTask() {
       if (!this.issue.assignee || !this.authProfile) return false;
       return this.issue.assignee._id === this.authProfile._id;
+    },
+    deadlineInfo() {
+      if (!this.issue.deadline) return null;
+
+      const now = this.currentTime;
+      const end = dayjs(this.issue.deadline);
+      const diffMs = end.diff(now);
+
+      const isOverdue = diffMs < 0;
+      const absDiff = Math.abs(diffMs);
+
+      const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+      let text = '';
+      if (days > 0) text += `${days}d `;
+      if (hours > 0) text += `${hours}h `;
+      text += `${minutes}m`;
+
+      if (isOverdue) {
+        return {
+          text: `Overdue by ${text}`,
+          color: 'error',
+          icon: 'CloseCircleOutlined'
+        };
+      } else {
+        const isUrgent = days === 0;
+        return {
+          text: `${text} remaining`,
+          color: isUrgent ? 'warning' : 'success',
+          icon: 'ClockCircleOutlined'
+        };
+      }
     }
   },
   async mounted() {
@@ -264,6 +310,12 @@ export default {
     } finally {
       this.loading = false;
     }
+    this.timerInterval = setInterval(() => {
+      this.currentTime = dayjs();
+    }, 60000);
+  },
+  beforeUnmount() {
+    clearInterval(this.timerInterval);
   },
   methods: {
     goBack() { this.$router.go(-1); },

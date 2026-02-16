@@ -50,13 +50,23 @@
                   <a-form-item label="ความเร่งด่วน (Priority)" required class="form-item-mb">
                     <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
                       class="custom-select" :class="{ 'has-priority': form.priority }">
-                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
+                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value"
+                        @change="onChangePriority">
                         <div class="priority-option">
                           <span class="dot" :style="{ background: opt.color }"></span>
                           <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label }}</span>
                         </div>
                       </a-select-option>
                     </a-select>
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-row :gutter="[12, 12]" v-if="isHighPriority">
+                <a-col :xs="24" :sm="24"> <a-form-item label="กำหนดวันและเวลาสิ้นสุด (Deadline)" required
+                    class="form-item-mb">
+                    <a-date-picker v-model:value="form.deadline" style="width: 100%" placeholder="เลือกวันและเวลา"
+                      :show-time="{ format: 'HH:mm' }" format="DD/MM/YYYY HH:mm" size="large" />
                   </a-form-item>
                 </a-col>
               </a-row>
@@ -208,11 +218,22 @@ export default {
         bugType: undefined,
         description: '',
         isCustomDeveloper: false,
-        developer: undefined
+        developer: undefined,
+        deadline: null
       },
     };
   },
   computed: {
+    isHighPriority() {
+      if (!this.form.priority) return false;
+
+      if (!this.urgencyOptions || this.urgencyOptions.length === 0) return false;
+
+      const selectedPriority = this.urgencyOptions.find(p => p.value === this.form.priority);
+
+      const code = selectedPriority?.code || '';
+      return ['critical', 'high'].includes(code.toLowerCase());
+    },
     issueTypeOptions() {
       return (this.issues || []).map((it) => ({
         value: it._id, label: it.name,
@@ -220,7 +241,7 @@ export default {
     },
     urgencyOptions() {
       return (this.urgencies || []).map((u) => ({
-        value: u._id, label: u.name, color: u.color,
+        value: u._id, label: u.name, color: u.color, code: u.code
       }));
     },
     selectStyle() {
@@ -342,6 +363,7 @@ export default {
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
       if (!this.form.bugType) return message.warning('ระบุประเภท');
+      if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine');
 
       this.submitting = true;
       try {
@@ -365,6 +387,7 @@ export default {
           status: "65b000000000000000000001",
           urgency: this.form.priority,
           reporter: this.Authprofile._id,
+          deadline: this.form.deadline,
           images: imageUrls
         };
 
@@ -394,7 +417,7 @@ export default {
     onReset() {
       this.form = { title: '', priority: undefined, bugType: undefined, description: '', isCustomDeveloper: false, developer: undefined };
       this.fileList = [];
-    }
+    },
   }
 };
 </script>
