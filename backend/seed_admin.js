@@ -1,4 +1,4 @@
-require("dotenv").config(); // โหลดค่า Config จาก .env
+require("dotenv").config();
 const mongoose = require("mongoose");
 const Auth = require("./models/auth"); 
 

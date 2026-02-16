@@ -6,7 +6,6 @@ const {
 } = require("./services/discordService");
 const ActivityLog = require("./models/activityLog");
 
-// ตั้งเวลา: รันทุกวัน ตอนเที่ยงคืน (0 0 0 * * *)
 cron.schedule(
   "0 0 0 * * *",
   async () => {
@@ -15,12 +14,10 @@ cron.schedule(
     );
 
     try {
-      // ✅ 2. สั่งหมุน Webhook สำหรับรูปภาพ
       console.log("   - Rotating Image Webhook...");
       const imgUrl = await rotateImageWebhook();
       console.log("   ✅ Image Webhook Success");
 
-      // ✅ 3. สั่งหมุน Webhook สำหรับแจ้งเตือน
       console.log("   - Rotating Notification Webhook...");
       const notiUrl = await rotateNotificationWebhook();
       console.log("   ✅ Notification Webhook Success");
@@ -34,7 +31,6 @@ cron.schedule(
   },
 );
 
-// ตั้งเวลา: รันทุกวัน ตอนตี 3 (0 3 * * *)
 cron.schedule(
   "0 3 * * *",
   async () => {
@@ -43,9 +39,8 @@ cron.schedule(
       const d = new Date();
       d.setDate(d.getDate() - 30);
 
-      // ลบ Log ที่เก่ากว่า 30 วัน
       const result = await ActivityLog.deleteMany({
-        createdAt: { $lt: d }, // $lt = Less Than (น้อยกว่า/เก่ากว่า)
+        createdAt: { $lt: d },
       });
 
       console.log(

@@ -4,23 +4,23 @@ const activityLogSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Auth", // อ้างอิงไปที่ตาราง User ของคุณ
-      required: false, // เผื่อกรณี Login fail หรือ System action
+      ref: "Auth",
+      required: false,
     },
     action: {
       type: String,
-      required: true, // เช่น "LOGIN", "UPDATE_USER", "DELETE_ISSUE"
+      required: true,
     },
     detail: {
-      type: String, // คำอธิบายเพิ่มเติม เช่น "Changed role for User UID001"
+      type: String,
     },
     metadata: {
-      type: Object, // เก็บข้อมูลดิบ เช่น ค่าเก่า vs ค่าใหม่ (เอาไว้ดู Diff)
+      type: Object,
     },
     ip_address: String,
-    user_agent: String, // เก็บว่าใช้ Browser อะไร / มือถือรุ่นไหน
+    user_agent: String,
   },
-  { timestamps: true } // จะได้ createdAt (เวลาที่ทำรายการ) อัตโนมัติ
+  { timestamps: true } 
 );
 
 module.exports = mongoose.model("ActivityLog", activityLogSchema);

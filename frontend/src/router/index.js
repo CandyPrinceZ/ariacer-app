@@ -86,7 +86,13 @@ const router = createRouter({
           name: 'IssueEditAdmin',
           component: () => import('../views/issue_edit_admin.vue'),
           meta: { roles: ['Administrator'] },
-        }
+        },
+        {
+          path: 'Servers-management',
+          name: 'Servers-management',
+          component: () => import('../views/server_management.vue'),
+          meta: { roles: ['Administrator'] },
+        },
       ],
     },
     {

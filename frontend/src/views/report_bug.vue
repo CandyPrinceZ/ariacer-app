@@ -38,6 +38,12 @@
                   class="modern-input" />
               </a-form-item>
 
+              <a-form-item label="เซิร์ฟเวอร์ (Server)" class="form-item-mb">
+                <a-select v-model:value="form.server" placeholder="ระบุ Server ที่พบปัญหา (ถ้ามี)"
+                  :options="formattedServerOptions" :loading="dropdownLoading" size="large" class="modern-select"
+                  allow-clear />
+              </a-form-item>
+
               <a-row :gutter="[12, 12]">
                 <a-col :xs="24" :sm="12">
                   <a-form-item label="ประเภท (Category)" required class="form-item-mb">
@@ -50,8 +56,7 @@
                   <a-form-item label="ความเร่งด่วน (Priority)" required class="form-item-mb">
                     <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
                       class="custom-select" :class="{ 'has-priority': form.priority }">
-                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value"
-                        @change="onChangePriority">
+                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
                         <div class="priority-option">
                           <span class="dot" :style="{ background: opt.color }"></span>
                           <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label }}</span>
@@ -212,6 +217,8 @@ export default {
       issues: [],
       urgencies: [],
       developers: [],
+      server: [],
+      serversOptions: [],
       form: {
         title: '',
         priority: undefined,
@@ -219,11 +226,18 @@ export default {
         description: '',
         isCustomDeveloper: false,
         developer: undefined,
-        deadline: null
+        deadline: null,
+        server: undefined
       },
     };
   },
   computed: {
+    formattedServerOptions() {
+      return (this.serversOptions || []).map((s) => ({
+        value: s._id,
+        label: `${s.name} (${s.ip})`
+      }));
+    },
     isHighPriority() {
       if (!this.form.priority) return false;
 
@@ -280,6 +294,7 @@ export default {
       const rgb = colorMap[color] || '200, 200, 200';
       return `rgba(${rgb}, ${opacity})`;
     },
+
     async getAuthprofile() {
       try {
         const token = localStorage.getItem('token');
@@ -294,14 +309,16 @@ export default {
       try {
         const Token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${Token}` } };
-        const [resType, resUrgency, resUserdev] = await Promise.all([
+        const [resType, resUrgency, resUserdev, resServer] = await Promise.all([
           axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
           axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
-          axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config)
+          axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config),
+          axios.get(import.meta.env.VITE_API_URL + '/servers/get-all-server', config)
         ]);
         this.issues = Array.isArray(resType.data) ? resType.data : (resType.data?.data || []);
         this.urgencies = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
         this.developers = Array.isArray(resUserdev.data) ? resUserdev.data : (resUserdev.data?.data || []);
+        this.serversOptions = Array.isArray(resServer.data) ? resServer.data : (resServer.data?.data || []);
       } catch (e) {
         console.error(e);
         message.error('Load Failed');
@@ -363,6 +380,7 @@ export default {
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
       if (!this.form.bugType) return message.warning('ระบุประเภท');
+      if (!this.form.server) return message.warning('ระบุ Server');
       if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine');
 
       this.submitting = true;
@@ -388,6 +406,7 @@ export default {
           urgency: this.form.priority,
           reporter: this.Authprofile._id,
           deadline: this.form.deadline,
+          server: this.form.server,
           images: imageUrls
         };
 
@@ -415,7 +434,7 @@ export default {
       }
     },
     onReset() {
-      this.form = { title: '', priority: undefined, bugType: undefined, description: '', isCustomDeveloper: false, developer: undefined };
+      this.form = { title: '', priority: undefined, bugType: undefined, description: '', server: undefined, isCustomDeveloper: false, developer: undefined };
       this.fileList = [];
     },
   }

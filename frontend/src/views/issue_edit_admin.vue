@@ -63,7 +63,7 @@
                   <a-form-item label="ความเร่งด่วน (Priority)" required class="mb-4">
                     <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large" :style="selectStyle"
                       class="custom-select" :class="{ 'has-priority': form.priority }">
-                      <a-select-option v-for="opt in options.urgencies" :key="opt.value" :value="opt.value">
+                      <a-select-option v-for="opt in urgencyOptions" :key="opt.value" :value="opt.value">
                         <div class="priority-option">
                           <span class="dot" :style="{ background: opt.color }"></span>
                           <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label }}</span>
@@ -72,6 +72,14 @@
                     </a-select>
                   </a-form-item>
                 </a-col>
+
+                <a-col :xs="24" :sm="24" v-if="isHighPriority">
+                  <a-form-item label="กำหนดวันและเวลาสิ้นสุด (Deadline)" required class="form-item-mb">
+                    <a-date-picker v-model:value="form.deadline" style="width: 100%" placeholder="เลือกวันและเวลา"
+                      :show-time="{ format: 'HH:mm' }" format="DD/MM/YYYY HH:mm" size="large" />
+                  </a-form-item>
+                </a-col>
+
               </a-row>
 
               <a-form-item label="รายละเอียด (Detail)" class="mb-4">
@@ -202,7 +210,7 @@
                     <a-avatar size="small" :src="originalReporter?.avatar"
                       :style="{ backgroundColor: !originalReporter?.avatar ? stringToColor(originalReporter?.user_name) : 'transparent' }">
                       <span v-if="!originalReporter?.avatar">{{ originalReporter?.user_name?.[0]?.toUpperCase()
-                      }}</span>
+                        }}</span>
                     </a-avatar>
                     {{ originalReporter?.user_name || '-' }}
                   </span>
@@ -227,7 +235,6 @@
 </template>
 
 <script>
-// (ส่วน Script เหมือนเดิม ไม่มีการเปลี่ยนแปลง Logic)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -254,7 +261,6 @@ export default {
 
       options: { types: [], urgencies: [], statuses: [], developers: [] },
 
-      // Original Data
       originalId: '',
       originalName: '',
       originalReporter: null,
@@ -263,7 +269,6 @@ export default {
       currentStatusName: '',
       existingImages: [],
 
-      // Upload
       fileList: [],
       maxFiles: 5,
       preview: { open: false, src: '' },
@@ -274,12 +279,29 @@ export default {
         bugType: undefined,
         status: undefined,
         description: '',
+        deadline: null,
         isCustomDeveloper: false,
         developer: undefined
       },
     };
   },
   computed: {
+    urgencyOptions() {
+      return (this.options.urgencies || []).map((u) => ({
+        value: u.value,
+        label: u.label,
+        color: u.color,
+        code: u.code
+      }));
+    },
+    isHighPriority() {
+      if (!this.form.priority) return false;
+      if (!this.urgencyOptions || this.urgencyOptions.length === 0) return false;
+
+      const selectedPriority = this.urgencyOptions.find(p => p.value === this.form.priority);
+      const code = selectedPriority?.code || '';
+      return ['critical', 'high'].includes(code.toLowerCase());
+    },
     selectStyle() {
       const selected = this.options.urgencies.find(u => u.value === this.form.priority);
       if (selected && selected.color) {
@@ -332,7 +354,10 @@ export default {
           axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config)
         ]);
         this.options.types = this.mapOptions(resType.data);
-        this.options.urgencies = this.mapOptions(resUrgency.data, true);
+        const urgList = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
+        this.options.urgencies = urgList.map(item => ({
+          value: item._id, label: item.name, color: item.color, code: item.code
+        }));
         this.options.statuses = resStatus.data || [];
         this.options.developers = resUserdev.data || [];
       } catch (e) { console.error(e); } finally { this.dropdownLoading = false; }
@@ -365,14 +390,20 @@ export default {
         this.form.description = data.detail;
         this.form.bugType = data.type?._id;
         this.form.priority = data.urgency?._id;
+        this.form.deadline = data.deadline ? dayjs(data.deadline) : null;
 
         this.currentStatusCode = data.status?.code;
         this.currentStatusName = data.status?.name;
 
+        // ✅ Set Developer (Assignee)
         if (data.assignee) {
           this.form.isCustomDeveloper = true;
           this.form.developer = data.assignee._id;
+        } else {
+          this.form.isCustomDeveloper = false;
+          this.form.developer = undefined;
         }
+
         this.originalReporter = data.reporter;
         this.existingImages = (data.images || []).map(img => typeof img === 'string' ? { url: img } : img);
 
@@ -404,6 +435,7 @@ export default {
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
       if (!this.form.bugType) return message.warning('ระบุประเภท');
+      if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine สำหรับงานเร่งด่วน');
 
       this.submitting = true;
       try {
@@ -423,12 +455,18 @@ export default {
           detail: this.form.description || '-',
           type: this.form.bugType,
           urgency: this.form.priority,
+          deadline: this.form.deadline, // ส่ง deadline ไปด้วย
           images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url }))
         };
 
         if (this.isAdmin && this.form.status) payload.status = this.form.status;
-        if (this.form.isCustomDeveloper && this.form.developer) payload.assignee = this.form.developer;
-        else if (!this.form.isCustomDeveloper) payload.assignee = 'null';
+
+        // ✅ Logic สำหรับ Assignee
+        if (this.form.isCustomDeveloper && this.form.developer) {
+          payload.assignee = this.form.developer;
+        } else if (!this.form.isCustomDeveloper) {
+          payload.assignee = 'null'; // หรือส่งค่าว่างเพื่อ clear assignee ตามที่ backend รองรับ
+        }
 
         await axios.put(import.meta.env.VITE_API_URL + `/issues/edit/${this.issueId}`, payload, config);
 
@@ -532,7 +570,6 @@ export default {
   font-size: 18px;
 }
 
-/* 2. Main Layout */
 .loading-container {
   display: flex;
   justify-content: center;
@@ -559,7 +596,6 @@ export default {
   gap: 8px;
 }
 
-/* 3. Inputs */
 .modern-input,
 .modern-select,
 .modern-textarea {
@@ -570,7 +606,6 @@ export default {
   margin-bottom: 16px;
 }
 
-/* 4. Priority Dot */
 .priority-option {
   display: flex;
   align-items: center;
@@ -589,7 +624,6 @@ export default {
   box-shadow: none !important;
 }
 
-/* 5. Admin Zone */
 .admin-zone {
   border: 1px solid #ffe58f;
   background: #fffbe6;
@@ -619,7 +653,6 @@ export default {
   margin-top: 8px;
 }
 
-/* 6. Assignee Box */
 .assign-box {
   display: flex;
   flex-direction: column;
@@ -662,7 +695,6 @@ export default {
   font-size: 13px;
 }
 
-/* 7. Image Grid */
 .img-section {
   margin-bottom: 8px;
 }
@@ -716,7 +748,6 @@ export default {
   background: rgba(255, 77, 79, 0.7);
 }
 
-/* Mini Dragger */
 .mini-dragger :deep(.ant-upload-drag) {
   border: 1px dashed #d9d9d9;
   background: #fafafa;
@@ -766,19 +797,16 @@ export default {
    ========================================================================== */
 @media (max-width: 768px) {
 
-  /* 1. Sidebar: ไม่ให้ลอย (Sticky) บนมือถือ */
   .sticky-side {
     position: static;
   }
 
-  /* 2. Header: ปรับให้ยืดหยุ่น */
   .compact-header {
     padding: 10px 12px;
   }
 
   .header-content {
     flex-wrap: wrap;
-    /* ให้ตกบรรทัดได้ถ้าที่แคบ */
     gap: 8px;
   }
 
@@ -791,22 +819,18 @@ export default {
     width: 100%;
     display: flex;
     justify-content: space-between;
-    /* ปุ่มเรียงซ้ายขวาสวยงาม */
     gap: 8px;
   }
 
   .btn-save,
   .btn-cancel {
     flex: 1;
-    /* ปุ่มขยายเต็มพื้นที่เท่ากัน */
   }
 
-  /* 3. Image Grid: ลดเหลือ 2 คอลัมน์ */
   .image-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  /* 4. Font & Spacing: ปรับลดขนาด */
   .page-title {
     font-size: 18px;
   }

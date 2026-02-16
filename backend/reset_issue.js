@@ -1,7 +1,6 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-// ตรวจสอบ Path ให้ถูกต้องว่าไฟล์ model อยู่ที่ไหน
 const Issue = require("./models/issue");
 
 const reset = async () => {
@@ -19,5 +18,4 @@ const reset = async () => {
     }
 };
 
-// 3. สำคัญมาก! ต้องเรียกใช้ฟังก์ชันด้วย
 reset();

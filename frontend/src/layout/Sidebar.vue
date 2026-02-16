@@ -43,7 +43,7 @@ import { useRoute } from 'vue-router';
 import {
   DashboardOutlined, BugOutlined, TeamOutlined, SafetyCertificateOutlined,
   FileProtectOutlined, CodeOutlined, DeploymentUnitOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined, CloudServerOutlined
 } from '@ant-design/icons-vue';
 
 // --- Sub-Component: AppMenu (เมนูกลาง ใช้ร่วมกัน) ---
@@ -97,6 +97,10 @@ const AppMenu = defineComponent({
           icon: () => h(SafetyCertificateOutlined),
           default: () => h(resolveComponent('router-link'), { to: { name: 'system-logs' } }, () => 'System Logs')
         }),
+        h(resolveComponent('a-menu-item'), { key: 'servers-management' }, {
+          icon: () => h(CloudServerOutlined),
+          default: () => h(resolveComponent('router-link'), { to: { name: 'Servers-management' } }, () => 'Server Management')
+        })
       ] : [])
     ]);
   }
@@ -116,13 +120,12 @@ export default defineComponent({
     const selectedKeys = ref([]);
     const isMobile = ref(false);
 
-    // 1. Ant Design Breakpoint Listener (แม่นยำที่สุด)
     const onBreakpoint = (broken) => {
       isMobile.value = broken;
       if (broken) {
-        collapsed.value = true; // ถ้าเป็นมือถือ ให้พับ Sider ทันที (Width จะเป็น 0)
+        collapsed.value = true;
       } else {
-        collapsed.value = false; // ถ้าเป็น Desktop ให้กางออก
+        collapsed.value = false;
       }
     };
 

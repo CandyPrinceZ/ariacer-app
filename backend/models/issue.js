@@ -24,6 +24,12 @@ const issueSchema = new mongoose.Schema(
       required: true,
     },
 
+    server: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Server",
+      required: true,
+    },
+
     deadline: {
       type: Date,
       default: null,
@@ -45,6 +51,13 @@ const issueSchema = new mongoose.Schema(
       ref: "Auth",
       default: null,
     },
+
+    assistant: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Auth",
+      },
+    ],
 
     note: {
       type: String,

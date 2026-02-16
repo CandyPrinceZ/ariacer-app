@@ -4,6 +4,7 @@ const IssueType = require("../models/issue_type");
 const Urgency = require("../models/urgency");
 const Status = require("../models/status");
 const User = require("../models/auth");
+const Server = require("../models/server");
 const { saveLog } = require("../services/logger");
 const SystemConfig = require("../models/SystemConfig");
 const axios = require("axios");
@@ -102,6 +103,8 @@ exports.getIssueById = async (req, res) => {
         .populate("status")
         .populate("reporter", "username user_name role_name avatar")
         .populate("assignee", "username user_name role_name avatar")
+        .populate("assistant", "username user_name role_name avatar")
+        .populate("server", "name")
         .populate("tester", "username user_name role_name avatar");
     }
 
@@ -113,7 +116,9 @@ exports.getIssueById = async (req, res) => {
         .populate("status")
         .populate("reporter", "username user_name role_name avatar")
         .populate("assignee", "username user_name role_name avatar")
-        .populate("tester", "username user_name role_name avatar");
+        .populate("tester", "username user_name role_name avatar")
+        .populate("assistant", "username user_name role_name avatar")
+        .populate("server", "name");
     }
 
     if (!issue) {
@@ -134,18 +139,44 @@ exports.getIssuesByAssignee = async (req, res) => {
     let issues = await Issue.find({ assignee: assigneeId })
       .populate("type", "name code")
       .populate("urgency", "name color code")
-      .populate("status", "name code") // ต้อง populate เพื่อเช็ค code ด้านล่าง
+      .populate("status", "name code")
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
+      .populate("assistant", "username user_name role_name avatar")
+      .populate("server", "name")
       .sort({ createdAt: -1 });
 
-    // Filter งานที่ยังไม่เสร็จ (Success) ออก
     issues = issues.filter(
       (issue) => issue.status && issue.status.code !== "success",
     );
 
     res.json(issues);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getIssuesByAssistant = async (req, res) => {
+  try {
+    const assistantId = req.params.assigneeId;
+
+    let issues = await Issue.find({ assistant: assistantId })
+      .populate("type", "name code")
+      .populate("urgency", "name color code")
+      .populate("status", "name code")
+      .populate("reporter", "username user_name role_name avatar")
+      .populate("assignee", "username user_name role_name avatar")
+      .populate("assistant", "username user_name role_name avatar")
+      .populate("server", "name")
+      .sort({ createdAt: -1 });
+
+    issues = issues.filter(
+      (issue) => issue.status && issue.status.code !== "success",
+    );
+
+    res.json(issues);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -231,6 +262,8 @@ exports.getIssuesforTester = async (req, res) => {
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
       .populate("tester", "username user_name role_name avatar")
+      .populate("assistant", "username user_name role_name avatar")
+      .populate("server", "name ip")
       .sort({ updatedAt: -1 });
 
     res.json(issues);
@@ -247,6 +280,7 @@ exports.getUnassignedIssues = async (req, res) => {
       .populate("urgency", "name color code")
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name avatar")
+      .populate("server", "name")
       .sort({ createdAt: -1 });
 
     res.json(issues);

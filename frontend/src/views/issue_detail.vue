@@ -210,7 +210,7 @@
                                     <span class="label">Deadline</span>
                                     <span class="val-text" style="color: red;">{{ formatDate(issue.deadline) }}</span>
                                 </div>
-                                <div v-if="deadlineInfo" class="info-row" style="margin-top: 8px;">
+                                <div v-if="issue.deadline" class="info-row" style="margin-top: 8px;">
                                     <span class="label">Time Left</span>
                                     <a-tag :color="deadlineInfo.color" style="margin: 0; font-weight: 600;">
                                         <component :is="deadlineInfo.icon" /> {{ deadlineInfo.text }}

@@ -64,15 +64,25 @@
                                         <a-select v-model:value="form.priority" placeholder="เลือกระดับ" size="large"
                                             :style="selectStyle" class="custom-select"
                                             :class="{ 'has-priority': form.priority }">
-                                            <a-select-option v-for="opt in options.urgencies" :key="opt.value"
+                                            <a-select-option v-for="opt in urgencyOptions" :key="opt.value"
                                                 :value="opt.value">
                                                 <div class="priority-option">
                                                     <span class="dot" :style="{ background: opt.color }"></span>
                                                     <span :style="{ fontWeight: 500, color: opt.color }">{{ opt.label
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                             </a-select-option>
                                         </a-select>
+                                    </a-form-item>
+                                </a-col>
+                            </a-row>
+
+                            <a-row :gutter="[12, 12]" v-if="isHighPriority">
+                                <a-col :xs="24" :sm="24"> <a-form-item label="กำหนดวันและเวลาสิ้นสุด (Deadline)"
+                                        required class="form-item-mb">
+                                        <a-date-picker v-model:value="form.deadline" style="width: 100%"
+                                            placeholder="เลือกวันและเวลา" :show-time="{ format: 'HH:mm' }"
+                                            format="DD/MM/YYYY HH:mm" size="large" />
                                     </a-form-item>
                                 </a-col>
                             </a-row>
@@ -81,6 +91,38 @@
                                 <a-textarea v-model:value="form.description" placeholder="ระบุรายละเอียด..." :rows="8"
                                     show-count :maxlength="2000" class="modern-textarea" />
                             </a-form-item>
+
+                            <div class="assign-dev-box">
+                                <div class="assign-header">
+                                    <span class="label">
+                                        <UserAddOutlined /> กำหนดผู้พัฒนา (Assign Developer)
+                                    </span>
+                                    <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
+                                </div>
+
+                                <div v-if="form.isCustomDeveloper" class="assign-body">
+                                    <a-select v-model:value="form.developer" show-search
+                                        placeholder="ค้นหาชื่อผู้พัฒนา..." option-filter-prop="label"
+                                        :loading="dropdownLoading" size="large" class="modern-select"
+                                        style="width: 100%;">
+                                        <a-select-option v-for="dev in options.developers" :key="dev._id"
+                                            :value="dev._id" :label="dev.user_name">
+                                            <div class="dev-option-item">
+                                                <a-avatar size="small" :src="dev.avatar" :style="{
+                                                    backgroundColor: dev.avatar ? 'transparent' : stringToColor(dev.user_name),
+                                                    fontSize: '12px',
+                                                    border: dev.avatar ? '1px solid #f0f0f0' : 'none'
+                                                }">
+                                                    <span v-if="!dev.avatar">
+                                                        {{ dev.user_name?.[0]?.toUpperCase() }}
+                                                    </span>
+                                                </a-avatar>
+                                                <span class="dev-name">[{{ dev.role_name }}] {{ dev.user_name }}</span>
+                                            </div>
+                                        </a-select-option>
+                                    </a-select>
+                                </div>
+                            </div>
 
                         </a-card>
                     </a-col>
@@ -138,11 +180,12 @@
                                 <div class="meta-row" style="align-items: center;">
                                     <span class="meta-label">Reporter:</span>
                                     <span class="meta-val" style="display: flex; align-items: center; gap: 6px;">
-                                        <a-avatar size="small" :src="originalReporter?.avatar"
-                                            :style="{ backgroundColor: !originalReporter?.avatar ? stringToColor(originalReporter?.user_name) : 'transparent' }">
+                                        <a-avatar size="small" :src="originalReporter?.avatar" :style="{
+                                            backgroundColor: !originalReporter?.avatar ? stringToColor(originalReporter?.user_name) : 'transparent'
+                                        }">
                                             <span v-if="!originalReporter?.avatar">{{
                                                 originalReporter?.user_name?.[0]?.toUpperCase()
-                                                }}</span>
+                                            }}</span>
                                         </a-avatar>
                                         {{ originalReporter?.user_name || '-' }}
                                     </span>
@@ -171,7 +214,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import {
     EditOutlined, FormOutlined, CloudUploadOutlined,
-    DeleteOutlined, SaveOutlined, PictureOutlined
+    DeleteOutlined, SaveOutlined, PictureOutlined, UserAddOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload, notification } from 'ant-design-vue';
 
@@ -179,7 +222,7 @@ export default {
     name: "IssueEdit",
     components: {
         EditOutlined, FormOutlined, CloudUploadOutlined,
-        DeleteOutlined, SaveOutlined, PictureOutlined
+        DeleteOutlined, SaveOutlined, PictureOutlined, UserAddOutlined
     },
     data() {
         return {
@@ -188,7 +231,7 @@ export default {
             submitting: false,
             dropdownLoading: false,
 
-            options: { types: [], urgencies: [] },
+            options: { types: [], urgencies: [], developers: [] }, // เพิ่ม developers
 
             // Original Data
             originalId: '',
@@ -206,13 +249,32 @@ export default {
                 title: '',
                 priority: undefined,
                 bugType: undefined,
-                description: ''
+                description: '',
+                deadline: null,
+                isCustomDeveloper: false, // เพิ่ม switch
+                developer: undefined      // เพิ่ม developer id
             },
         };
     },
     computed: {
+        urgencyOptions() {
+            return (this.options.urgencies || []).map((u) => ({
+                value: u.value,
+                label: u.label,
+                color: u.color,
+                code: u.code 
+            }));
+        },
+        isHighPriority() {
+            if (!this.form.priority) return false;
+            if (!this.urgencyOptions || this.urgencyOptions.length === 0) return false;
+
+            const selectedPriority = this.urgencyOptions.find(p => p.value === this.form.priority);
+            const code = selectedPriority?.code || '';
+            return ['critical', 'high'].includes(code.toLowerCase());
+        },
         selectStyle() {
-            const selected = this.options.urgencies.find(u => u.value === this.form.priority);
+            const selected = this.urgencyOptions.find(u => u.value === this.form.priority);
             if (selected && selected.color) {
                 return {
                     border: `1px solid ${selected.color}`,
@@ -254,17 +316,27 @@ export default {
             try {
                 const Token = localStorage.getItem('token');
                 const config = { headers: { Authorization: `Bearer ${Token}` } };
-                const [resType, resUrgency] = await Promise.all([
+                const [resType, resUrgency, resUserDev] = await Promise.all([
                     axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
-                    axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config)
+                    axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
+                    axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config) // ดึง user
                 ]);
+
                 this.options.types = this.mapOptions(resType.data);
-                this.options.urgencies = this.mapOptions(resUrgency.data, true);
+                // Map Urgency แบบพิเศษเพื่อเอา code มาด้วย
+                const urgList = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
+                this.options.urgencies = urgList.map(item => ({
+                    value: item._id, label: item.name, color: item.color, code: item.code
+                }));
+
+                // Developers
+                this.options.developers = Array.isArray(resUserDev.data) ? resUserDev.data : (resUserDev.data?.data || []);
+
             } catch (e) { console.error(e); } finally { this.dropdownLoading = false; }
         },
-        mapOptions(data, hasColor = false) {
+        mapOptions(data) {
             const list = Array.isArray(data) ? data : (data?.data || []);
-            return list.map(item => ({ value: item._id, label: item.name, color: hasColor ? item.color : undefined }));
+            return list.map(item => ({ value: item._id, label: item.name }));
         },
         async fetchIssueDetail() {
             this.loading = true;
@@ -291,6 +363,16 @@ export default {
                 this.form.description = data.detail;
                 this.form.bugType = data.type?._id;
                 this.form.priority = data.urgency?._id;
+                this.form.deadline = data.deadline ? dayjs(data.deadline) : null;
+
+                // Set Developer (Assignee)
+                if (data.assignee) {
+                    this.form.isCustomDeveloper = true;
+                    this.form.developer = data.assignee._id;
+                } else {
+                    this.form.isCustomDeveloper = false;
+                    this.form.developer = undefined;
+                }
 
                 this.originalReporter = data.reporter;
                 this.existingImages = (data.images || []).map(img => typeof img === 'string' ? { url: img } : img);
@@ -325,6 +407,7 @@ export default {
             if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
             if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
             if (!this.form.bugType) return message.warning('ระบุประเภท');
+            if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine สำหรับงานเร่งด่วน');
 
             this.submitting = true;
             try {
@@ -344,8 +427,16 @@ export default {
                     detail: this.form.description || '-',
                     type: this.form.bugType,
                     urgency: this.form.priority,
-                    images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url }))
+                    deadline: this.form.deadline, // ส่ง deadline ไปด้วย
+                    images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url })),
+                    // ส่ง assignee
+                    assignee: (this.form.isCustomDeveloper && this.form.developer) ? this.form.developer : null
                 };
+
+                // ถ้าปิด switch ให้ส่ง null หรือ empty string เพื่อ clear assignee
+                if (!this.form.isCustomDeveloper) {
+                    payload.assignee = ""; // หรือ null ขึ้นอยู่กับ backend รับค่าแบบไหน (ปกติ null หรือ empty string)
+                }
 
                 await axios.put(import.meta.env.VITE_API_URL + `/issues/edit/${this.issueId}`, payload, config);
 
@@ -484,6 +575,11 @@ export default {
     display: inline-block;
 }
 
+.form-item-mb {
+    margin-bottom: 20px;
+}
+
+
 .custom-select.has-priority :deep(.ant-select-selector) {
     border-color: transparent !important;
     box-shadow: none !important;
@@ -587,6 +683,49 @@ export default {
     position: sticky;
     top: 12px;
 }
+
+/* Assign Dev Box */
+.assign-dev-box {
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 8px;
+}
+
+.assign-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.assign-header .label {
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.assign-body {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.dev-option-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dev-name {
+    font-weight: 500;
+    color: #1f2937;
+    font-size: 13px;
+}
+
 
 /* ==========================================================================
    📱 Mobile Responsive Tweaks

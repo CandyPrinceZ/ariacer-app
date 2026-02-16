@@ -64,12 +64,15 @@
           <a-card :bordered="false" class="main-card chart-card">
             <template #title>
               <div class="card-header-wrap">
-                <span class="card-header-text">Active Issues Trend</span>
-                <span class="card-header-sub">(Excluding Success)</span>
+                <span class="card-header-text">Issue Status Breakdown</span>
+                <span class="card-header-sub">Distribution by Status</span>
               </div>
             </template>
-            <div style="height: 300px; position: relative;">
-              <Bar :data="chartData" :options="chartOptions" />
+
+            <div class="chart-wrapper">
+              <div class="chart-container">
+                <Pie :data="chartData" :options="chartOptions" />
+              </div>
             </div>
           </a-card>
         </a-col>
@@ -92,18 +95,18 @@
                 <a-select v-model:value="filters.status" placeholder="Status" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="s in dropdowns.statuses" :key="s._id" :value="s._id">{{ s.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
 
                 <a-select v-model:value="filters.urgency" placeholder="Urgency" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="u in dropdowns.urgencies" :key="u._id" :value="u._id">{{ u.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
                 <a-select v-model:value="filters.type" placeholder="Type" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="t in dropdowns.types" :key="t._id" :value="t._id">{{ t.name
-                  }}</a-select-option>
+                    }}</a-select-option>
                 </a-select>
               </div>
             </div>
@@ -180,17 +183,19 @@ import {
   ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
-import { Bar } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale } from 'chart.js'
+// ✅ 1. Import Pie แทน Doughnut
+import { Pie } from 'vue-chartjs'
+import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js'
 
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
+ChartJS.register(Title, Tooltip, Legend, ArcElement)
 
 export default {
   name: 'DashboardView',
   components: {
     AppstoreOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
     ExperimentOutlined, CheckCircleOutlined, AlertOutlined, CloudUploadOutlined,
-    ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined, Bar
+    ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined,
+    Pie // ✅ 2. ใช้ Component Pie
   },
   data() {
     return {
@@ -215,13 +220,13 @@ export default {
         { key: 'success', label: 'Success', icon: 'CheckCircleOutlined', colorClass: 'icon-green', hexColor: '#52c41a', textColor: '#52c41a' },
       ],
       columns: [
-        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, fixed: 'left' }, // Fix ID column
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, fixed: 'left' },
         { title: 'Subject', dataIndex: 'name', key: 'name', width: 200 },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 120 },
         { title: 'Urgency', dataIndex: 'urgency', key: 'urgency', width: 110 },
         { title: 'Submitted', dataIndex: 'createdAt', key: 'createdAt', width: 140, align: 'right' },
         { title: 'Dev', dataIndex: 'assignee', key: 'assignee', width: 80, align: 'center' },
-        { title: 'Action', key: 'action', width: 80, align: 'center', fixed: 'right' }, // Fix Action
+        { title: 'Action', key: 'action', width: 80, align: 'center', fixed: 'right' },
       ]
     };
   },
@@ -240,20 +245,22 @@ export default {
     },
     chartData() {
       return {
-        labels: ['Report', 'Inbox', 'Dev', 'Done', 'Server', 'Test', 'Reject'],
+        // ✅ 3. Labels มี Success อยู่แล้ว
+        labels: ['Report', 'Inbox', 'Dev', 'Done', 'Server', 'Test', 'Reject', 'Success'],
         datasets: [
           {
-            label: 'Issues',
+            // ✅ 4. Data ใส่ค่า Success เรียบร้อย
             data: [
               this.stats.reported, this.stats.received, this.stats.inProgress,
-              this.stats.finished, this.stats.upserver, this.stats.testing, this.stats.rejected
+              this.stats.finished, this.stats.upserver, this.stats.testing,
+              this.stats.rejected, this.stats.success
             ],
             backgroundColor: [
               '#ff4d4f', '#8c8c8c', '#1890ff', '#13c2c2',
-              '#722ed1', '#fa8c16', '#cf1322'
+              '#722ed1', '#fa8c16', '#cf1322', '#52c41a'
             ],
-            borderRadius: 4,
-            barThickness: 20
+            hoverOffset: 4,
+            borderWidth: 0,
           }
         ]
       }
@@ -262,10 +269,30 @@ export default {
       return {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { stepSize: 1 } },
-          x: { grid: { display: false } }
+        // ❌ เอา cutout ออกเพื่อให้เป็นวงกลมเต็ม
+        plugins: {
+          legend: {
+            display: true,
+            position: 'right',
+            labels: {
+              usePointStyle: true,
+              boxWidth: 8,
+              padding: 15,
+              font: { size: 11 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                let label = context.label || '';
+                if (label) { label += ': '; }
+                let value = context.parsed;
+                let total = context.chart._metasets[context.datasetIndex].total;
+                let percentage = ((value / total) * 100).toFixed(1) + "%";
+                return label + value + ' (' + percentage + ')';
+              }
+            }
+          }
         }
       }
     }
@@ -355,6 +382,24 @@ export default {
 </script>
 
 <style scoped>
+/* Chart CSS */
+.chart-wrapper {
+  position: relative;
+  height: 350px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.chart-container {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
 .dashboard-content {
   padding: 12px;
   width: 100%;
