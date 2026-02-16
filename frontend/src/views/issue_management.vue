@@ -11,7 +11,7 @@
                 </div>
                 <div class="header-actions">
                     <a-button type="default" size="small" @click="deleteAllSuccess" :loading="loading">
-                        <ReloadOutlined /> <span class="btn-text">Delete All Success Issues</span>
+                        <DeleteOutlined /> <span class="btn-text">Delete All Success Issues</span>
                     </a-button>
                 </div>
             </div>
