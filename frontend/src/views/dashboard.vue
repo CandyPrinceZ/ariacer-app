@@ -183,7 +183,6 @@ import {
   ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined
 } from '@ant-design/icons-vue';
 import dayjs from 'dayjs';
-// ✅ 1. Import Pie แทน Doughnut
 import { Pie } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js'
 
@@ -195,7 +194,7 @@ export default {
     AppstoreOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
     ExperimentOutlined, CheckCircleOutlined, AlertOutlined, CloudUploadOutlined,
     ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined,
-    Pie // ✅ 2. ใช้ Component Pie
+    Pie 
   },
   data() {
     return {
@@ -245,11 +244,9 @@ export default {
     },
     chartData() {
       return {
-        // ✅ 3. Labels มี Success อยู่แล้ว
         labels: ['Report', 'Inbox', 'Dev', 'Done', 'Server', 'Test', 'Reject', 'Success'],
         datasets: [
           {
-            // ✅ 4. Data ใส่ค่า Success เรียบร้อย
             data: [
               this.stats.reported, this.stats.received, this.stats.inProgress,
               this.stats.finished, this.stats.upserver, this.stats.testing,
@@ -269,7 +266,6 @@ export default {
       return {
         responsive: true,
         maintainAspectRatio: false,
-        // ❌ เอา cutout ออกเพื่อให้เป็นวงกลมเต็ม
         plugins: {
           legend: {
             display: true,

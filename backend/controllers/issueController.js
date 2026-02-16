@@ -60,9 +60,6 @@ exports.getIssues = async (req, res) => {
     let query = {};
 
     if (status) {
-      // ระวังเรื่องการส่ง status เป็น ID หรือ Code
-      // ถ้า Frontend ส่ง ID มา ใช้ query.status = status ได้เลย
-      // แต่ถ้าส่ง Code อาจต้องไปหา ID จาก Table Status ก่อน (ขึ้นอยู่กับ DB Design)
       query.status = status;
     }
 
