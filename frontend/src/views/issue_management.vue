@@ -9,6 +9,11 @@
                     </h2>
                     <p class="page-subtitle">จัดการรายการแจ้งปัญหา ติดตามสถานะ และมอบหมายงาน</p>
                 </div>
+                <div class="header-actions">
+                    <a-button type="default" size="small" @click="deleteAllSuccess" :loading="loading">
+                        <ReloadOutlined /> <span class="btn-text">Delete All Success Issues</span>
+                    </a-button>
+                </div>
             </div>
         </div>
 
@@ -249,6 +254,18 @@ export default {
         resetFilters() {
             this.filters = { search: '', status: undefined, urgency: undefined };
             this.fetchIssues();
+        },
+        async deleteAllSuccess() {
+            try {
+                const token = localStorage.getItem('token');
+                const config = { headers: { Authorization: `Bearer ${token}` } };
+                await axios.delete(import.meta.env.VITE_API_URL + '/issues/delete-success-status', config);
+                message.success('ลบข้อมูลเรียบร้อยแล้ว');
+                this.fetchIssues();
+            } catch (e) {
+                console.error(e);
+                message.error('ลบข้อมูลไม่สำเร็จ');
+            }
         },
         async handleDelete(record) {
             Swal.fire({
@@ -575,6 +592,10 @@ export default {
 
     :deep(.ant-table-cell) {
         padding: 10px !important;
+    }
+
+    .btn-text {
+        display: none;
     }
 }
 </style>

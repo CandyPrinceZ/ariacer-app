@@ -448,6 +448,49 @@ exports.deleteIssue = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.DeleteSuccessStatusIssues = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (user.role_name !== "Administrator" && user.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: Admin access required" });
+    }
+
+    const successStatus = await Status.findOne({ code: "success" });
+
+    if (!successStatus) {
+      return res
+        .status(404)
+        .json({ message: "Status 'success' not found in database" });
+    }
+
+    const result = await Issue.deleteMany({ status: successStatus._id });
+
+    if (result.deletedCount > 0) {
+      saveLog(
+        req,
+        user,
+        "DELETE_SUCCESS_ISSUES",
+        `Admin deleted all success issues (${result.deletedCount} items)`,
+        {
+          deleted_count: result.deletedCount,
+          status_id: successStatus._id,
+        },
+      );
+    }
+
+    res.json({
+      message: "Success Status Issues deleted successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (error) {
+    console.error("Delete Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 // ============================================================
 // ✅ Discord Notification Helpers (Bulletproof + Auto Retry)
 // ============================================================

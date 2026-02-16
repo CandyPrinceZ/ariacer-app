@@ -92,18 +92,18 @@
                 <a-select v-model:value="filters.status" placeholder="Status" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="s in dropdowns.statuses" :key="s._id" :value="s._id">{{ s.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
 
                 <a-select v-model:value="filters.urgency" placeholder="Urgency" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="u in dropdowns.urgencies" :key="u._id" :value="u._id">{{ u.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
                 <a-select v-model:value="filters.type" placeholder="Type" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="t in dropdowns.types" :key="t._id" :value="t._id">{{ t.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
               </div>
             </div>
@@ -411,14 +411,19 @@ export default {
   .compact-header {
     padding: 10px 12px;
   }
+
   .page-title {
     font-size: 16px;
   }
+
   .page-subtitle {
-    display: none; /* Hide subtitle on mobile to save space */
+    display: none;
+    /* Hide subtitle on mobile to save space */
   }
+
   .btn-text {
-    display: none; /* Show only icon on mobile */
+    display: none;
+    /* Show only icon on mobile */
   }
 }
 
@@ -472,9 +477,17 @@ export default {
   font-size: 20px;
 }
 
-.text-white { color: #fff; }
-.text-white-70 { color: rgba(255, 255, 255, 0.7); }
-.bg-white-20 { background: rgba(255, 255, 255, 0.2); }
+.text-white {
+  color: #fff;
+}
+
+.text-white-70 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bg-white-20 {
+  background: rgba(255, 255, 255, 0.2);
+}
 
 .stat-footer {
   font-size: 12px;
@@ -536,14 +549,45 @@ export default {
 }
 
 /* Colors */
-.icon-red { background: rgba(255, 77, 79, 0.1); color: #ff4d4f; }
-.icon-red-dark { background: rgba(207, 19, 34, 0.1); color: #cf1322; }
-.icon-gray { background: rgba(140, 140, 140, 0.1); color: #595959; }
-.icon-blue { background: rgba(24, 144, 255, 0.1); color: #1890ff; }
-.icon-cyan { background: rgba(19, 194, 194, 0.1); color: #13c2c2; }
-.icon-purple { background: rgba(114, 46, 209, 0.1); color: #722ed1; }
-.icon-orange { background: rgba(250, 140, 22, 0.1); color: #fa8c16; }
-.icon-green { background: rgba(82, 196, 26, 0.1); color: #52c41a; }
+.icon-red {
+  background: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+.icon-red-dark {
+  background: rgba(207, 19, 34, 0.1);
+  color: #cf1322;
+}
+
+.icon-gray {
+  background: rgba(140, 140, 140, 0.1);
+  color: #595959;
+}
+
+.icon-blue {
+  background: rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+}
+
+.icon-cyan {
+  background: rgba(19, 194, 194, 0.1);
+  color: #13c2c2;
+}
+
+.icon-purple {
+  background: rgba(114, 46, 209, 0.1);
+  color: #722ed1;
+}
+
+.icon-orange {
+  background: rgba(250, 140, 22, 0.1);
+  color: #fa8c16;
+}
+
+.icon-green {
+  background: rgba(82, 196, 26, 0.1);
+  color: #52c41a;
+}
 
 /* 3. Main Cards & Toolbar */
 .main-card {
@@ -552,9 +596,22 @@ export default {
   height: 100%;
 }
 
-.card-header-wrap { display: flex; flex-direction: column; }
-.card-header-text { font-weight: 600; color: #1f1f1f; font-size: 15px; }
-.card-header-sub { font-size: 11px; color: #8c8c8c; font-weight: 400; }
+.card-header-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header-text {
+  font-weight: 600;
+  color: #1f1f1f;
+  font-size: 15px;
+}
+
+.card-header-sub {
+  font-size: 11px;
+  color: #8c8c8c;
+  font-weight: 400;
+}
 
 .table-toolbar {
   padding: 12px 16px;
@@ -584,17 +641,27 @@ export default {
     align-items: stretch;
     padding: 12px;
   }
-  .toolbar-left { margin-bottom: 8px; }
+
+  .toolbar-left {
+    margin-bottom: 8px;
+  }
+
   .toolbar-right {
     width: 100%;
     gap: 8px;
     display: grid;
-    grid-template-columns: 1fr 1fr; /* 2 columns on mobile */
+    grid-template-columns: 1fr 1fr;
+    /* 2 columns on mobile */
   }
-  .filter-item { width: 100% !important; min-width: 0; }
+
+  .filter-item {
+    width: 100% !important;
+    min-width: 0;
+  }
+
   /* Make search input full width */
   .toolbar-right .ant-input-affix-wrapper {
-      grid-column: 1 / -1;
+    grid-column: 1 / -1;
   }
 }
 
@@ -632,8 +699,14 @@ export default {
   display: inline-block;
 }
 
-.text-muted { color: #bfbfbf; }
-.date-text { font-size: 11px; color: #595959; }
+.text-muted {
+  color: #bfbfbf;
+}
+
+.date-text {
+  font-size: 11px;
+  color: #595959;
+}
 
 /* Animations */
 .fade-in-up {
@@ -642,16 +715,40 @@ export default {
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
-  .stat-number { font-size: 22px; }
-  .stat-number-mini { font-size: 18px; }
-  .stat-label-mini { font-size: 10px; }
-  :deep(.ant-card) { border-radius: 6px; }
-  :deep(.ant-table) { font-size: 12px; }
-  :deep(.ant-table-cell) { padding: 8px 6px !important; }
+  .stat-number {
+    font-size: 22px;
+  }
+
+  .stat-number-mini {
+    font-size: 18px;
+  }
+
+  .stat-label-mini {
+    font-size: 10px;
+  }
+
+  :deep(.ant-card) {
+    border-radius: 6px;
+  }
+
+  :deep(.ant-table) {
+    font-size: 12px;
+  }
+
+  :deep(.ant-table-cell) {
+    padding: 8px 6px !important;
+  }
 }
 </style>
