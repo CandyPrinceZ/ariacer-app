@@ -61,7 +61,7 @@
                   <div v-if="issue.tester" class="alert-meta">
                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                       <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                      }}</span>
+                        }}</span>
                     </a-avatar>
                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                     <span class="divider">|</span>
@@ -112,6 +112,38 @@
                   <a-textarea v-model:value="form.note" placeholder="Add a note or comment for this task..." :rows="6"
                     class="modern-textarea" />
                   <div class="input-hint">Note saves automatically on status update.</div>
+                </div>
+              </div>
+
+              <a-divider style="margin: 24px 0;" />
+
+              <div class="card-section">
+                <div class="flex-between">
+                  <h3 class="section-title" style="margin-bottom:0">
+                    <TeamOutlined /> Co-Developers
+                  </h3>
+
+                  <a-tooltip :title="!issue.assignee ? 'ต้องกดรับงาน (Claim Task) ก่อน' : ''">
+                    <span>
+                      <a-button type="dashed" @click="openCoDevModal" :disabled="!issue.assignee">
+                        <PlusOutlined /> จัดการผู้ร่วมงาน
+                      </a-button>
+                    </span>
+                  </a-tooltip>
+                </div>
+
+                <div class="co-dev-list" v-if="issue.assistant && issue.assistant.length > 0">
+                  <a-avatar-group :max-count="5" size="large">
+                    <a-tooltip v-for="dev in issue.assistant" :key="dev._id" :title="dev.user_name">
+                      <a-avatar :src="dev.avatar"
+                        :style="{ backgroundColor: dev.avatar ? 'transparent' : stringToColor(dev.user_name) }">
+                        {{ dev.avatar ? '' : dev.user_name?.[0]?.toUpperCase() }}
+                      </a-avatar>
+                    </a-tooltip>
+                  </a-avatar-group>
+                </div>
+                <div v-else class="empty-text-small">
+                  ยังไม่มีผู้พัฒนาร่วม
                 </div>
               </div>
 
@@ -224,6 +256,62 @@
       </div>
 
     </div>
+    <a-modal v-model:open="coDevModal.visible" title="จัดการผู้พัฒนาร่วม (Co-Developers)" width="700px" centered
+      @ok="saveCoDevs" :confirmLoading="coDevModal.saving" okText="บันทึก" cancelText="ยกเลิก">
+
+      <div class="modal-form-item">
+        <label>เพิ่มผู้พัฒนา:</label>
+        <div style="display: flex; gap: 10px;">
+          <a-select v-model:value="coDevModal.selectedDevId" show-search placeholder="ค้นหาชื่อผู้พัฒนา..."
+            option-filter-prop="label" style="flex: 1;" class="modern-select">
+            <a-select-option v-for="dev in developersList" :key="dev._id" :value="dev._id" :label="dev.user_name"
+              :disabled="isDevAlreadySelected(dev._id)">
+              <div class="dev-option-item">
+                <a-avatar size="small" :src="dev.avatar" :style="{
+                  backgroundColor: dev.avatar ? 'transparent' : stringToColor(dev.user_name),
+                  fontSize: '12px', marginRight: '8px'
+                }">
+                  {{ dev.avatar ? '' : dev.user_name?.[0]?.toUpperCase() }}
+                </a-avatar>
+                <span>[{{ dev.role_name }}] {{ dev.user_name }}</span>
+              </div>
+            </a-select-option>
+          </a-select>
+          <a-button type="primary" @click="addCoDevToList" :disabled="!coDevModal.selectedDevId">
+            <PlusOutlined /> เพิ่ม
+          </a-button>
+        </div>
+      </div>
+
+      <a-table :dataSource="coDevModal.currentList" :columns="coDevColumns" :pagination="false" size="small" bordered
+        style="margin-top: 16px;" :rowKey="(record) => record._id">
+
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'info'">
+            <div class="dev-option-item">
+              <a-avatar size="small" :src="record.avatar" :style="{
+                backgroundColor: record.avatar ? 'transparent' : stringToColor(record.user_name),
+                marginRight: '8px'
+              }">
+                {{ record.avatar ? '' : record.user_name?.[0]?.toUpperCase() }}
+              </a-avatar>
+              <span style="font-weight: 500;">{{ record.user_name }}</span>
+            </div>
+          </template>
+
+          <template v-if="column.key === 'role'">
+            <a-tag color="blue">{{ record.role_name || 'Developer' }}</a-tag>
+          </template>
+
+          <template v-if="column.key === 'action'">
+            <a-button type="text" danger size="small" @click="removeCoDevFromList(record._id)">
+              <DeleteOutlined /> ลบ
+            </a-button>
+          </template>
+        </template>
+
+      </a-table>
+    </a-modal>
   </a-layout>
 </template>
 
@@ -231,7 +319,8 @@
 import {
   ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
   FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
-  CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined, CloseCircleOutlined
+  CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined,
+  CloseCircleOutlined, TeamOutlined, PlusOutlined, DeleteOutlined
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import axios from 'axios';
@@ -243,6 +332,7 @@ export default {
     ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
     FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
     CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined, CloseCircleOutlined
+    , TeamOutlined, PlusOutlined, DeleteOutlined
   },
   data() {
     return {
@@ -254,7 +344,20 @@ export default {
       selectedStatus: undefined,
       issue: {},
       statusOptions: [],
-      form: { note: '' }
+      form: { note: '' },
+
+      developersList: [], // เก็บรายการ Dev ทั้งหมดจาก API
+      coDevModal: {
+        visible: false,
+        saving: false,
+        selectedDevId: undefined, // สำหรับ Dropdown
+        currentList: [] // สำหรับ Table ใน Modal
+      },
+      coDevColumns: [
+        { title: 'ชื่อผู้พัฒนา', key: 'info', width: '50%' },
+        { title: 'ตำแหน่ง', key: 'role', dataIndex: 'role_name' },
+        { title: 'จัดการ', key: 'action', width: '100px', align: 'center' },
+      ]
     };
   },
   computed: {
@@ -304,6 +407,7 @@ export default {
       await this.fetchDropdownStatusOptions();
       const issueId = this.$route.params.id;
       if (issueId) await this.fetchIssueDetail(issueId);
+      await this.fetchDevelopers();
     } catch (err) {
       console.error(err);
       message.error("Failed to load data");
@@ -393,6 +497,95 @@ export default {
         message.error('Update failed');
       } finally {
         this.actionLoading = false;
+      }
+    },
+    async fetchDevelopers() {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        this.developersList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      } catch (e) {
+        console.error("Failed to load developers", e);
+      }
+    },
+    // 1. ดึงรายชื่อ Dev ทั้งหมด (เหมือนหน้า Report Bug)
+    async fetchDevelopers() {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        this.developersList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      } catch (e) {
+        console.error("Failed to load developers", e);
+      }
+    },
+
+    openCoDevModal() {
+      // โคลนข้อมูล Co-Assignees ปัจจุบันมาใส่ในตาราง Modal (ถ้า Backend ส่งมา)
+      this.coDevModal.currentList = this.issue.assistant ? [...this.issue.assistant] : [];
+      this.coDevModal.selectedDevId = undefined;
+      this.coDevModal.visible = true;
+    },
+
+    // 3. เช็คว่าเลือกไปแล้วหรือยัง (เพื่อ Disable ใน Dropdown)
+    isDevAlreadySelected(devId) {
+      // เช็คใน list ชั่วคราว
+      const inList = this.coDevModal.currentList.some(d => d._id === devId);
+      // เช็คว่าเป็นคน Assign หลักหรือไม่ (ไม่ควรเลือกซ้ำ)
+      const isMainAssignee = this.issue.assignee && this.issue.assignee._id === devId;
+      return inList || isMainAssignee;
+    },
+
+    // 4. กดปุ่ม "เพิ่ม" จาก Dropdown ลง Table
+    addCoDevToList() {
+      if (!this.coDevModal.selectedDevId) return;
+
+      const dev = this.developersList.find(d => d._id === this.coDevModal.selectedDevId);
+      if (dev) {
+        // แก้จาก .push() เป็นการ assign array ใหม่ เพื่อกระตุ้น Vue ให้ render แน่นอน 100%
+        this.coDevModal.currentList = [...this.coDevModal.currentList, dev];
+
+        this.coDevModal.selectedDevId = undefined;
+      }
+    },
+
+    // 5. กดลบจาก Table
+    removeCoDevFromList(devId) {
+      this.coDevModal.currentList = this.coDevModal.currentList.filter(d => d._id !== devId);
+    },
+
+    // 6. บันทึกข้อมูล (API Update)
+    async saveCoDevs() {
+      this.coDevModal.saving = true;
+      try {
+        const token = localStorage.getItem('token');
+
+        // ดึงเฉพาะ ID เพื่อส่งไป Backend
+        const coAssigneeIds = this.coDevModal.currentList.map(d => d._id);
+
+        // ** หมายเหตุ: ต้องตรวจสอบ Endpoint ของ Backend ว่ารับ field ไหน
+        const payload = {
+          assistant: coAssigneeIds
+        };
+
+        await axios.put(import.meta.env.VITE_API_URL + `/issues/${this.issue._id}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        message.success('อัปเดตผู้พัฒนาร่วมเรียบร้อย');
+        this.coDevModal.visible = false;
+
+        // โหลดข้อมูลงานใหม่เพื่ออัปเดตหน้าจอ
+        await this.fetchIssueDetail(this.issue._id);
+
+      } catch (error) {
+        console.error(error);
+        message.error('บันทึกไม่สำเร็จ');
+      } finally {
+        this.coDevModal.saving = false;
       }
     }
   }
@@ -937,5 +1130,42 @@ export default {
     /* เรียง Alert แนวตั้งถ้ายาว */
     gap: 8px;
   }
+}
+
+/* เพิ่ม Styles ใหม่ */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.co-dev-list {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.empty-text-small {
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.modal-form-item {
+  margin-bottom: 16px;
+}
+
+.modal-form-item label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.dev-option-item {
+  display: flex;
+  align-items: center;
 }
 </style>
