@@ -57,7 +57,7 @@
                                 <div v-if="issue.tester" class="alert-meta">
                                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                                         <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                                        }}</span>
+                                            }}</span>
                                     </a-avatar>
                                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                                     <span class="divider">|</span>
@@ -134,11 +134,11 @@
                                         <a-avatar :size="48" :src="issue.assignee.avatar"
                                             :style="{ backgroundColor: !issue.assignee.avatar ? stringToColor(issue.assignee.user_name) : 'transparent' }">
                                             <span v-if="!issue.assignee.avatar">{{ (issue.assignee.user_name || 'U')[0]
-                                            }}</span>
+                                                }}</span>
                                         </a-avatar>
                                         <div class="assignee-details">
                                             <span class="label">ผู้รับผิดชอบหลัก {{ isMainAssignee ? '(You)' : ''
-                                            }}</span>
+                                                }}</span>
                                             <h4 class="name text-ellipsis">{{ issue.assignee.user_name }}</h4>
                                         </div>
                                     </div>
@@ -167,9 +167,15 @@
                                             class="btn-fix mb-2" @click="goToDevDetail">
                                             <ToolOutlined /> แก้ไขงาน (Fix)
                                         </a-button>
-                                        <a-button v-else-if="issue.status?.code === 'received'" type="primary" block
-                                            class="btn-start mb-2" @click="goToDevDetail">
+                                        <a-button
+                                            v-else-if="issue.status?.code === 'received' || issue.status?.code === 'reported'"
+                                            type="primary" block class="btn-start mb-2" @click="goToDevDetail">
                                             <SyncOutlined /> เริ่มงาน (Start)
+                                        </a-button>
+                                        <a-button
+                                            v-else-if="issue.status?.code === 'inProgress' || issue.status?.code === 'finished'"
+                                            type="primary" block class="btn-start mb-2" @click="goToDevDetail">
+                                            <SyncOutlined />  ต่องาน (Continue)
                                         </a-button>
                                     </template>
 
@@ -187,7 +193,7 @@
                                     <a-avatar :size="48" :src="issue.assignee?.avatar"
                                         :style="{ backgroundColor: !issue.assignee?.avatar ? stringToColor(issue.assignee?.user_name) : 'transparent' }">
                                         <span v-if="!issue.assignee?.avatar">{{ (issue.assignee?.user_name || 'U')[0]
-                                        }}</span>
+                                            }}</span>
                                     </a-avatar>
                                     <div class="assignee-details">
                                         <span class="label">ผู้รับผิดชอบ</span>

@@ -51,6 +51,12 @@
                 <a-input v-model:value="form.title" placeholder="ระบุหัวข้อปัญหา" size="large" class="modern-input" />
               </a-form-item>
 
+              <a-form-item label="เซิร์ฟเวอร์ (Server)" required class="form-item-mb">
+                <a-select v-model:value="form.server" placeholder="ระบุ Server ที่พบปัญหา"
+                  :options="formattedServerOptions" :loading="dropdownLoading" size="large" class="modern-select"
+                  allow-clear />
+              </a-form-item>
+
               <a-row :gutter="[16, 16]">
                 <a-col :xs="24" :sm="12">
                   <a-form-item label="ประเภท (Category)" required class="mb-4">
@@ -268,6 +274,7 @@ export default {
       currentStatusCode: '',
       currentStatusName: '',
       existingImages: [],
+      serversOptions: [],
 
       fileList: [],
       maxFiles: 5,
@@ -281,11 +288,18 @@ export default {
         description: '',
         deadline: null,
         isCustomDeveloper: false,
-        developer: undefined
+        developer: undefined,
+        server: undefined
       },
     };
   },
   computed: {
+    formattedServerOptions() {
+      return (this.serversOptions || []).map((s) => ({
+        value: s._id,
+        label: `${s.name} (${s.url})`
+      }));
+    },
     urgencyOptions() {
       return (this.options.urgencies || []).map((u) => ({
         value: u.value,
@@ -347,11 +361,12 @@ export default {
       try {
         const Token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${Token}` } };
-        const [resType, resUrgency, resStatus, resUserdev] = await Promise.all([
+        const [resType, resUrgency, resStatus, resUserdev, resServer] = await Promise.all([
           axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
           axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
           axios.get(import.meta.env.VITE_API_URL + '/items/statuses', config),
-          axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config)
+          axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config),
+          axios.get(import.meta.env.VITE_API_URL + '/servers/get-all-server', config)
         ]);
         this.options.types = this.mapOptions(resType.data);
         const urgList = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
@@ -360,6 +375,7 @@ export default {
         }));
         this.options.statuses = resStatus.data || [];
         this.options.developers = resUserdev.data || [];
+        this.serversOptions = resServer.data
       } catch (e) { console.error(e); } finally { this.dropdownLoading = false; }
     },
     mapOptions(data, hasColor = false) {
@@ -391,6 +407,7 @@ export default {
         this.form.bugType = data.type?._id;
         this.form.priority = data.urgency?._id;
         this.form.deadline = data.deadline ? dayjs(data.deadline) : null;
+        this.form.server = data.server?._id;
 
         this.currentStatusCode = data.status?.code;
         this.currentStatusName = data.status?.name;
@@ -455,13 +472,13 @@ export default {
           detail: this.form.description || '-',
           type: this.form.bugType,
           urgency: this.form.priority,
-          deadline: this.form.deadline, // ส่ง deadline ไปด้วย
+          server: this.form.server,
+          deadline: this.form.deadline, 
           images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url }))
         };
 
         if (this.isAdmin && this.form.status) payload.status = this.form.status;
 
-        // ✅ Logic สำหรับ Assignee
         if (this.form.isCustomDeveloper && this.form.developer) {
           payload.assignee = this.form.developer;
         } else if (!this.form.isCustomDeveloper) {
