@@ -11,6 +11,7 @@ const {
   DeleteSuccessStatusIssues,
   getIssuesforTester,
   getIssuesByHighUrgency,
+  getIssuesByCoAssignee,
   editIssue,
 } = require("../controllers/issueController");
 const { protect } = require("../middleware/authMiddleware");
@@ -25,6 +26,7 @@ router.get("/tester/list", protect, getIssuesforTester);
 router.delete("/delete-success-status", protect, DeleteSuccessStatusIssues);
 
 router.get("/assigned/:assigneeId", protect, getIssuesByAssignee);
+router.get("/co-assignee/:coAssigneeId", protect, getIssuesByCoAssignee);
 router.put("/edit/:id", protect, editIssue); 
 
 router.get("/:id", protect, getIssueById);

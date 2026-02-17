@@ -50,6 +50,12 @@
                                     class="modern-input" />
                             </a-form-item>
 
+                            <a-form-item label="เซิร์ฟเวอร์ (Server)" required class="form-item-mb">
+                                <a-select v-model:value="form.server" placeholder="ระบุ Server ที่พบปัญหา"
+                                    :options="formattedServerOptions" :loading="dropdownLoading" size="large"
+                                    class="modern-select" allow-clear />
+                            </a-form-item>
+
                             <a-row :gutter="16">
                                 <a-col :xs="24" :sm="12">
                                     <a-form-item label="ประเภท (Category)" required class="mb-4">
@@ -97,14 +103,15 @@
                                     <span class="label">
                                         <UserAddOutlined /> กำหนดผู้พัฒนา (Assign Developer)
                                     </span>
-                                    <a-switch v-model:checked="form.isCustomDeveloper" size="small" />
+                                    <a-switch v-model:checked="form.isCustomDeveloper" size="small"
+                                        :disabled="issue?.status?.code !== 'reported'" />
                                 </div>
 
                                 <div v-if="form.isCustomDeveloper" class="assign-body">
                                     <a-select v-model:value="form.developer" show-search
                                         placeholder="ค้นหาชื่อผู้พัฒนา..." option-filter-prop="label"
                                         :loading="dropdownLoading" size="large" class="modern-select"
-                                        style="width: 100%;">
+                                        style="width: 100%;" :disabled="issue?.status?.code !== 'reported'">
                                         <a-select-option v-for="dev in options.developers" :key="dev._id"
                                             :value="dev._id" :label="dev.user_name">
                                             <div class="dev-option-item">
@@ -239,6 +246,7 @@ export default {
             originalReporter: null,
             createdAt: null,
             existingImages: [],
+            serversOptions: [],
 
             // Upload
             fileList: [],
@@ -251,18 +259,25 @@ export default {
                 bugType: undefined,
                 description: '',
                 deadline: null,
-                isCustomDeveloper: false, // เพิ่ม switch
-                developer: undefined      // เพิ่ม developer id
+                isCustomDeveloper: false, 
+                developer: undefined,
+                server: undefined
             },
         };
     },
     computed: {
+        formattedServerOptions() {
+            return (this.serversOptions || []).map((s) => ({
+                value: s._id,
+                label: `${s.name} (${s.url})`
+            }));
+        },
         urgencyOptions() {
             return (this.options.urgencies || []).map((u) => ({
                 value: u.value,
                 label: u.label,
                 color: u.color,
-                code: u.code 
+                code: u.code
             }));
         },
         isHighPriority() {
@@ -316,18 +331,19 @@ export default {
             try {
                 const Token = localStorage.getItem('token');
                 const config = { headers: { Authorization: `Bearer ${Token}` } };
-                const [resType, resUrgency, resUserDev] = await Promise.all([
+                const [resType, resUrgency, resUserDev, resServer] = await Promise.all([
                     axios.get(import.meta.env.VITE_API_URL + '/items/issue-types', config),
                     axios.get(import.meta.env.VITE_API_URL + '/items/urgencies', config),
-                    axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config) // ดึง user
+                    axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', config),
+                    axios.get(import.meta.env.VITE_API_URL + '/servers/get-all-server', config)
                 ]);
 
                 this.options.types = this.mapOptions(resType.data);
-                // Map Urgency แบบพิเศษเพื่อเอา code มาด้วย
                 const urgList = Array.isArray(resUrgency.data) ? resUrgency.data : (resUrgency.data?.data || []);
                 this.options.urgencies = urgList.map(item => ({
                     value: item._id, label: item.name, color: item.color, code: item.code
                 }));
+                this.serversOptions = resServer.data
 
                 // Developers
                 this.options.developers = Array.isArray(resUserDev.data) ? resUserDev.data : (resUserDev.data?.data || []);
@@ -356,6 +372,7 @@ export default {
                     return;
                 }
 
+                this.originalServer = data.server?._id;
                 this.originalName = data.name;
                 this.originalId = data.id;
                 this.createdAt = data.createdAt;
@@ -364,8 +381,8 @@ export default {
                 this.form.bugType = data.type?._id;
                 this.form.priority = data.urgency?._id;
                 this.form.deadline = data.deadline ? dayjs(data.deadline) : null;
+                this.form.server = data.server?._id;
 
-                // Set Developer (Assignee)
                 if (data.assignee) {
                     this.form.isCustomDeveloper = true;
                     this.form.developer = data.assignee._id;
@@ -408,6 +425,7 @@ export default {
             if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
             if (!this.form.bugType) return message.warning('ระบุประเภท');
             if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine สำหรับงานเร่งด่วน');
+            if (!this.form.server) return message.warning('ระบุ Server');
 
             this.submitting = true;
             try {
@@ -424,12 +442,12 @@ export default {
 
                 const payload = {
                     name: this.form.title,
+                    server: this.form.server,
                     detail: this.form.description || '-',
                     type: this.form.bugType,
                     urgency: this.form.priority,
-                    deadline: this.form.deadline, // ส่ง deadline ไปด้วย
+                    deadline: this.form.deadline,
                     images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url })),
-                    // ส่ง assignee
                     assignee: (this.form.isCustomDeveloper && this.form.developer) ? this.form.developer : null
                 };
 
@@ -732,7 +750,6 @@ export default {
    ========================================================================== */
 @media (max-width: 768px) {
 
-    /* 1. Header */
     .compact-header {
         padding: 10px 12px;
     }
@@ -763,12 +780,10 @@ export default {
         flex: 1;
     }
 
-    /* 2. Sidebar: ไม่ให้ลอย (Sticky) บนมือถือ */
     .sticky-side {
         position: static;
     }
 
-    /* 3. Image Grid: ลดเหลือ 2 คอลัมน์ */
     .image-grid {
         grid-template-columns: repeat(2, 1fr) !important;
     }

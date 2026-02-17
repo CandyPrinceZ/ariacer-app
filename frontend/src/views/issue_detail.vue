@@ -137,14 +137,32 @@
                                             }}</span>
                                         </a-avatar>
                                         <div class="assignee-details">
-                                            <span class="label">ผู้รับผิดชอบ {{ isAssignee ? '(You)' : '' }}</span>
+                                            <span class="label">ผู้รับผิดชอบหลัก {{ isMainAssignee ? '(You)' : ''
+                                            }}</span>
                                             <h4 class="name text-ellipsis">{{ issue.assignee.user_name }}</h4>
+                                        </div>
+                                    </div>
+
+                                    <div v-if="issue.co_assignee && issue.co_assignee.length > 0"
+                                        class="co-assignee-section">
+                                        <div class="co-label">ผู้รับผิดชอบร่วม (Co-Assignee)</div>
+                                        <div class="co-list">
+                                            <div v-for="co in issue.co_assignee" :key="co._id" class="co-item">
+                                                <a-tooltip :title="co.user_name">
+                                                    <a-avatar size="small" :src="co.avatar"
+                                                        :style="{ backgroundColor: !co.avatar ? stringToColor(co.user_name) : 'transparent' }">
+                                                        <span v-if="!co.avatar">{{ (co.user_name || 'U')[0] }}</span>
+                                                    </a-avatar>
+                                                </a-tooltip>
+                                                <span class="co-name text-ellipsis">{{ co.user_name }}</span>
+                                                <span v-if="authProfile?._id === co._id" class="me-tag">(You)</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="action-area">
-                                    <template v-if="isAssignee">
+                                    <template v-if="isAssigneeOrCo">
                                         <a-button v-if="issue.status?.code === 'rejected'" type="primary" block
                                             class="btn-fix mb-2" @click="goToDevDetail">
                                             <ToolOutlined /> แก้ไขงาน (Fix)
@@ -176,6 +194,17 @@
                                         <h4 class="name text-ellipsis">{{ issue.assignee?.user_name }}</h4>
                                     </div>
                                 </div>
+                                <div v-if="issue.co_assignee && issue.co_assignee.length > 0"
+                                    class="co-assignee-section">
+                                    <div class="co-label">ผู้รับผิดชอบร่วม</div>
+                                    <div class="co-list">
+                                        <div v-for="co in issue.co_assignee" :key="co._id" class="co-item">
+                                            <a-avatar size="small" :src="co.avatar" />
+                                            <span class="co-name text-ellipsis">{{ co.user_name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="readonly-badge">
                                     <EyeOutlined /> View Only
                                 </div>
@@ -295,14 +324,23 @@ export default {
                 };
             }
         },
-        isAssignee() {
+        isMainAssignee() {
             return this.authProfile && this.issue.assignee && (this.authProfile._id === this.issue.assignee._id);
+        },
+        // ✅ Check if user is Co-Assignee
+        isCoAssignee() {
+            if (!this.authProfile || !this.issue.co_assignee) return false;
+            return this.issue.co_assignee.some(dev => dev._id === this.authProfile._id);
+        },
+        // ✅ Combine check for permission logic
+        isAssigneeOrCo() {
+            return this.isMainAssignee || this.isCoAssignee;
         },
         isReporter() {
             return this.authProfile && this.issue.reporter && (this.authProfile._id === this.issue.reporter._id);
         },
         hasPermission() {
-            return this.isAssignee || this.isReporter;
+            return this.isAssigneeOrCo || this.isReporter;
         }
     },
     async mounted() {
@@ -569,6 +607,30 @@ export default {
     flex-wrap: wrap;
 }
 
+.mini-gallery {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+
+.mini-img-wrapper {
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.mini-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 /* Images */
 .image-grid {
     display: grid;
@@ -669,6 +731,52 @@ export default {
     text-overflow: ellipsis;
     max-width: 140px;
 }
+
+/* ✅ Co-Assignee Styles */
+.co-assignee-section {
+    background-color: #f8fafc;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    border: 1px solid #f1f5f9;
+}
+
+.co-label {
+    font-size: 10px;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.co-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.co-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.co-name {
+    font-size: 13px;
+    color: #334155;
+    font-weight: 500;
+}
+
+.me-tag {
+    font-size: 10px;
+    color: #10b981;
+    background: #ecfdf5;
+    padding: 1px 4px;
+    border-radius: 4px;
+    border: 1px solid #a7f3d0;
+}
+
+/* End Co-Assignee Styles */
 
 .btn-fix {
     background-color: #1890ff;

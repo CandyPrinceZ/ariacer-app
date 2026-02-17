@@ -406,6 +406,7 @@ export default {
 
                 if (targetStatus.code === 'rejected') {
                     payload.assignee = null;
+                    payload.co_assignee = null;
                 }
                 if (this.authProfile && this.authProfile._id) {
                     payload.tester = this.authProfile._id;
@@ -643,7 +644,7 @@ export default {
 }
 
 .upload-icon {
-    font-size: 20px;
+    font-size: 40px;
     color: #94a3b8;
     margin-bottom: 4px;
 }

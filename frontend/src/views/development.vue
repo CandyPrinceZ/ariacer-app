@@ -61,11 +61,9 @@
             <a-table :dataSource="filteredUnassigned" :columns="columns" rowKey="_id" :pagination="{ pageSize: 10 }"
               size="middle" :locale="{ emptyText: 'เยี่ยมมาก! ไม่มีงานค้างรอรับ' }" :scroll="{ x: 800 }">
               <template #bodyCell="{ column, record }">
-
                 <template v-if="column.key === 'id'">
                   <span class="id-badge">{{ record.issue_id || record.id || '-' }}</span>
                 </template>
-
                 <template v-if="column.key === 'type'">
                   <div class="type-cell">
                     <a-tag :color="record.urgency?.color" class="dot-tag">
@@ -75,23 +73,19 @@
                     <span class="text-muted" style="font-size: 12px;">{{ record.type?.name || '-' }}</span>
                   </div>
                 </template>
-
                 <template v-if="column.key === 'status'">
                   <a-tag :color="getStatusColor(record.status?.code)">
                     {{ record.status?.name || 'Unknown' }}
                   </a-tag>
                 </template>
-
                 <template v-if="column.key === 'createdAt'">
                   <span class="date-text">{{ formatDate(record.createdAt) }}</span>
                 </template>
-
                 <template v-if="column.key === 'action'">
                   <a-button type="primary" size="small" class="claim-btn" @click="goToDetail(record._id)">
                     <PlusCircleOutlined /> Claim
                   </a-button>
                 </template>
-
               </template>
             </a-table>
           </a-tab-pane>
@@ -116,6 +110,11 @@
                     <SearchOutlined class="text-muted" />
                   </template>
                 </a-input>
+                <a-select v-model:value="filterUrgency" placeholder="Urgency" size="small" allow-clear
+                  class="modern-select filter-item">
+                  <a-select-option v-for="u in urgencies" :key="u._id" :value="u._id">{{ u.name }}</a-select-option>
+                </a-select>
+                <a-date-picker v-model:value="filterDate" size="small" class="modern-select filter-item" allow-clear />
               </div>
             </div>
 
@@ -128,11 +127,9 @@
             <a-table v-else :dataSource="filteredMyIssues" :columns="columns" rowKey="_id"
               :pagination="{ pageSize: 10 }" size="middle" :scroll="{ x: 800 }">
               <template #bodyCell="{ column, record }">
-
                 <template v-if="column.key === 'id'">
                   <span class="id-badge">{{ record.issue_id || record.id || '-' }}</span>
                 </template>
-
                 <template v-if="column.key === 'type'">
                   <div class="type-cell">
                     <a-tag :color="record.urgency?.color" class="dot-tag">
@@ -142,7 +139,6 @@
                     <span class="text-muted" style="font-size: 12px;">{{ record.type?.name || '-' }}</span>
                   </div>
                 </template>
-
                 <template v-if="column.key === 'status'">
                   <a-tag :color="getStatusColor(record.status?.code)">
                     <template #icon>
@@ -154,11 +150,9 @@
                     {{ record.status?.name || 'Unknown' }}
                   </a-tag>
                 </template>
-
                 <template v-if="column.key === 'createdAt'">
                   <span class="date-text">{{ formatDate(record.createdAt) }}</span>
                 </template>
-
                 <template v-if="column.key === 'action'">
                   <a-button v-if="record.status?.code === 'success'" size="small" disabled type="text"
                     class="text-muted">
@@ -169,7 +163,81 @@
                     <EditOutlined /> Manage
                   </a-button>
                 </template>
+              </template>
+            </a-table>
+          </a-tab-pane>
 
+          <a-tab-pane key="3">
+            <template #tab>
+              <span class="tab-label">
+                <TeamOutlined /> รับผิดชอบร่วม (Co-Assignee)
+                <a-badge :count="filteredCoAssignee.length" :offset="[8, -2]" color="#1890ff"
+                  v-if="filteredCoAssignee.length > 0" />
+              </span>
+            </template>
+
+            <div class="table-toolbar">
+              <div class="toolbar-left">
+                <span class="section-title">งานที่ช่วยเหลือ</span>
+              </div>
+              <div class="toolbar-right">
+                <a-input v-model:value="searchText" placeholder="Search ID or Subject..." size="small"
+                  class="modern-input filter-item" allow-clear>
+                  <template #prefix>
+                    <SearchOutlined class="text-muted" />
+                  </template>
+                </a-input>
+                <a-select v-model:value="filterUrgency" placeholder="Urgency" size="small" allow-clear
+                  class="modern-select filter-item">
+                  <a-select-option v-for="u in urgencies" :key="u._id" :value="u._id">{{ u.name }}</a-select-option>
+                </a-select>
+                <a-date-picker v-model:value="filterDate" size="small" class="modern-select filter-item" allow-clear />
+              </div>
+            </div>
+
+            <div v-if="filteredCoAssignee.length === 0 && !loading" style="padding: 40px; text-align: center;">
+              <a-empty description="ไม่พบงานที่รับผิดชอบร่วม" />
+            </div>
+
+            <a-table v-else :dataSource="filteredCoAssignee" :columns="columns" rowKey="_id"
+              :pagination="{ pageSize: 10 }" size="middle" :scroll="{ x: 800 }">
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'id'">
+                  <span class="id-badge">{{ record.issue_id || record.id || '-' }}</span>
+                </template>
+                <template v-if="column.key === 'type'">
+                  <div class="type-cell">
+                    <a-tag :color="record.urgency?.color" class="dot-tag">
+                      <span class="dot" :style="{ background: record.urgency?.color }"></span>
+                      {{ record.urgency?.name }}
+                    </a-tag>
+                    <span class="text-muted" style="font-size: 12px;">{{ record.type?.name || '-' }}</span>
+                  </div>
+                </template>
+                <template v-if="column.key === 'status'">
+                  <a-tag :color="getStatusColor(record.status?.code)">
+                    <template #icon>
+                      <SyncOutlined v-if="record.status?.code === 'inProgress'" spin />
+                      <CheckCircleOutlined v-else-if="record.status?.code === 'success'" />
+                      <CloudUploadOutlined v-else-if="record.status?.code === 'upserver'" />
+                      <FieldTimeOutlined v-else />
+                    </template>
+                    {{ record.status?.name || 'Unknown' }}
+                  </a-tag>
+                </template>
+                <template v-if="column.key === 'createdAt'">
+                  <span class="date-text">{{ formatDate(record.createdAt) }}</span>
+                </template>
+                <template v-if="column.key === 'action'">
+                  <a-button v-if="record.status?.code === 'success'" size="small" disabled type="text"
+                    class="text-muted">
+                    <CheckCircleOutlined /> Done
+                  </a-button>
+                  <a-button v-else type="primary" size="small" ghost class="manage-btn"
+                    @click="goToManageDetail(record)">
+                    <EditOutlined /> Assist
+                  </a-button>
+                </template>
               </template>
             </a-table>
           </a-tab-pane>
@@ -182,13 +250,12 @@
 </template>
 
 <script>
-// (Script เหมือนเดิม ใช้ Logic เดิมได้เลยครับ)
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
   SyncOutlined, CheckCircleOutlined,
   AppstoreAddOutlined, CodeOutlined, FieldTimeOutlined, EditOutlined, ReloadOutlined,
-  SearchOutlined, PlusCircleOutlined, CloudUploadOutlined
+  SearchOutlined, PlusCircleOutlined, CloudUploadOutlined, TeamOutlined
 } from '@ant-design/icons-vue';
 
 export default {
@@ -196,7 +263,7 @@ export default {
   components: {
     SyncOutlined, CheckCircleOutlined,
     AppstoreAddOutlined, CodeOutlined, FieldTimeOutlined, EditOutlined, ReloadOutlined,
-    SearchOutlined, PlusCircleOutlined, CloudUploadOutlined
+    SearchOutlined, PlusCircleOutlined, CloudUploadOutlined, TeamOutlined
   },
   data() {
     return {
@@ -205,17 +272,19 @@ export default {
       loading: false,
       searchText: '',
       filterUrgency: undefined,
+      filterDate: null,
       urgencies: [],
       columns: [
-        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, align: 'center', fixed: 'left' }, // Fix ID Column
-        { title: 'Subject', dataIndex: 'name', key: 'name', width: 200, ellipsis: true }, // Set min width
+        { title: 'ID', dataIndex: 'id', key: 'id', width: 90, align: 'center', fixed: 'left' },
+        { title: 'Subject', dataIndex: 'name', key: 'name', width: 200, ellipsis: true },
         { title: 'Type / Urgency', dataIndex: 'type', key: 'type', width: 160 },
         { title: 'Status', dataIndex: 'status', key: 'status', width: 140, align: 'center' },
         { title: 'Submitted', dataIndex: 'createdAt', key: 'createdAt', width: 150, align: 'right' },
-        { title: 'Action', key: 'action', width: 110, align: 'center', fixed: 'right' }, // Fix Action Column
+        { title: 'Action', key: 'action', width: 110, align: 'center', fixed: 'right' },
       ],
       unassignedIssues: [],
-      myIssues: []
+      myIssues: [],
+      coAssigneeIssues: []
     };
   },
   computed: {
@@ -234,7 +303,18 @@ export default {
           (issue.name && issue.name.toLowerCase().includes(this.searchText.toLowerCase())) ||
           (issue.issue_id && issue.issue_id.toLowerCase().includes(this.searchText.toLowerCase()));
         const matchUrgency = !this.filterUrgency || (issue.urgency?._id === this.filterUrgency);
-        return matchText && matchUrgency;
+        const matchDate = !this.filterDate || dayjs(issue.createdAt).isSame(this.filterDate, 'day');
+        return matchText && matchUrgency && matchDate;
+      });
+    },
+    filteredCoAssignee() {
+      return this.coAssigneeIssues.filter(issue => {
+        const matchText = !this.searchText ||
+          (issue.name && issue.name.toLowerCase().includes(this.searchText.toLowerCase())) ||
+          (issue.issue_id && issue.issue_id.toLowerCase().includes(this.searchText.toLowerCase()));
+        const matchUrgency = !this.filterUrgency || (issue.urgency?._id === this.filterUrgency);
+        const matchDate = !this.filterDate || dayjs(issue.createdAt).isSame(this.filterDate, 'day');
+        return matchText && matchUrgency && matchDate;
       });
     }
   },
@@ -269,13 +349,15 @@ export default {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        const [resUnassigned, resMyIssues] = await Promise.all([
+        const [resUnassigned, resMyIssues, resCoAssignee] = await Promise.all([
           axios.get(import.meta.env.VITE_API_URL + '/issues/unassigned', config),
-          axios.get(import.meta.env.VITE_API_URL + '/issues/assigned/' + this.user._id, config)
+          axios.get(import.meta.env.VITE_API_URL + '/issues/assigned/' + this.user._id, config),
+          axios.get(import.meta.env.VITE_API_URL + '/issues/co-assignee/' + this.user._id, config)
         ]);
 
         this.unassignedIssues = resUnassigned.data;
         this.myIssues = resMyIssues.data;
+        this.coAssigneeIssues = resCoAssignee.data;
 
       } catch (error) {
         console.error('Error fetching issues:', error);
@@ -299,7 +381,6 @@ export default {
           if (!this.user) throw new Error('User not authenticated');
         }
         if (issue.status?.code === 'reported') {
-          // Auto-claim the issue
           const token = localStorage.getItem('token');
           const config = { headers: { Authorization: `Bearer ${token}` } };
           const statusResponse = await axios.get(import.meta.env.VITE_API_URL + `/items/statuses`, config);
@@ -313,7 +394,6 @@ export default {
         console.error('Error navigating to manage detail:', error);
         this.$message.error('เกิดข้อผิดพลาดในการไปยังหน้าจัดการงาน');
       }
-
     },
     goToDetail(issueId) {
       this.$router.push(`/development/detail/${issueId}`);
@@ -327,6 +407,7 @@ export default {
     activeTab() {
       this.searchText = '';
       this.filterUrgency = undefined;
+      this.filterDate = undefined;
     }
   }
 };

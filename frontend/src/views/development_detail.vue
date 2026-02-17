@@ -125,16 +125,17 @@
 
                   <a-tooltip :title="!issue.assignee ? 'ต้องกดรับงาน (Claim Task) ก่อน' : ''">
                     <span>
-                      <a-button type="dashed" @click="openCoDevModal" :disabled="!issue.assignee">
+                      <a-button type="dashed" @click="openCoDevModal"
+                        :disabled="!issue.assignee || authProfile._id !== issue.assignee._id">
                         <PlusOutlined /> จัดการผู้ร่วมงาน
                       </a-button>
                     </span>
                   </a-tooltip>
                 </div>
 
-                <div class="co-dev-list" v-if="issue.assistant && issue.assistant.length > 0">
+                <div class="co-dev-list" v-if="issue.co_assignee && issue.co_assignee.length > 0">
                   <a-avatar-group :max-count="5" size="large">
-                    <a-tooltip v-for="dev in issue.assistant" :key="dev._id" :title="dev.user_name">
+                    <a-tooltip v-for="dev in issue.co_assignee" :key="dev._id" :title="dev.user_name">
                       <a-avatar :src="dev.avatar"
                         :style="{ backgroundColor: dev.avatar ? 'transparent' : stringToColor(dev.user_name) }">
                         {{ dev.avatar ? '' : dev.user_name?.[0]?.toUpperCase() }}
@@ -350,8 +351,8 @@ export default {
       coDevModal: {
         visible: false,
         saving: false,
-        selectedDevId: undefined, // สำหรับ Dropdown
-        currentList: [] // สำหรับ Table ใน Modal
+        selectedDevId: undefined,
+        currentList: []
       },
       coDevColumns: [
         { title: 'ชื่อผู้พัฒนา', key: 'info', width: '50%' },
@@ -362,8 +363,19 @@ export default {
   },
   computed: {
     isMyTask() {
-      if (!this.issue.assignee || !this.authProfile) return false;
-      return this.issue.assignee._id === this.authProfile._id;
+      if (!this.authProfile) {
+        console.log("isMyTask: No authProfile");
+        return false;
+      }
+      const myId = this.authProfile._id;
+
+      const assigneeId = this.issue.assignee?._id;
+      const isMain = assigneeId === myId;
+
+      const co_assignee = this.issue.co_assignee || [];
+      const isCo = co_assignee.some(dev => dev._id === myId);
+
+      return isMain || isCo;
     },
     deadlineInfo() {
       if (!this.issue.deadline) return null;
@@ -510,65 +522,43 @@ export default {
         console.error("Failed to load developers", e);
       }
     },
-    // 1. ดึงรายชื่อ Dev ทั้งหมด (เหมือนหน้า Report Bug)
-    async fetchDevelopers() {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(import.meta.env.VITE_API_URL + '/auth/users-list/dev', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        this.developersList = Array.isArray(res.data) ? res.data : (res.data?.data || []);
-      } catch (e) {
-        console.error("Failed to load developers", e);
-      }
-    },
 
     openCoDevModal() {
-      // โคลนข้อมูล Co-Assignees ปัจจุบันมาใส่ในตาราง Modal (ถ้า Backend ส่งมา)
-      this.coDevModal.currentList = this.issue.assistant ? [...this.issue.assistant] : [];
+      this.coDevModal.currentList = this.issue.co_assignee ? [...this.issue.co_assignee] : [];
       this.coDevModal.selectedDevId = undefined;
       this.coDevModal.visible = true;
     },
 
-    // 3. เช็คว่าเลือกไปแล้วหรือยัง (เพื่อ Disable ใน Dropdown)
     isDevAlreadySelected(devId) {
-      // เช็คใน list ชั่วคราว
       const inList = this.coDevModal.currentList.some(d => d._id === devId);
-      // เช็คว่าเป็นคน Assign หลักหรือไม่ (ไม่ควรเลือกซ้ำ)
       const isMainAssignee = this.issue.assignee && this.issue.assignee._id === devId;
       return inList || isMainAssignee;
     },
 
-    // 4. กดปุ่ม "เพิ่ม" จาก Dropdown ลง Table
     addCoDevToList() {
       if (!this.coDevModal.selectedDevId) return;
 
       const dev = this.developersList.find(d => d._id === this.coDevModal.selectedDevId);
       if (dev) {
-        // แก้จาก .push() เป็นการ assign array ใหม่ เพื่อกระตุ้น Vue ให้ render แน่นอน 100%
         this.coDevModal.currentList = [...this.coDevModal.currentList, dev];
 
         this.coDevModal.selectedDevId = undefined;
       }
     },
 
-    // 5. กดลบจาก Table
     removeCoDevFromList(devId) {
       this.coDevModal.currentList = this.coDevModal.currentList.filter(d => d._id !== devId);
     },
 
-    // 6. บันทึกข้อมูล (API Update)
     async saveCoDevs() {
       this.coDevModal.saving = true;
       try {
         const token = localStorage.getItem('token');
 
-        // ดึงเฉพาะ ID เพื่อส่งไป Backend
         const coAssigneeIds = this.coDevModal.currentList.map(d => d._id);
 
-        // ** หมายเหตุ: ต้องตรวจสอบ Endpoint ของ Backend ว่ารับ field ไหน
         const payload = {
-          assistant: coAssigneeIds
+          co_assignee: coAssigneeIds
         };
 
         await axios.put(import.meta.env.VITE_API_URL + `/issues/${this.issue._id}`, payload, {
@@ -578,7 +568,6 @@ export default {
         message.success('อัปเดตผู้พัฒนาร่วมเรียบร้อย');
         this.coDevModal.visible = false;
 
-        // โหลดข้อมูลงานใหม่เพื่ออัปเดตหน้าจอ
         await this.fetchIssueDetail(this.issue._id);
 
       } catch (error) {
@@ -593,7 +582,6 @@ export default {
 </script>
 
 <style scoped>
-/* 1. Global Layout */
 .page-container {
   width: 100%;
   padding-bottom: 40px;
@@ -1064,8 +1052,8 @@ export default {
 
 
 .mini-img-wrapper {
-  width: 60px;
-  height: 60px;
+  width: 100px;
+  height: 100px;
   border-radius: 4px;
   overflow: hidden;
   border: 2px solid #fff;

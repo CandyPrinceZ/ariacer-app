@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const serverSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
-    ip: { type: String, required: true },
+    url: { type: String, required: true },
     status: {
       type: String,
       required: true,

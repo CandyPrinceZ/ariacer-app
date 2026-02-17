@@ -43,7 +43,7 @@ import { useRoute } from 'vue-router';
 import {
   DashboardOutlined, BugOutlined, TeamOutlined, SafetyCertificateOutlined,
   FileProtectOutlined, CodeOutlined, DeploymentUnitOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined, CloudServerOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined, CloudServerOutlined, AppstoreOutlined
 } from '@ant-design/icons-vue';
 
 // --- Sub-Component: AppMenu (เมนูกลาง ใช้ร่วมกัน) ---
@@ -68,6 +68,10 @@ const AppMenu = defineComponent({
       h(resolveComponent('a-menu-item'), { key: 'report-bug' }, {
         icon: () => h(BugOutlined),
         default: () => h(resolveComponent('router-link'), { to: { name: 'report-bug' } }, () => 'Report Issue')
+      }),
+      h(resolveComponent('a-menu-item'), { key: 'developer-overview' }, {
+        icon: () => h(AppstoreOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'DeveloperOverview' } }, () => 'Developer Overview')
       }),
 
       h('div', { class: 'menu-divider' }),
@@ -111,7 +115,7 @@ export default defineComponent({
   name: 'AppSidebar',
   components: {
     AppMenu,
-    MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined
+    MenuUnfoldOutlined, MenuFoldOutlined, AppstoreOutlined, CloseOutlined
   },
   setup() {
     const route = useRoute();

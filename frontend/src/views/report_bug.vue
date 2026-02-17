@@ -38,8 +38,8 @@
                   class="modern-input" />
               </a-form-item>
 
-              <a-form-item label="เซิร์ฟเวอร์ (Server)" class="form-item-mb">
-                <a-select v-model:value="form.server" placeholder="ระบุ Server ที่พบปัญหา (ถ้ามี)"
+              <a-form-item label="เซิร์ฟเวอร์ (Server)" required class="form-item-mb">
+                <a-select v-model:value="form.server" placeholder="ระบุ Server ที่พบปัญหา"
                   :options="formattedServerOptions" :loading="dropdownLoading" size="large" class="modern-select"
                   allow-clear />
               </a-form-item>
@@ -235,7 +235,7 @@ export default {
     formattedServerOptions() {
       return (this.serversOptions || []).map((s) => ({
         value: s._id,
-        label: `${s.name} (${s.ip})`
+        label: `${s.name} (${s.url})`
       }));
     },
     isHighPriority() {
@@ -448,9 +448,6 @@ export default {
   padding: 12px 24px;
   border-bottom: 1px solid #e0e0e0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .header-content {

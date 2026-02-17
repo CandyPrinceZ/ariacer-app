@@ -52,11 +52,10 @@ const issueSchema = new mongoose.Schema(
       default: null,
     },
 
-    assistant: [
+    co_assignee: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Auth",
-        unique: true,
       },
     ],
 

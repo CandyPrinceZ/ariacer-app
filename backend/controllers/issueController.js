@@ -100,7 +100,7 @@ exports.getIssueById = async (req, res) => {
         .populate("status")
         .populate("reporter", "username user_name role_name avatar")
         .populate("assignee", "username user_name role_name avatar")
-        .populate("assistant", "username user_name role_name avatar")
+        .populate("co_assignee", "username user_name role_name avatar")
         .populate("server", "name")
         .populate("tester", "username user_name role_name avatar");
     }
@@ -114,7 +114,7 @@ exports.getIssueById = async (req, res) => {
         .populate("reporter", "username user_name role_name avatar")
         .populate("assignee", "username user_name role_name avatar")
         .populate("tester", "username user_name role_name avatar")
-        .populate("assistant", "username user_name role_name avatar")
+        .populate("co_assignee", "username user_name role_name avatar")
         .populate("server", "name");
     }
 
@@ -139,7 +139,7 @@ exports.getIssuesByAssignee = async (req, res) => {
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
-      .populate("assistant", "username user_name role_name avatar")
+      .populate("co_assignee", "username user_name role_name avatar")
       .populate("server", "name")
       .sort({ createdAt: -1 });
 
@@ -153,23 +153,33 @@ exports.getIssuesByAssignee = async (req, res) => {
   }
 };
 
-exports.getIssuesByAssistant = async (req, res) => {
+exports.getIssuesByCoAssignee = async (req, res) => {
   try {
-    const assistantId = req.params.assigneeId;
+    const co_assigneeId = req.params.coAssigneeId || req.params.assigneeId;
 
-    let issues = await Issue.find({ assistant: assistantId })
+    if (!co_assigneeId) {
+      return res.status(400).json({ message: "Invalid Co-Assignee ID" });
+    }
+
+    const successStatus = await Status.findOne({ code: "success" });
+
+    let query = {
+      co_assignee: co_assigneeId,
+    };
+
+    if (successStatus) {
+      query.status = { $ne: successStatus._id };
+    }
+
+    const issues = await Issue.find(query)
       .populate("type", "name code")
       .populate("urgency", "name color code")
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
-      .populate("assistant", "username user_name role_name avatar")
+      .populate("co_assignee", "username user_name role_name avatar") 
       .populate("server", "name")
       .sort({ createdAt: -1 });
-
-    issues = issues.filter(
-      (issue) => issue.status && issue.status.code !== "success",
-    );
 
     res.json(issues);
   } catch (error) {
@@ -259,7 +269,7 @@ exports.getIssuesforTester = async (req, res) => {
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
       .populate("tester", "username user_name role_name avatar")
-      .populate("assistant", "username user_name role_name avatar")
+      .populate("co_assignee", "username user_name role_name avatar")
       .populate("server", "name ip")
       .sort({ updatedAt: -1 });
 

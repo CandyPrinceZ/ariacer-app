@@ -69,8 +69,8 @@
                     <a-input v-model:value="form.name" placeholder="เช่น App Server 01" />
                 </a-form-item>
 
-                <a-form-item label="IP Address" required>
-                    <a-input v-model:value="form.ip" placeholder="เช่น 192.168.1.10" />
+                <a-form-item label="Url" required>
+                    <a-input v-model:value="form.url" placeholder="เช่น http://127.0.0.1" />
                 </a-form-item>
 
                 <a-form-item label="Status" required>
@@ -114,13 +114,13 @@ export default {
 
             form: {
                 name: '',
-                ip: '',
+                url: '',
                 status: undefined // เปลี่ยนเป็น undefined เพื่อให้ Placeholder ทำงาน
             },
 
             columns: [
                 { title: 'Server Name', dataIndex: 'name', key: 'name', sorter: (a, b) => a.name.localeCompare(b.name) },
-                { title: 'IP Address', dataIndex: 'ip', key: 'ip' },
+                { title: 'URL', dataIndex: 'url', key: 'url' },
                 { title: 'Status', dataIndex: 'status', key: 'status', width: 150 },
                 { title: 'Last Updated', dataIndex: 'updatedAt', key: 'updatedAt', customRender: ({ text }) => new Date(text).toLocaleString() },
                 { title: 'Action', key: 'action', width: 200, align: 'center' }
@@ -171,8 +171,8 @@ export default {
         },
 
         async handleSave() {
-            if (!this.form.name || !this.form.ip) {
-                return message.warning('กรุณากรอกชื่อและ IP Address');
+            if (!this.form.name || !this.form.url) {
+                return message.warning('กรุณากรอกชื่อและ URL');
             }
             if (!this.form.status) {
                 return message.warning('กรุณาเลือกสถานะ');
@@ -220,7 +220,7 @@ export default {
         openAddModal() {
             this.isEditMode = false;
             this.editingId = null;
-            this.form = { name: '', ip: '', status: undefined };
+            this.form = { name: '', url: '', status: undefined };
             this.modalVisible = true;
         },
         openEditModal(record) {
@@ -228,7 +228,7 @@ export default {
             this.editingId = record._id;
             this.form = {
                 name: record.name,
-                ip: record.ip,
+                url: record.url,
                 status: record.status 
             };
             this.modalVisible = true;
