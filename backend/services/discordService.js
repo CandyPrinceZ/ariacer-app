@@ -32,7 +32,6 @@ const rotateWebhookCore = async (channelId, dbKey, webhookName) => {
       }
     }
 
-    // 3. สร้าง Webhook ใหม่ใน Channel ที่กำหนด
     const response = await axios.post(
       `https://discord.com/api/v10/channels/${channelId}/webhooks`,
       { name: webhookName },
@@ -45,7 +44,6 @@ const rotateWebhookCore = async (channelId, dbKey, webhookName) => {
       url: `https://discord.com/api/webhooks/${response.data.id}/${response.data.token}`,
     };
 
-    // 4. บันทึกลง Database ด้วย Key ที่แยกกัน
     await SystemConfig.findOneAndUpdate(
       { key: dbKey },
       { value: newWebhook, updatedAt: new Date() },
@@ -63,33 +61,27 @@ const rotateWebhookCore = async (channelId, dbKey, webhookName) => {
   }
 };
 
-// ==========================================
-// Exports Functions (เรียกใช้จากภายนอก)
-// ==========================================
 
-// 1. สำหรับหมุนเวียน Webhook รูปภาพ
 exports.rotateImageWebhook = async () => {
   if (!CHANNEL_ID_FOR_IMAGES)
     throw new Error("Missing DISCORD_CHANNEL_ID_FOR_IMAGES");
   return await rotateWebhookCore(
     CHANNEL_ID_FOR_IMAGES,
-    "discord_webhook_images", // Key ใน DB สำหรับ Images
-    "Image Bot", // ชื่อบอท
+    "discord_webhook_images",
+    "Image Bot",
   );
 };
 
-// 2. สำหรับหมุนเวียน Webhook แจ้งเตือน
 exports.rotateNotificationWebhook = async () => {
   if (!CHANNEL_ID_FOR_NOTIFICATIONS)
     throw new Error("Missing DISCORD_CHANNEL_ID_FOR_NOTIFICATIONS");
   return await rotateWebhookCore(
     CHANNEL_ID_FOR_NOTIFICATIONS,
-    "discord_webhook_notifications", // Key ใน DB สำหรับ Notifications
-    "Noti Bot", // ชื่อบอท
+    "discord_webhook_notifications",
+    "Noti Bot", 
   );
 };
 
-// 3. (Optional) ถ้าอยากหมุนพร้อมกันทั้งคู่
 exports.rotateAllWebhooks = async () => {
   const [imgUrl, notiUrl] = await Promise.all([
     exports.rotateImageWebhook(),

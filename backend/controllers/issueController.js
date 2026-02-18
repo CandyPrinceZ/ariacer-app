@@ -301,7 +301,6 @@ exports.updateIssue = async (req, res) => {
     const issueId = req.params.id;
     let issueToUpdate;
 
-    // 1. หา Issue เก่าก่อน (เพื่อเปรียบเทียบค่าเก่าสำหรับ Log)
     if (mongoose.Types.ObjectId.isValid(issueId)) {
       issueToUpdate = await Issue.findById(issueId);
     }
@@ -313,11 +312,9 @@ exports.updateIssue = async (req, res) => {
       return res.status(404).json({ message: "Issue not found" });
     }
 
-    // เก็บสถานะเก่าไว้ Log
     const oldStatus = issueToUpdate.status;
     const oldAssignee = issueToUpdate.assignee;
 
-    // 2. อัปเดตข้อมูล
     const updatedIssue = await Issue.findByIdAndUpdate(
       issueToUpdate._id,
       req.body,
@@ -328,11 +325,9 @@ exports.updateIssue = async (req, res) => {
       .populate("status")
       .populate("assignee", "user_name");
 
-    // ✅ Log: Update Issue
     let logDetail = `Updated issue: ${updatedIssue.name}`;
     let metadata = { issue_id: updatedIssue._id };
 
-    // เช็คว่ามีการเปลี่ยนสถานะไหม
     if (
       req.body.status &&
       req.body.status.toString() !== oldStatus?.toString()
@@ -342,7 +337,6 @@ exports.updateIssue = async (req, res) => {
       metadata.new_status = updatedIssue.status?._id;
     }
 
-    // เช็คว่ามีการ Assign งานไหม
     if (
       req.body.assignee &&
       req.body.assignee.toString() !== oldAssignee?.toString()
@@ -624,11 +618,8 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function postToDiscord(webhookUrl, payload, retryCount = 0) {
   try {
     await axios.post(webhookUrl, payload);
-    // console.log("✅ Discord sent successfully.");
   } catch (err) {
-    // ถ้าเจอ 429 (Too Many Requests)
     if (err.response && err.response.status === 429) {
-      // ยอมแพ้ถ้าลองเกิน 5 ครั้ง (กัน Loop ไม่รู้จบ)
       if (retryCount >= 5) {
         console.error(
           "❌ Gave up after 5 retries. Discord API is strictly blocking this IP.",
@@ -636,14 +627,10 @@ async function postToDiscord(webhookUrl, payload, retryCount = 0) {
         throw err;
       }
 
-      // 1. หาเวลาที่ Discord บอกให้รอ (ถ้าไม่มีให้เป็น 0)
       let discordAskToWait = err.response.data.retry_after || 0;
 
-      // 2. กำหนดเวลาขั้นต่ำ (Hard Wait) = 5 วินาที
-      // Server แบบ Shared IP มักต้องรอ 5-10 วินาทีถึงจะหลุด Cloudflare Block
       const baseWaitTime = 5000;
 
-      // 3. สูตรคำนวณ: (Discord บอก * 1000) หรือ (5วิ + เวลาทวีคูณ) เอาค่าที่มากกว่า
       const backoff = Math.pow(retryCount + 1, 2) * 1000;
       const finalWaitTime = Math.max(
         discordAskToWait * 1000,
@@ -656,18 +643,13 @@ async function postToDiscord(webhookUrl, payload, retryCount = 0) {
 
       await sleep(finalWaitTime);
 
-      // ลองใหม่
       return postToDiscord(webhookUrl, payload, retryCount + 1);
     }
 
-    // Error อื่นๆ (เช่น 404, 500) ให้โยนทิ้งไปเลย
     throw err;
   }
 }
 
-// ------------------------------------------------------------
-
-// 3. แจ้งเตือน Issue ใหม่
 async function sendNewIssueNotification(issue, reporter) {
   try {
     const config = await SystemConfig.findOne({
@@ -713,7 +695,6 @@ async function sendNewIssueNotification(issue, reporter) {
       embed.image = { url: issue.images[0].url };
     }
 
-    // ✅ ใช้ postToDiscord แทน axios.post
     await postToDiscord(config.value.url, {
       username: "Issue Bot",
       embeds: [embed],
@@ -777,7 +758,6 @@ async function sendSuccessStatusNotification(issue, user) {
     const successStatus = await Status.findOne({ code: "success" });
     if (!successStatus) return;
 
-    // ✅ ใช้ .find() แบบธรรมดาแล้วนับใน JS (แก้ปัญหา aggregate ได้ค่าว่าง)
     const allActiveIssues = await Issue.find({
       status: { $ne: successStatus._id, $exists: true, $ne: null },
     }).populate("status");
@@ -816,7 +796,6 @@ async function sendSuccessStatusNotification(issue, user) {
       footer: { text: "System Status Update" },
     };
 
-    // ✅ ใช้ postToDiscord แทน axios.post
     await postToDiscord(config.value.url, {
       username: "Status Bot",
       embeds: [embed],
