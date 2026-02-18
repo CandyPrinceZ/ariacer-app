@@ -356,27 +356,29 @@ export default {
       this.preview.src = file.thumbUrl || file.url || '';
       this.preview.open = true;
     },
-    async getDynamicWebhook() {
+    async uploadImageToServer(fileObj) {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook-images', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        return res.data.url;
+        const formData = new FormData();
+        formData.append("file", fileObj);
+        const token = localStorage.getItem("token");
+
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/config/upload-image`,
+          formData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const data = response.data;
+        // คืนค่าเฉพาะตัวหนังสือ URL ออกไป
+        return (data && typeof data === 'object') ? data.url : data;
       } catch (error) {
-        console.error('Error fetching webhook URL:', error);
-        throw new Error("Unable to fetch webhook URL");
+        console.error("Upload error:", error);
+        throw error;
       }
     },
-    async uploadImageToDiscord(fileObj, webhookUrl) {
-      const formData = new FormData();
-      formData.append('file', fileObj);
-      const response = await axios.post(webhookUrl, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      return response.data.attachments[0].url;
-    },
+
     async onSubmit() {
+      // 1. Validation
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
       if (!this.form.bugType) return message.warning('ระบุประเภท');
@@ -384,18 +386,25 @@ export default {
       if (this.isHighPriority && !this.form.deadline) return message.warning('ระบุ DeadLine');
 
       this.submitting = true;
+
       try {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        let imageUrls = [];
 
-        if (this.fileList.length > 0) {
-          message.loading({ content: 'Uploading...', key: 'up', duration: 0 });
-          const currentWebhookUrl = await this.getDynamicWebhook();
-          imageUrls = await Promise.all(
-            this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, currentWebhookUrl))
+        let imagesArray = []; // เปลี่ยนชื่อตัวแปรให้สื่อความหมาย
+
+        if (this.fileList && this.fileList.length > 0) {
+          message.loading({ content: 'Uploading images to Cloud...', key: 'up', duration: 0 });
+
+          // uploadResults จะได้ค่าเป็น Array ของ String เช่น ["https://...", "https://..."]
+          const uploadResults = await Promise.all(
+            this.fileList.map(f => this.uploadImageToServer(f.originFileObj))
           );
-          message.success({ content: 'Uploaded', key: 'up', duration: 2 });
+
+          // ✅ เปลี่ยนจาก [{url: string}] เป็น [string] ตามที่คุณต้องการ
+          imagesArray = uploadResults.map(urlStr => String(urlStr));
+
+          message.success({ content: 'Images Uploaded!', key: 'up', duration: 2 });
         }
 
         const payload = {
@@ -405,16 +414,17 @@ export default {
           status: "65b000000000000000000001",
           urgency: this.form.priority,
           reporter: this.Authprofile._id,
-          deadline: this.form.deadline,
+          deadline: this.form.deadline || null,
           server: this.form.server,
-          images: imageUrls
+          // ✅ ส่งเป็น Array ของ String ไปที่ Backend
+          images: imagesArray
         };
 
         if (this.form.isCustomDeveloper && this.form.developer) {
           payload.assignee = this.form.developer;
         }
 
-        await axios.post(import.meta.env.VITE_API_URL + '/issues', payload, config);
+        await axios.post(`${import.meta.env.VITE_API_URL}/issues`, payload, config);
 
         notification.success({
           message: 'ส่งแจ้งปัญหาเรียบร้อย!',
@@ -424,7 +434,7 @@ export default {
 
         this.onReset();
       } catch (e) {
-        console.error(e);
+        console.error("Submit error:", e);
         notification.error({
           message: 'เกิดข้อผิดพลาด',
           description: e.response?.data?.message || e.message
