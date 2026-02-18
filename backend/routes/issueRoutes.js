@@ -13,6 +13,7 @@ const {
   getIssuesByHighUrgency,
   getIssuesByCoAssignee,
   editIssue,
+  getIssueStats
 } = require("../controllers/issueController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -22,6 +23,7 @@ router.get("/", protect, getIssues);
 router.get("/high-urgency", protect, getIssuesByHighUrgency);
 router.get("/unassigned", protect, getUnassignedIssues);
 router.get("/tester/list", protect, getIssuesforTester);
+router.get("/stats", protect, getIssueStats);
 
 router.delete("/delete-success-status", protect, DeleteSuccessStatusIssues);
 

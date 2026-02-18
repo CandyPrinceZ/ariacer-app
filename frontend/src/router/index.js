@@ -20,6 +20,11 @@ const router = createRouter({
           component: () => import('../views/dashboard.vue'),
         },
         {
+          path: 'leaderboard',
+          name: 'leaderboard',
+          component: () => import('../views/Leader_board.vue'),
+        },
+        {
           path: 'developer-overview',
           name: 'DeveloperOverview',
           component: () => import('../views/developer_overview.vue'),

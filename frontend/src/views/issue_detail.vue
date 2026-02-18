@@ -167,15 +167,9 @@
                                             class="btn-fix mb-2" @click="goToDevDetail">
                                             <ToolOutlined /> แก้ไขงาน (Fix)
                                         </a-button>
-                                        <a-button
-                                            v-else-if="issue.status?.code === 'received' || issue.status?.code === 'reported'"
-                                            type="primary" block class="btn-start mb-2" @click="goToDevDetail">
+                                        <a-button v-else-if="issue.status?.code === 'received'" type="primary" block
+                                            class="btn-start mb-2" @click="goToDevDetail">
                                             <SyncOutlined /> เริ่มงาน (Start)
-                                        </a-button>
-                                        <a-button
-                                            v-else-if="issue.status?.code === 'inProgress' || issue.status?.code === 'finished'"
-                                            type="primary" block class="btn-start mb-2" @click="goToDevDetail">
-                                            <SyncOutlined />  ต่องาน (Continue)
                                         </a-button>
                                     </template>
 
@@ -221,6 +215,13 @@
                             <h4 class="side-title">Ticket Info</h4>
                             <div class="info-list">
                                 <div class="info-row">
+                                    <span class="label">Server</span>
+                                    <span class="value link" @click="openServerLink(issue.server?.url)">
+                                        {{ issue.server?.name || '-' }}
+                                        <ExportOutlined />
+                                    </span>
+                                </div>
+                                <div class="info-row">
                                     <span class="label">Type</span>
                                     <a-tag color="blue">{{ issue.type?.name || '-' }}</a-tag>
                                 </div>
@@ -241,11 +242,11 @@
                                     <span class="label">Updated</span>
                                     <span class="val-text">{{ formatDate(issue.updatedAt) }}</span>
                                 </div>
-                                <div v-if="issue.deadline" class="info-row">
+                                <div v-if="issue.deadline " class="info-row">
                                     <span class="label">Deadline</span>
                                     <span class="val-text" style="color: red;">{{ formatDate(issue.deadline) }}</span>
                                 </div>
-                                <div v-if="issue.deadline" class="info-row" style="margin-top: 8px;">
+                                <div v-if="issue.deadline && issue.status?.code !== 'success'" class="info-row" style="margin-top: 8px;">
                                     <span class="label">Time Left</span>
                                     <a-tag :color="deadlineInfo.color" style="margin: 0; font-weight: 600;">
                                         <component :is="deadlineInfo.icon" /> {{ deadlineInfo.text }}
@@ -272,7 +273,7 @@ import {
     ExclamationCircleOutlined, ToolOutlined, EditOutlined, EyeOutlined,
     SoundOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
     CloudUploadOutlined, ExperimentOutlined, CheckCircleOutlined, CloseCircleOutlined,
-    QuestionCircleOutlined
+    QuestionCircleOutlined, ExportOutlined
 } from '@ant-design/icons-vue';
 
 export default {
@@ -283,7 +284,7 @@ export default {
         ExclamationCircleOutlined, ToolOutlined, EditOutlined, EyeOutlined,
         SoundOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
         CloudUploadOutlined, ExperimentOutlined, CheckCircleOutlined, CloseCircleOutlined,
-        QuestionCircleOutlined
+        QuestionCircleOutlined, ExportOutlined
     },
     data() {
         return {
@@ -415,7 +416,13 @@ export default {
         goToEditDetail() {
             this.$router.push({ name: 'IssueEdit', params: { id: this.issue._id } });
         },
-
+        openServerLink(url) {
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                this.$message.warning('ไม่พบลิงก์ Server');
+            }
+        },
     }
 };
 </script>
@@ -811,6 +818,20 @@ export default {
 
 .info-row .label {
     color: #64748b;
+}
+
+.info-row .value {
+    font-weight: 600;
+    color: #334155;
+}
+
+.info-row .link {
+    color: #0284c7;
+    cursor: pointer;
+}
+
+.info-row .link:hover {
+    text-decoration: underline;
 }
 
 .val-text {

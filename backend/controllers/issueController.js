@@ -101,7 +101,7 @@ exports.getIssueById = async (req, res) => {
         .populate("reporter", "username user_name role_name avatar")
         .populate("assignee", "username user_name role_name avatar")
         .populate("co_assignee", "username user_name role_name avatar")
-        .populate("server", "name")
+        .populate("server", "name url")
         .populate("tester", "username user_name role_name avatar");
     }
 
@@ -177,7 +177,7 @@ exports.getIssuesByCoAssignee = async (req, res) => {
       .populate("status", "name code")
       .populate("reporter", "username user_name role_name avatar")
       .populate("assignee", "username user_name role_name avatar")
-      .populate("co_assignee", "username user_name role_name avatar") 
+      .populate("co_assignee", "username user_name role_name avatar")
       .populate("server", "name")
       .sort({ createdAt: -1 });
 
@@ -261,7 +261,6 @@ exports.getIssuesforTester = async (req, res) => {
       return res.json([]);
     }
 
-    // 4. ค้นหาด้วย $or
     const issues = await Issue.find({ $or: conditions })
       .populate("type", "name code")
       .populate("urgency", "name color code")
@@ -365,6 +364,90 @@ exports.updateIssue = async (req, res) => {
   } catch (error) {
     console.error("Update Error:", error);
     res.status(400).json({ message: error.message });
+  }
+};
+
+// --- Get Issue Statistics ---
+exports.getIssueStats = async (req, res) => {
+  try {
+    const successStatus = await Status.findOne({ code: "success" });
+    const successId = successStatus ? successStatus._id : null;
+
+    const allIssues = await Issue.find({})
+      .select("status reporter assignee co_assignee")
+      .populate("status", "code name")
+      .populate("reporter", "user_name avatar role_name")
+      .populate("assignee", "user_name role_name avatar")
+      .populate("co_assignee", "user_name role_name avatar");
+
+    let totalIssues = 0;
+    let activeIssues = 0;
+    let successIssues = 0;
+
+    let reporterStats = {};
+    let assigneeStats = {};
+
+    allIssues.forEach((issue) => {
+      totalIssues++;
+
+      const isSuccess = issue.status && issue.status.code === "success";
+
+      if (isSuccess) {
+        successIssues++;
+      } else {
+        activeIssues++;
+      }
+
+      if (issue.reporter && issue.reporter._id) {
+        const repId = issue.reporter._id.toString();
+        if (!reporterStats[repId]) {
+          reporterStats[repId] = {
+            user: issue.reporter,
+            total: 0,
+            active: 0,
+            success: 0,
+          };
+        }
+        reporterStats[repId].total++;
+        if (isSuccess) reporterStats[repId].success++;
+        else reporterStats[repId].active++;
+      }
+
+      if (issue.assignee && issue.assignee._id) {
+        const devId = issue.assignee._id.toString();
+        if (!assigneeStats[devId]) {
+          assigneeStats[devId] = {
+            user: issue.assignee,
+            total: 0,
+            active: 0,
+            success: 0,
+          };
+        }
+        assigneeStats[devId].total++;
+        if (isSuccess) assigneeStats[devId].success++;
+        else assigneeStats[devId].active++;
+      }
+    });
+
+    const topReporters = Object.values(reporterStats).sort(
+      (a, b) => b.total - a.total,
+    );
+    const topAssignees = Object.values(assigneeStats).sort(
+      (a, b) => b.success - a.success,
+    ); 
+
+    res.json({
+      summary: {
+        total: totalIssues,
+        active: activeIssues,
+        success: successIssues,
+      },
+      byReporter: topReporters,
+      byAssignee: topAssignees,
+    });
+  } catch (error) {
+    console.error("Stats Error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -561,9 +644,6 @@ async function postToDiscord(webhookUrl, payload, retryCount = 0) {
       const baseWaitTime = 5000;
 
       // 3. สูตรคำนวณ: (Discord บอก * 1000) หรือ (5วิ + เวลาทวีคูณ) เอาค่าที่มากกว่า
-      // รอบที่ 1: รอ 5 + 1 = 6 วินาที
-      // รอบที่ 2: รอ 5 + 4 = 9 วินาที
-      // รอบที่ 3: รอ 5 + 9 = 14 วินาที ...
       const backoff = Math.pow(retryCount + 1, 2) * 1000;
       const finalWaitTime = Math.max(
         discordAskToWait * 1000,
@@ -574,7 +654,6 @@ async function postToDiscord(webhookUrl, payload, retryCount = 0) {
         `⏳ Rate Limited! Waiting ${(finalWaitTime / 1000).toFixed(1)}s before retry (Attempt ${retryCount + 1}/5)...`,
       );
 
-      // รอ...
       await sleep(finalWaitTime);
 
       // ลองใหม่
@@ -645,7 +724,6 @@ async function sendNewIssueNotification(issue, reporter) {
   }
 }
 
-// 4. แจ้งเตือนเมื่อสถานะเป็น Upserver 🚀
 async function sendUpserverNotification(issue, user) {
   try {
     const config = await SystemConfig.findOne({
@@ -679,7 +757,6 @@ async function sendUpserverNotification(issue, user) {
 
     if (issueUrl) embed.url = issueUrl;
 
-    // ✅ ใช้ postToDiscord แทน axios.post
     await postToDiscord(config.value.url, {
       username: "Deploy Bot",
       embeds: [embed],
@@ -690,7 +767,6 @@ async function sendUpserverNotification(issue, user) {
   }
 }
 
-// 5. แจ้งเตือนเมื่อ Success (แบบคำนวณยอดคงเหลือ)
 async function sendSuccessStatusNotification(issue, user) {
   try {
     const config = await SystemConfig.findOne({

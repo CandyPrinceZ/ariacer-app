@@ -43,7 +43,7 @@ import { useRoute } from 'vue-router';
 import {
   DashboardOutlined, BugOutlined, TeamOutlined, SafetyCertificateOutlined,
   FileProtectOutlined, CodeOutlined, DeploymentUnitOutlined,
-  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined, CloudServerOutlined, AppstoreOutlined
+  MenuUnfoldOutlined, MenuFoldOutlined, CloseOutlined, CloudServerOutlined, AppstoreOutlined, AlignCenterOutlined
 } from '@ant-design/icons-vue';
 
 // --- Sub-Component: AppMenu (เมนูกลาง ใช้ร่วมกัน) ---
@@ -72,6 +72,10 @@ const AppMenu = defineComponent({
       h(resolveComponent('a-menu-item'), { key: 'developer-overview' }, {
         icon: () => h(AppstoreOutlined),
         default: () => h(resolveComponent('router-link'), { to: { name: 'DeveloperOverview' } }, () => 'Developer Overview')
+      }),
+      h(resolveComponent('a-menu-item'), { key: 'leaderboard' }, {
+        icon: () => h(AlignCenterOutlined),
+        default: () => h(resolveComponent('router-link'), { to: { name: 'leaderboard' } }, () => 'Leaderboard')
       }),
 
       h('div', { class: 'menu-divider' }),

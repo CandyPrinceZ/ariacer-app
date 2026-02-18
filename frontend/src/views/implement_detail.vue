@@ -1,150 +1,134 @@
 <template>
-    <a-layout style="min-height: 100vh; background: #f5f7fa;">
+    <a-layout style="min-height: 100vh; background: #f8f9fa;">
 
         <div v-if="loading" class="loading-overlay">
-            <div class="loading-content">
-                <a-spin size="large" />
-                <p>Loading Task...</p>
-            </div>
+            <a-spin size="large" />
+            <p class="mt-2 text-muted">Loading Task...</p>
         </div>
 
         <div v-else class="page-container">
 
-            <div class="page-header compact-header">
+            <div class="header-wrapper">
                 <div class="header-content">
                     <div class="header-left">
-                        <div class="header-text">
-                            <div class="title-row">
-                                <span class="id-badge">#{{ issue.issue_id || issue.id || '...' }}</span>
-                                <h1 class="page-title">{{ issue.name }}</h1>
-                            </div>
-                            <div class="status-row">
-                                <a-tag :color="getStatusColor(issue.status?.code)" class="status-tag">
-                                    <template #icon>
-                                        <component :is="getStatusIcon(issue.status?.code)" />
-                                    </template>
-                                    {{ (issue.status?.name || 'Unknown') }}
-                                </a-tag>
-                            </div>
+                        <div class="breadcrumb">
+                            <span class="back-link" @click="goBack">
+                                <ArrowLeftOutlined /> Back to Board
+                            </span>
+                        </div>
+                        <div class="title-group">
+                            <span class="id-tag">#{{ issue.issue_id || issue.id }}</span>
+                            <h1 class="page-title">{{ issue.name }}</h1>
                         </div>
                     </div>
-                    <div class="header-actions">
-                        <a-button @click="goBack" type="default" size="small">
-                            <template #icon>
-                                <ArrowLeftOutlined />
-                            </template> Back
-                        </a-button>
+                    <div class="header-right">
+                        <div class="status-bar">
+                            <a-tag :color="getStatusColor(issue.status?.code)" class="status-badge">
+                                <component :is="getStatusIcon(issue.status?.code)" />
+                                {{ issue.status?.name || 'Unknown' }}
+                            </a-tag>
+                            <span class="updated-text">
+                                <ClockCircleOutlined /> Last update: {{ formatDate(issue.updatedAt) }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div style="padding: 12px; width: 100%;">
-                <a-row :gutter="[12, 12]">
+            <div class="content-body">
+                <a-row :gutter="[20, 20]">
 
                     <a-col :xs="24" :lg="17" :xl="18">
 
-                        <transition name="fade">
-                            <div v-if="issue.remarks" class="custom-alert error mb-3">
+                        <transition name="slide-fade">
+                            <div v-if="issue.remarks" class="alert-box error mb-4">
                                 <div class="alert-icon">
                                     <CloseCircleFilled />
                                 </div>
-                                <div class="alert-content">
-                                    <h4 class="alert-title">งานถูกส่งกลับแก้ไข (Rejected)</h4>
-                                    <p class="alert-desc">"{{ issue.remarks || 'ไม่ได้ระบุเหตุผล' }}"</p>
+                                <div class="alert-info">
+                                    <h4>งานถูกส่งกลับแก้ไข (Rejected)</h4>
+                                    <p>"{{ issue.remarks }}"</p>
 
-                                    <div v-if="issue.remarks_images?.length" class="mini-gallery">
-                                        <div v-for="img in issue.remarks_images" :key="img._id"
-                                            class="mini-img-wrapper">
-                                            <a-image :src="img.url" class="mini-img" />
-                                        </div>
+                                    <div v-if="issue.remarks_images?.length" class="reject-gallery">
+                                        <a-image v-for="img in issue.remarks_images" :key="img._id" :src="img.url"
+                                            class="reject-thumb" />
                                     </div>
 
-                                    <div v-if="issue.tester" class="alert-meta">
-                                        <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
-                                            <span v-if="!issue.tester.avatar">{{
-                                                issue.tester.user_name?.[0]?.toUpperCase()
-                                                }}</span>
-                                        </a-avatar>
-                                        ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
-                                        <span class="divider">|</span>
-                                        <ClockCircleOutlined /> {{ formatDate(issue.updatedAt) }}
+                                    <div v-if="issue.tester" class="alert-footer">
+                                        Rejected by: <strong>{{ issue.tester.user_name }}</strong>
                                     </div>
                                 </div>
                             </div>
                         </transition>
 
-                        <a-card :bordered="false" class="main-card content-card">
+                        <a-card :bordered="false" class="modern-card">
 
-                            <div class="card-section">
-                                <h3 class="section-title">
+                            <div class="section-block">
+                                <h3 class="section-head">
                                     <FileTextOutlined /> Requirement Detail
                                 </h3>
-                                <div class="desc-box">
-                                    {{ issue.detail || 'No description provided.' }}
+                                <div class="text-content">
+                                    {{ issue.detail || '-' }}
                                 </div>
                             </div>
 
-                            <a-divider style="margin: 24px 0;" />
+                            <a-divider />
 
-                            <div class="card-section">
-                                <h3 class="section-title">
+                            <div class="section-block">
+                                <h3 class="section-head">
                                     <PaperClipOutlined /> Attachments
-                                    <span class="count-badge" v-if="issue.images">{{ issue.images.length }}</span>
+                                    <span class="count-bubble" v-if="issue.images">{{ issue.images.length }}</span>
                                 </h3>
-
-                                <div class="image-grid" v-if="issue.images && issue.images.length > 0">
-                                    <div v-for="img in issue.images" :key="img._id" class="img-wrapper">
-                                        <a-image :src="img.url" class="img-preview" />
+                                <div class="attachment-grid" v-if="issue.images && issue.images.length > 0">
+                                    <div v-for="img in issue.images" :key="img._id" class="attach-item">
+                                        <a-image :src="img.url" class="attach-img" />
                                     </div>
                                 </div>
-                                <div v-else class="empty-state">
-                                    <p class="text-muted">
-                                        <FileTextOutlined /> No attachments
-                                    </p>
+                                <div v-else class="empty-placeholder">
+                                    <InboxOutlined style="font-size: 24px; margin-bottom: 8px;" />
+                                    <p>No attachments available</p>
                                 </div>
                             </div>
 
-                            <a-divider style="margin: 24px 0;" />
+                            <a-divider />
 
-                            <div class="card-section">
-                                <h3 class="section-title">
-                                    <UserOutlined /> Developer Note
+                            <div class="section-block">
+                                <h3 class="section-head">
+                                    <CodeOutlined /> Developer Note
                                 </h3>
-                                <div class="desc-box note">
-                                    {{ issue.note || 'No note provided.' }}
+                                <div class="text-content note-bg">
+                                    {{ issue.note || 'No note provided from developer.' }}
                                 </div>
                             </div>
 
-                            <a-divider style="margin: 24px 0;" />
+                            <a-divider />
 
-                            <div class="card-section">
-                                <h3 class="section-title highlight">
-                                    <AuditOutlined /> Test Result & Feedback
+                            <div class="section-block highlight-bg">
+                                <h3 class="section-head primary-color">
+                                    <AuditOutlined /> QA / Test Result
                                 </h3>
 
-                                <a-form layout="vertical" class="testing-form">
-                                    <a-form-item label="Comment / Bug Report (จำเป็นหากเลือก Fail)">
-                                        <a-textarea v-model:value="qcComment" :rows="5"
-                                            placeholder="ระบุจุดที่พบปัญหา หรือสิ่งที่ต้องแก้ไข..."
-                                            class="modern-textarea" />
+                                <a-form layout="vertical" class="qa-form">
+                                    <a-form-item label="Comment / Bug Report">
+                                        <a-textarea v-model:value="qcComment" :rows="4"
+                                            placeholder="ระบุรายละเอียดผลการทดสอบ หรือจุดที่ต้องแก้ไข..."
+                                            class="custom-input" />
                                     </a-form-item>
 
-                                    <a-form-item label="Evidence Image (หลักฐาน)">
-                                        <div class="upload-wrapper">
+                                    <a-form-item label="Evidence Images (หลักฐานการทดสอบ)">
+                                        <div class="upload-container">
                                             <a-upload list-type="picture-card" :file-list="fileList"
                                                 @preview="handlePreview" @change="handleChange"
-                                                accept="image/png, image/jpeg, image/jpg" :before-upload="beforeUpload"
-                                                class="modern-upload">
-                                                <div v-if="fileList.length < 5">
-                                                    <CloudUploadOutlined class="upload-icon" />
-                                                    <div class="upload-text">Upload</div>
+                                                :before-upload="beforeUpload" accept="image/*" class="premium-upload">
+                                                <div v-if="fileList.length < 5" class="upload-placeholder">
+                                                    <div class="icon-wrap">
+                                                        <CloudUploadOutlined />
+                                                    </div>
+                                                    <div class="text-wrap">Upload</div>
                                                 </div>
                                             </a-upload>
                                         </div>
-                                        <a-modal :visible="previewVisible" :title="previewTitle" :footer="null"
-                                            @cancel="handleCancel">
-                                            <img alt="example" style="width: 100%" :src="previewImage" />
-                                        </a-modal>
+                                        <div class="upload-hint">รองรับไฟล์รูปภาพ: JPG, PNG (Max 5 รูป)</div>
                                     </a-form-item>
                                 </a-form>
                             </div>
@@ -153,90 +137,111 @@
                     </a-col>
 
                     <a-col :xs="24" :lg="7" :xl="6">
-                        <div class="sticky-sidebar">
+                        <div class="sidebar-wrapper">
 
-                            <a-card :bordered="false" class="main-card side-card mb-3">
-                                <h4 class="side-title">Testing Actions</h4>
-                                <div class="buttons-grid">
-                                    <a-popconfirm title="Confirm System Pass?" ok-text="Yes, Pass"
-                                        cancel-text="Check again" @confirm="submitResult('pass')">
-                                        <button class="btn-main pass" :disabled="loading">
+                            <a-card :bordered="false" class="modern-card action-card mb-3">
+                                <h4 class="card-label">Actions</h4>
+                                <div class="action-grid">
+                                    <a-popconfirm title="Confirm System Pass?" ok-text="Yes, Pass" cancel-text="Cancel"
+                                        @confirm="submitResult('pass')">
+                                        <button class="btn-action pass" :disabled="loading">
                                             <CheckCircleFilled /> PASS
                                         </button>
                                     </a-popconfirm>
 
-                                    <a-popconfirm title="Reject & Return to Dev?" ok-text="Yes, Reject" cancel-text="No"
+                                    <a-popconfirm title="Reject back to Dev?" ok-text="Yes, Reject" cancel-text="Cancel"
                                         ok-type="danger" @confirm="submitResult('fail')">
-                                        <button class="btn-main fail" :disabled="loading">
+                                        <button class="btn-action fail" :disabled="loading">
                                             <CloseCircleFilled /> FAIL
                                         </button>
                                     </a-popconfirm>
                                 </div>
                             </a-card>
 
-                            <a-card :bordered="false" class="main-card side-card mb-3">
-                                <h4 class="side-title">Responsible Developer</h4>
-                                <div class="dev-profile">
-                                    <a-avatar :size="40" :src="issue.assignee?.avatar"
-                                        :style="{ backgroundColor: !issue.assignee?.avatar ? stringToColor(issue.assignee?.user_name) : 'transparent' }">
-                                        <span v-if="!issue.assignee?.avatar">{{ (issue.assignee?.user_name || 'U')[0]
-                                            }}</span>
+                            <a-card :bordered="false" class="modern-card mb-3">
+                                <h4 class="card-label">Assignee</h4>
+                                <div class="user-card">
+                                    <a-avatar :size="48" :src="issue.assignee?.avatar"
+                                        :style="{ backgroundColor: stringToColor(issue.assignee?.user_name) }">
+                                        {{ (issue.assignee?.user_name || 'U')[0] }}
                                     </a-avatar>
-                                    <div class="dev-details">
-                                        <h4 class="dev-name text-ellipsis">{{ issue.assignee?.user_name || 'Unassigned'
-                                            }}</h4>
-                                        <span class="dev-role">Developer</span>
+                                    <div class="user-info">
+                                        <span class="u-name">{{ issue.assignee?.user_name || 'Unassigned' }}</span>
+                                        <span class="u-role">{{ issue.assignee?.role_name || 'Developer' }}</span>
                                     </div>
                                 </div>
                             </a-card>
 
-                            <a-card :bordered="false" class="main-card side-card">
-                                <h4 class="side-title">Ticket Info</h4>
+                            <a-card :bordered="false" class="modern-card">
+                                <h4 class="card-label">Ticket Info</h4>
                                 <div class="info-list">
-                                    <div class="info-row">
+                                    <div class="info-item">
+                                        <span class="label">Server</span>
+                                        <span class="value link" @click="openServerLink(issue.server?.url)">
+                                            {{ issue.server?.name || '-' }}
+                                            <ExportOutlined />
+                                        </span>
+                                    </div>
+                                    <div class="info-item">
                                         <span class="label">Type</span>
-                                        <span class="val-text">{{ issue.type?.name || '-' }}</span>
+                                        <span class="value">{{ issue.type?.name || '-' }}</span>
                                     </div>
-                                    <div class="info-row">
-                                        <span class="label">Urgency</span>
-                                        <a-tag :color="issue.urgency?.color" class="tag-pill">{{ issue.urgency?.name
-                                            }}</a-tag>
+                                    <div class="info-item">
+                                        <span class="label">Priority</span>
+                                        <a-tag :color="issue.urgency?.color || 'blue'" class="mini-tag">
+                                            {{ issue.urgency?.name || '-' }}
+                                        </a-tag>
                                     </div>
-                                    <div class="info-row">
+
+                                    <div class="info-item">
+                                        <span class="label">Deadline</span>
+                                        <span class="value" :class="{ 'text-danger': isOverdue(issue.deadline) }">
+                                            {{ formatDate(issue.deadline) }}
+                                            <ExclamationCircleOutlined v-if="isOverdue(issue.deadline)" />
+                                        </span>
+                                    </div>
+
+                                    <a-divider style="margin: 8px 0;" />
+
+                                    <div class="info-item">
                                         <span class="label">Reporter</span>
-                                        <div class="reporter-pill">
-                                            <a-avatar v-if="issue.reporter?.avatar" size="small"
-                                                :src="issue.reporter.avatar" style="margin-right: 4px;" />
-                                            <UserOutlined v-else style="margin-right: 4px;" />
-                                            {{ issue.reporter?.user_name || 'Unknown' }}
+                                        <div class="reporter-val">
+                                            <a-avatar size="small" :src="issue.reporter?.avatar" />
+                                            <span>{{ issue.reporter?.user_name || '-' }}</span>
                                         </div>
                                     </div>
-                                    <div class="info-row">
+
+                                    <div class="info-item">
                                         <span class="label">Created</span>
-                                        <span class="val-text">{{ formatDate(issue.createdAt) }}</span>
+                                        <span class="value text-muted">{{ formatDate(issue.createdAt) }}</span>
                                     </div>
                                 </div>
                             </a-card>
 
                         </div>
                     </a-col>
+
                 </a-row>
             </div>
+
+            <a-modal :visible="previewVisible" :title="previewTitle" :footer="null" @cancel="handleCancel">
+                <img alt="preview" style="width: 100%" :src="previewImage" />
+            </a-modal>
 
         </div>
     </a-layout>
 </template>
 
 <script>
-// (Script เหมือนเดิม ไม่ต้องแก้ครับ ใช้ Logic เดิมได้เลย)
 import axios from 'axios';
 import {
     ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
-    CloudUploadOutlined, ExperimentOutlined, CheckCircleFilled, CloseCircleFilled,
-    PaperClipOutlined, CloseCircleOutlined, UserOutlined, ClockCircleOutlined
+    CloudUploadOutlined, CheckCircleFilled, CloseCircleFilled,
+    PaperClipOutlined, ClockCircleOutlined, ExportOutlined, InboxOutlined,
+    ExclamationCircleOutlined
 } from '@ant-design/icons-vue';
 import { message, Upload } from 'ant-design-vue';
-import dayjs from 'dayjs'; // Import dayjs
+import dayjs from 'dayjs';
 
 function getBase64(file) {
     return new Promise((resolve, reject) => {
@@ -251,8 +256,8 @@ export default {
     name: 'ImplementDetail',
     components: {
         ArrowLeftOutlined, FileTextOutlined, CodeOutlined, AuditOutlined,
-        CloudUploadOutlined, ExperimentOutlined, PaperClipOutlined,
-        CheckCircleFilled, CloseCircleFilled, CloseCircleOutlined, UserOutlined, ClockCircleOutlined
+        CloudUploadOutlined, PaperClipOutlined, InboxOutlined,
+        CheckCircleFilled, CloseCircleFilled, ClockCircleOutlined, ExportOutlined, ExclamationCircleOutlined
     },
     data() {
         return {
@@ -282,6 +287,11 @@ export default {
     methods: {
         goBack() { this.$router.go(-1); },
         formatDate(date) { return date ? dayjs(date).format('D MMM YYYY, HH:mm') : '-'; },
+        // ✅ Check Overdue
+        isOverdue(date) {
+            if (!date) return false;
+            return dayjs().isAfter(dayjs(date)) && this.issue.status?.code !== 'success';
+        },
         handleCancel() { this.previewVisible = false; },
         async handlePreview(file) {
             if (!file.url && !file.preview) {
@@ -293,9 +303,9 @@ export default {
         },
         handleChange({ fileList }) { this.fileList = fileList; },
         beforeUpload(file) {
-            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
+            const isImage = file.type.startsWith('image/');
             if (!isImage) {
-                message.error('อัปโหลดได้เฉพาะไฟล์รูปภาพเท่านั้น!');
+                message.error('กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น');
                 return Upload.LIST_IGNORE;
             }
             return false;
@@ -344,6 +354,13 @@ export default {
             const iconMap = { reported: 'SoundOutlined', received: 'InboxOutlined', inProgress: 'SyncOutlined', finished: 'CheckSquareOutlined', upserver: 'CloudUploadOutlined', testing: 'ExperimentOutlined', success: 'CheckCircleOutlined', rejected: 'CloseCircleOutlined' };
             return iconMap[code] || 'QuestionCircleOutlined';
         },
+        openServerLink(url) {
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                message.warning('ไม่พบลิงก์ Server');
+            }
+        },
         async getDynamicWebhook() {
             try {
                 const token = localStorage.getItem('token');
@@ -371,14 +388,14 @@ export default {
 
             if (result === 'pass') {
                 targetStatus = this.statusOptions.find(s => s.code === 'success');
-                msg = 'Testing Passed! Issue Closed.';
+                msg = 'Testing Passed!';
             } else {
                 targetStatus = this.statusOptions.find(s => s.code === 'rejected');
                 if (!this.qcComment) {
-                    message.error('กรุณาระบุเหตุผลที่ไม่ผ่านในช่อง Comment');
+                    message.error('กรุณาระบุเหตุผลที่ไม่ผ่าน');
                     return;
                 }
-                msg = 'Testing Failed. Returned to Developer.';
+                msg = 'Job Rejected.';
             }
 
             if (!targetStatus) {
@@ -431,25 +448,20 @@ export default {
 </script>
 
 <style scoped>
-/* 1. Global & Layout */
+/* =========== Global & Layout =========== */
 .loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.85);
     z-index: 999;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
-    backdrop-filter: blur(4px);
-}
-
-.loading-content {
-    text-align: center;
-    color: #64748b;
-    font-weight: 500;
+    backdrop-filter: blur(5px);
 }
 
 .page-container {
@@ -457,13 +469,17 @@ export default {
     padding-bottom: 40px;
 }
 
-/* 2. Compact Header */
-.compact-header {
+/* ✅ Fluid Full Width */
+.content-body {
+    padding: 20px;
+    width: 100%;
+}
+
+/* =========== Header (Compact) =========== */
+.header-wrapper {
     background: #fff;
-    padding: 16px 24px;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
-    margin-bottom: 0;
+    padding: 12px 24px;
+    border-bottom: 1px solid #eaeaea;
 }
 
 .header-content {
@@ -475,274 +491,309 @@ export default {
 .header-left {
     display: flex;
     flex-direction: column;
+    gap: 2px;
+}
+
+.breadcrumb {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.back-link {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
     gap: 4px;
 }
 
-.title-row {
+.back-link:hover {
+    color: #1890ff;
+}
+
+.title-group {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
-    /* ให้ตกบรรทัดบนมือถือ */
 }
 
-.id-badge {
-    background: #f5f5f5;
-    color: #888;
-    padding: 2px 8px;
+.id-tag {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 1px 8px;
     border-radius: 4px;
+    font-weight: 700;
     font-size: 13px;
-    font-weight: 600;
-    border: 1px solid #e8e8e8;
-    white-space: nowrap;
 }
 
 .page-title {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #1f1f1f;
+    color: #0f172a;
     line-height: 1.2;
 }
 
-.status-row {
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.status-badge {
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 12px;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.updated-text {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* =========== Cards & Sections =========== */
+.modern-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s;
+    background: #fff;
+    overflow: hidden;
+}
+
+.section-block {
+    padding: 0 4px;
+}
+
+.section-head {
+    font-size: 15px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.count-bubble {
+    background: #e2e8f0;
+    color: #475569;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    margin-left: auto;
+}
+
+.text-content {
+    color: #475569;
+    line-height: 1.6;
+    font-size: 14px;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #f1f5f9;
+}
+
+.text-content.note-bg {
+    background: #fffbeb;
+    border-color: #fef3c7;
+    color: #92400e;
+}
+
+/* =========== Attachments =========== */
+.attachment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+}
+
+.attach-item {
+    aspect-ratio: 16/10;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+}
+
+.attach-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-color: #cbd5e1;
+}
+
+.attach-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.empty-placeholder {
+    text-align: center;
+    color: #94a3b8;
+    padding: 24px;
+    font-style: italic;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* =========== Upload Section (Tight) =========== */
+.highlight-bg {
+    background: #f0f9ff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #bae6fd;
+    margin: 0 -8px;
+}
+
+.primary-color {
+    color: #0284c7;
+}
+
+.qa-form .custom-input {
+    border-radius: 8px;
+    border-color: #cbd5e1;
+    padding: 12px;
+    font-size: 14px;
+}
+
+/* ✅ Compact Upload Style */
+.upload-container {
+    margin-top: 8px;
+}
+
+.premium-upload :deep(.ant-upload.ant-upload-select-picture-card) {
+    width: 100px;
+    height: 100px;
+    background: #fff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    margin-right: 8px;
+    transition: all 0.3s;
+}
+
+.premium-upload :deep(.ant-upload.ant-upload-select-picture-card:hover) {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #64748b;
+}
+
+.icon-wrap {
+    font-size: 24px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+
+.text-wrap {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.upload-hint {
+    font-size: 12px;
+    color: #94a3b8;
     margin-top: 4px;
 }
 
-.status-tag {
-    border-radius: 4px;
-    border: none;
-    font-weight: 600;
-    font-size: 12px;
-}
-
-/* 3. Cards */
-.main-card {
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    border: 1px solid #f0f0f0;
-}
-
-/* ✅ Mobile Height Fix */
-.content-card {
-    min-height: 600px;
-}
-
-.side-card {
+/* =========== Sidebar Elements =========== */
+.card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #94a3b8;
     margin-bottom: 12px;
+    letter-spacing: 0.5px;
 }
 
 .mb-3 {
     margin-bottom: 12px;
 }
 
-/* 4. Sections */
-.card-section {
-    position: relative;
-}
-
-.section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.section-title.highlight {
-    color: #0f172a;
-    font-size: 16px;
-}
-
-.count-badge {
-    background: #f1f5f9;
-    color: #64748b;
-    font-size: 11px;
-    padding: 1px 6px;
-    border-radius: 10px;
-}
-
-.desc-box {
-    background: #fdfdfd;
-    padding: 16px;
-    border-radius: 6px;
-    border: 1px solid #f0f0f0;
-    color: #475569;
-    line-height: 1.6;
-    white-space: pre-wrap;
-    font-size: 14px;
-}
-
-.desc-box.note {
-    background: #fffbeb;
-    border-color: #fef3c7;
-    color: #92400e;
-}
-
-/* 5. Images */
-.image-grid {
+/* Action Buttons */
+.action-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
-.img-wrapper {
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid #f0f0f0;
-    aspect-ratio: 16/9;
-    background: #f8fafc;
-    transition: transform 0.2s;
-}
-
-.img-wrapper:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-}
-
-.img-preview {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.empty-state.small {
-    padding: 16px;
-    text-align: center;
-    background: #f8fafc;
-    border-radius: 6px;
-    color: #94a3b8;
-    border: 1px dashed #e2e8f0;
-    font-size: 13px;
-}
-
-/* 6. Form & Inputs */
-.modern-textarea {
-    border-radius: 6px;
-    border-color: #d9d9d9;
-    padding: 12px;
-    font-size: 14px;
-}
-
-.modern-textarea:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-.modern-upload :deep(.ant-upload.ant-upload-select-picture-card) {
-    border-radius: 8px;
-    border: 1px dashed #d9d9d9;
-    background: #fafafa;
-    transition: all 0.3s;
-}
-
-.modern-upload :deep(.ant-upload.ant-upload-select-picture-card:hover) {
-    border-color: #3b82f6;
-    background: #f0f7ff;
-}
-
-.upload-icon {
-    font-size: 40px;
-    color: #94a3b8;
-    margin-bottom: 4px;
-}
-
-.upload-text {
-    color: #64748b;
-    font-weight: 500;
-    font-size: 12px;
-}
-
-/* 7. Sidebar & Actions */
-.sticky-sidebar {
-    position: sticky;
-    top: 12px;
-}
-
-.side-title {
-    font-size: 12px;
-    text-transform: uppercase;
-    color: #94a3b8;
-    font-weight: 700;
-    margin-bottom: 12px;
-}
-
-.buttons-grid {
-    display: grid;
-    gap: 12px;
-}
-
-.btn-main {
+.btn-action {
     border: none;
-    padding: 14px;
+    width: 100%;
+    padding: 12px;
     border-radius: 8px;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
+    color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     transition: all 0.2s;
-    width: 100%;
-    color: #fff;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.btn-main:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-}
-
-.btn-main.pass {
+.btn-action.pass {
     background: #22c55e;
 }
 
-.btn-main.pass:hover:not(:disabled) {
+.btn-action.pass:hover {
     background: #16a34a;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
-.btn-main.fail {
+.btn-action.fail {
     background: #ef4444;
 }
 
-.btn-main.fail:hover:not(:disabled) {
+.btn-action.fail:hover {
     background: #dc2626;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
-/* Dev Profile */
-.dev-profile {
+/* User Card */
+.user-card {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.dev-details {
+.user-info {
     display: flex;
     flex-direction: column;
 }
 
-.dev-name {
-    margin: 0;
+.u-name {
     font-weight: 600;
     color: #0f172a;
     font-size: 14px;
 }
 
-.dev-role {
+.u-role {
     font-size: 12px;
     color: #64748b;
-}
-
-.text-ellipsis {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 140px;
 }
 
 /* Info List */
@@ -752,152 +803,144 @@ export default {
     gap: 12px;
 }
 
-.info-row {
+.info-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
 }
 
-.info-row .label {
+.info-item .label {
     color: #64748b;
-}
-
-.val-text {
     font-weight: 500;
-    color: #1e293b;
 }
 
-.tag-pill {
+.info-item .value {
+    font-weight: 600;
+    color: #334155;
+}
+
+.info-item .link {
+    color: #0284c7;
+    cursor: pointer;
+}
+
+.info-item .link:hover {
+    text-decoration: underline;
+}
+
+.info-item .text-muted {
+    color: #94a3b8;
+}
+
+.info-item .text-danger {
+    color: #ef4444;
+}
+
+.mini-tag {
     border: none;
-    padding: 1px 8px;
-    border-radius: 4px;
     font-weight: 600;
     font-size: 11px;
+    padding: 0 8px;
+    border-radius: 4px;
 }
 
-/* Alert */
-.custom-alert {
-    padding: 12px 16px;
-    border-radius: 6px;
+.reporter-val {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 6px;
 }
 
-.custom-alert.error {
+/* Alerts */
+.alert-box {
+    padding: 16px;
+    border-radius: 8px;
+    display: flex;
+    gap: 16px;
+}
+
+.alert-box.error {
     background: #fef2f2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
+    border: 1px solid #fee2e2;
+    color: #991b1b;
 }
 
 .alert-icon {
-    font-size: 20px;
+    font-size: 24px;
     color: #ef4444;
 }
 
-.alert-title {
+.alert-info h4 {
     margin: 0 0 4px;
     font-weight: 700;
-    color: #991b1b;
+    font-size: 15px;
+    color: #7f1d1d;
+}
+
+.alert-info p {
+    margin: 0;
     font-size: 14px;
 }
 
-.alert-desc {
-    margin: 0 0 8px;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.alert-meta {
-    font-size: 12px;
-    color: #ef4444;
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-
-.mini-gallery {
+.reject-gallery {
     display: flex;
     gap: 6px;
+    margin-top: 8px;
     flex-wrap: wrap;
-    margin-top: 6px;
 }
 
-
-.mini-img-wrapper {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+.reject-thumb {
+    width: 50px;
+    height: 50px;
+    border-radius: 6px;
+    border: 1px solid #fecaca;
 }
 
-.mini-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.alert-footer {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #b91c1c;
+    opacity: 0.8;
 }
 
-.mt-4 {
-    margin-top: 16px;
+/* Transitions */
+.slide-down-enter-active,
+.slide-down-leave-active {
+    transition: all 0.3s ease;
 }
 
-.mb-3 {
-    margin-bottom: 12px;
-}
-
-/* Transition */
-.fade-enter-active,
-.fade-leave-active {
-    transition: opacity 0.3s;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+.slide-down-enter-from,
+.slide-down-leave-to {
     opacity: 0;
+    transform: translateY(-10px);
 }
 
-/* ==========================================================================
-   📱 Mobile Responsive Tweaks (Added Logic)
-   ========================================================================== */
+/* Responsive */
 @media (max-width: 768px) {
-
-    /* Header */
-    .compact-header {
-        padding: 12px 16px;
-        /* ลด Padding Header */
+    .content-body {
+        padding: 16px;
     }
 
-    .page-title {
-        font-size: 18px;
-        /* ลดขนาด Font Title */
+    .header-wrapper {
+        padding: 16px;
     }
 
-    /* Content Card Height */
-    .content-card {
-        min-height: auto;
-        /* ยกเลิก Fixed Height บนมือถือ */
-    }
-
-    /* Sidebar */
-    .sticky-sidebar {
-        position: static;
-        /* ปิด Sticky บนมือถือ */
-    }
-
-    /* Image Grid */
-    .image-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        /* เหลือ 2 คอลัมน์บนมือถือ */
-    }
-
-    /* Alert */
-    .custom-alert.error {
+    .title-group {
         flex-direction: column;
-        /* เรียง Alert แนวตั้งถ้ายาว */
-        gap: 8px;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .status-bar {
+        flex-wrap: wrap;
+    }
+
+    .sidebar-wrapper {
+        margin-top: 20px;
+    }
+
+    .action-grid {
+        grid-template-columns: 1fr;
     }
 }
 </style>

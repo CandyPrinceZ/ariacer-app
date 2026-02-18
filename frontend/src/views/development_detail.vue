@@ -61,7 +61,7 @@
                   <div v-if="issue.tester" class="alert-meta">
                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                       <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                        }}</span>
+                      }}</span>
                     </a-avatar>
                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                     <span class="divider">|</span>
@@ -218,6 +218,13 @@
                 <h4 class="side-title">Ticket Info</h4>
                 <div class="info-list">
                   <div class="info-row">
+                    <span class="label">Server</span>
+                    <span class="label link" @click="openServerLink(issue.server?.url)">
+                      {{ issue.server?.name || '-' }}
+                      <ExportOutlined />
+                    </span>
+                  </div>
+                  <div class="info-row">
                     <span class="label">Type</span>
                     <span class="val-text">{{ issue.type?.name || '-' }}</span>
                   </div>
@@ -321,7 +328,7 @@ import {
   ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
   FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
   CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined,
-  CloseCircleOutlined, TeamOutlined, PlusOutlined, DeleteOutlined
+  CloseCircleOutlined, TeamOutlined, PlusOutlined, DeleteOutlined, ExportOutlined
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 import axios from 'axios';
@@ -333,7 +340,7 @@ export default {
     ArrowLeftOutlined, UserOutlined, ClockCircleOutlined, UserAddOutlined,
     FileTextOutlined, PaperClipOutlined, CheckCircleOutlined, SyncOutlined,
     CloseCircleFilled, AlertOutlined, CloudUploadOutlined, ExperimentOutlined, CloseCircleOutlined
-    , TeamOutlined, PlusOutlined, DeleteOutlined
+    , TeamOutlined, PlusOutlined, DeleteOutlined, ExportOutlined
   },
   data() {
     return {
@@ -455,6 +462,14 @@ export default {
       for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
       const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
       return '#' + '00000'.substring(0, 6 - c.length) + c;
+    },
+
+    openServerLink(url) {
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        this.$message.warning('ไม่พบลิงก์ Server');
+      }
     },
 
     async getAuthProfile() {
@@ -962,6 +977,15 @@ export default {
 
 .info-row .label {
   color: #64748b;
+}
+
+.info-row .link {
+  color: #0284c7;
+  cursor: pointer;
+}
+
+.info-row .link:hover {
+  text-decoration: underline;
 }
 
 .val-text {

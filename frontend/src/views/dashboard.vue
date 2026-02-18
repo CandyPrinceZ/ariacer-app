@@ -95,18 +95,18 @@
                 <a-select v-model:value="filters.status" placeholder="Status" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="s in dropdowns.statuses" :key="s._id" :value="s._id">{{ s.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
 
                 <a-select v-model:value="filters.urgency" placeholder="Urgency" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="u in dropdowns.urgencies" :key="u._id" :value="u._id">{{ u.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
                 <a-select v-model:value="filters.type" placeholder="Type" size="small" allow-clear
                   class="modern-select filter-item">
                   <a-select-option v-for="t in dropdowns.types" :key="t._id" :value="t._id">{{ t.name
-                    }}</a-select-option>
+                  }}</a-select-option>
                 </a-select>
               </div>
             </div>
@@ -194,7 +194,7 @@ export default {
     AppstoreOutlined, InboxOutlined, SyncOutlined, CheckSquareOutlined,
     ExperimentOutlined, CheckCircleOutlined, AlertOutlined, CloudUploadOutlined,
     ArrowUpOutlined, SearchOutlined, ReloadOutlined, CloseCircleOutlined,
-    Pie 
+    Pie
   },
   data() {
     return {

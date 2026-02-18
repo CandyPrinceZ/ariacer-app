@@ -235,7 +235,7 @@ export default {
     formattedServerOptions() {
       return (this.serversOptions || []).map((s) => ({
         value: s._id,
-        label: `${s.name} (${s.url})`
+        label: `${s.name}`
       }));
     },
     isHighPriority() {
