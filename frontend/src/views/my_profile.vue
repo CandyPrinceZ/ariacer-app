@@ -254,37 +254,44 @@ export default {
             this.uploadLoading = true;
             try {
                 const token = localStorage.getItem('token');
-
-                const configRes = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook-images', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const webhookUrl = configRes.data.url;
-
-                if (!webhookUrl) throw new Error("Webhook URL not found");
+                if (!token) throw new Error("No token found");
 
                 const formData = new FormData();
                 formData.append('file', file);
-                const discordRes = await axios.post(webhookUrl, formData);
 
-                const newAvatarUrl = discordRes.data.attachments[0].url;
+                formData.append('identifier', `avatar_${this.user.username}`);
+
+                const uploadRes = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/config/upload-avatar-image`,
+                    formData,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                );
+
+                const newAvatarUrl = uploadRes.data.url;
 
                 const updateRes = await axios.put(
-                    import.meta.env.VITE_API_URL + '/auth/update-avatar',
+                    `${import.meta.env.VITE_API_URL}/auth/update-avatar`,
                     { avatar: newAvatarUrl },
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                this.user.avatar = updateRes.data.avatar;
+                this.user.avatar = `${updateRes.data.avatar}?t=${new Date().getTime()}`;
+
                 message.success('อัปโหลดรูปโปรไฟล์สำเร็จ!');
 
             } catch (error) {
-                console.error(error);
-                message.error('อัปโหลดรูปภาพไม่สำเร็จ');
+                console.error("Avatar Upload Error:", error);
+                const errorMsg = error.response?.data?.message || 'อัปโหลดรูปภาพไม่สำเร็จ';
+                message.error(errorMsg);
             } finally {
                 this.uploadLoading = false;
             }
         },
-
         async updateProfile() {
             if (!this.formProfile.user_name) { Swal.fire('Warning', 'กรุณาระบุชื่อ', 'warning'); return; }
             this.loading = true;

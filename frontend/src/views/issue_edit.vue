@@ -223,7 +223,7 @@ import {
     EditOutlined, FormOutlined, CloudUploadOutlined,
     DeleteOutlined, SaveOutlined, PictureOutlined, UserAddOutlined
 } from '@ant-design/icons-vue';
-import { message, Upload, notification } from 'ant-design-vue';
+import { message, notification } from 'ant-design-vue';
 
 export default {
     name: "IssueEdit",
@@ -259,7 +259,7 @@ export default {
                 bugType: undefined,
                 description: '',
                 deadline: null,
-                isCustomDeveloper: false, 
+                isCustomDeveloper: false,
                 developer: undefined,
                 server: undefined
             },
@@ -403,24 +403,31 @@ export default {
         },
         removeExistingImage(index) { this.existingImages.splice(index, 1); },
 
-        // --- Submit Logic ---
-        async getDynamicWebhook() {
+        // 1. ฟังก์ชันอัปโหลดภาพไปยัง Server (Cloudinary)
+        async uploadImageToServer(fileObj) {
             try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get(import.meta.env.VITE_API_URL + '/config/discord-webhook-images', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                return res.data.url;
-            } catch { return null; }
+                const formData = new FormData();
+                formData.append("file", fileObj);
+                const token = localStorage.getItem("token");
+
+                const response = await axios.post(
+                    `${import.meta.env.VITE_API_URL}/config/upload-image`,
+                    formData,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                // คืนค่าเฉพาะ string URL ออกมา (ป้องกัน Object ซ้อน)
+                const data = response.data;
+                return (data && typeof data === 'object') ? data.url : data;
+            } catch (error) {
+                console.error("Upload error:", error);
+                throw error;
+            }
         },
-        async uploadImageToDiscord(fileObj, webhookUrl) {
-            if (!webhookUrl) return null;
-            const formData = new FormData();
-            formData.append('file', fileObj);
-            const response = await axios.post(webhookUrl, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-            return response.data.attachments[0].url;
-        },
+
+        // 2. ฟังก์ชัน Submit สำหรับแก้ไข Issue
         async onSubmit() {
+            // --- Validation ---
             if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
             if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
             if (!this.form.bugType) return message.warning('ระบุประเภท');
@@ -432,14 +439,27 @@ export default {
                 const token = localStorage.getItem('token');
                 const config = { headers: { Authorization: `Bearer ${token}` } };
 
+                // --- จัดการรูปภาพใหม่ (อัปโหลดเข้า Cloudinary) ---
                 let newImageUrls = [];
                 if (this.fileList.length > 0) {
-                    const webhookUrl = await this.getDynamicWebhook();
-                    if (webhookUrl) {
-                        newImageUrls = await Promise.all(this.fileList.map(f => this.uploadImageToDiscord(f.originFileObj, webhookUrl)));
-                    }
+                    message.loading({ content: 'กำลังอัปโหลดรูปภาพใหม่...', key: 'up', duration: 0 });
+
+                    // อัปโหลดรูปใหม่ทั้งหมดและรับเป็น Array ของ String URLs
+                    newImageUrls = await Promise.all(
+                        this.fileList.map(f => this.uploadImageToServer(f.originFileObj))
+                    );
+
+                    message.success({ content: 'อัปโหลดรูปภาพสำเร็จ', key: 'up', duration: 2 });
                 }
 
+                // --- รวมรูปภาพเก่าและรูปภาพใหม่ ---
+                // ตรวจสอบให้แน่ใจว่าส่งไปเป็น Array ของ Object { url: "string" } ตาม Schema
+                const allImages = [
+                    ...this.existingImages.map(img => img.url),
+                    ...newImageUrls
+                ].map(url => ({ url: String(url) }));
+
+                // --- เตรียม Payload ---
                 const payload = {
                     name: this.form.title,
                     server: this.form.server,
@@ -447,43 +467,59 @@ export default {
                     type: this.form.bugType,
                     urgency: this.form.priority,
                     deadline: this.form.deadline,
-                    images: [...this.existingImages.map(img => img.url), ...newImageUrls].map(url => ({ url: url })),
+                    images: allImages, // รูปแบบ [{ url: "..." }]
                     assignee: (this.form.isCustomDeveloper && this.form.developer) ? this.form.developer : null
                 };
 
-                // ถ้าปิด switch ให้ส่ง null หรือ empty string เพื่อ clear assignee
+                // ถ้าไม่ได้เลือก Custom Developer ให้ล้างค่า assignee
                 if (!this.form.isCustomDeveloper) {
-                    payload.assignee = ""; // หรือ null ขึ้นอยู่กับ backend รับค่าแบบไหน (ปกติ null หรือ empty string)
+                    payload.assignee = null;
                 }
 
-                await axios.put(import.meta.env.VITE_API_URL + `/issues/edit/${this.issueId}`, payload, config);
+                // --- ยิง API Update (PUT) ---
+                await axios.put(`${import.meta.env.VITE_API_URL}/issues/edit/${this.issueId}`, payload, config);
 
-                notification.success({ message: 'บันทึกสำเร็จ', description: 'แก้ไขข้อมูลเรียบร้อยแล้ว', placement: 'topRight' });
+                notification.success({
+                    message: 'บันทึกสำเร็จ',
+                    description: 'แก้ไขข้อมูลเรียบร้อยแล้ว',
+                    placement: 'topRight'
+                });
+
                 this.$router.push(`/issue/${this.issueId}`);
             } catch (e) {
-                notification.error({ message: 'Error', description: e.response?.data?.message || e.message });
+                console.error(e);
+                notification.error({
+                    message: 'เกิดข้อผิดพลาด',
+                    description: e.response?.data?.message || e.message
+                });
             } finally {
                 this.submitting = false;
             }
         },
+
+        // --- ส่วนจัดการ File List (เหมือนเดิมแต่ปรับปรุงให้คลีน) ---
         handleCancel() { this.$router.go(-1); },
         beforeUpload(file) {
-            const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg';
+            const isImage = ['image/jpeg', 'image/png', 'image/jpg'].includes(file.type);
             if (!isImage) {
                 message.error('เฉพาะไฟล์รูปภาพ (JPG/PNG)');
-                return Upload.LIST_IGNORE;
+                return false;
             }
-            return false;
+            return false; // ป้องกัน auto upload ของ Ant Design
         },
         handleUploadChange(info) {
             let list = [...info.fileList];
             list = list.slice(0, this.maxFiles).map(file => {
-                if (file.originFileObj && !file.thumbUrl) file.thumbUrl = URL.createObjectURL(file.originFileObj);
+                if (file.originFileObj && !file.thumbUrl) {
+                    file.thumbUrl = URL.createObjectURL(file.originFileObj);
+                }
                 return file;
             });
             this.fileList = list;
         },
-        removeFile(file) { this.fileList = this.fileList.filter(f => f.uid !== file.uid); },
+        removeFile(file) {
+            this.fileList = this.fileList.filter(f => f.uid !== file.uid);
+        },
         openPreview(url) { this.preview.src = url; this.preview.open = true; },
         formatDate(date) { return date ? dayjs(date).format('DD MMM YY HH:mm') : '-' },
     }

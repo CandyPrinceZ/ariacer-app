@@ -378,7 +378,6 @@ export default {
     },
 
     async onSubmit() {
-      // 1. Validation
       if (!this.form.title) return message.warning('ระบุหัวข้อปัญหา');
       if (!this.form.priority) return message.warning('ระบุความเร่งด่วน');
       if (!this.form.bugType) return message.warning('ระบุประเภท');
@@ -391,17 +390,14 @@ export default {
         const token = localStorage.getItem('token');
         const config = { headers: { Authorization: `Bearer ${token}` } };
 
-        let imagesArray = []; // เปลี่ยนชื่อตัวแปรให้สื่อความหมาย
+        let imagesArray = []; 
 
         if (this.fileList && this.fileList.length > 0) {
           message.loading({ content: 'Uploading images to Cloud...', key: 'up', duration: 0 });
 
-          // uploadResults จะได้ค่าเป็น Array ของ String เช่น ["https://...", "https://..."]
           const uploadResults = await Promise.all(
             this.fileList.map(f => this.uploadImageToServer(f.originFileObj))
           );
-
-          // ✅ เปลี่ยนจาก [{url: string}] เป็น [string] ตามที่คุณต้องการ
           imagesArray = uploadResults.map(urlStr => String(urlStr));
 
           message.success({ content: 'Images Uploaded!', key: 'up', duration: 2 });
@@ -416,7 +412,6 @@ export default {
           reporter: this.Authprofile._id,
           deadline: this.form.deadline || null,
           server: this.form.server,
-          // ✅ ส่งเป็น Array ของ String ไปที่ Backend
           images: imagesArray
         };
 

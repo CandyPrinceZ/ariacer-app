@@ -8,10 +8,12 @@ const {
 const {
   uploadImage,
   uploadMiddleware,
+  uploadAvatarImage,
 } = require("../controllers/uploadController");
 const { protect } = require("../middleware/authMiddleware");
 
 router.post("/upload-image", uploadMiddleware, uploadImage);  // POST /api/config/upload-image
+router.post("/upload-avatar-image", uploadMiddleware, uploadAvatarImage);  // POST /api/config/upload-avatar-image
 router.get("/discord-webhook-images", protect, getDiscordWebhookForImages); // GET /api/config/discord-webhook
 router.get(
   "/discord-webhook-notifications",
