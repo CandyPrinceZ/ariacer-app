@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+require("./cron.js");
+
 const issueRoutes = require("./routes/issueRoutes");
 const authRoutes = require("./routes/authRoutes");
 const itemRoutes = require("./routes/itemsRoutes");
