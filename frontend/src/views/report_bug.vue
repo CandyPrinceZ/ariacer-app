@@ -447,7 +447,6 @@ export default {
 </script>
 
 <style scoped>
-/* 1. Header & Layout */
 .compact-header {
   background: #fff;
   padding: 12px 24px;
@@ -500,7 +499,6 @@ export default {
   width: 100%;
 }
 
-/* 2. Main Card */
 .main-card {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -522,7 +520,6 @@ export default {
   margin-bottom: 20px;
 }
 
-/* 3. Inputs & Selects */
 .modern-input,
 .modern-select,
 .modern-textarea {
@@ -547,7 +544,6 @@ export default {
   box-shadow: none !important;
 }
 
-/* 4. Upload Area */
 .dragger-content {
   padding: 16px 0;
 }
@@ -617,7 +613,6 @@ export default {
   opacity: 1;
 }
 
-/* 5. Assign Box */
 .assign-dev-box {
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
@@ -666,7 +661,6 @@ export default {
   color: #9ca3af;
 }
 
-/* 6. Reporter & Submit */
 .reporter-info {
   display: flex;
   align-items: center;
@@ -714,17 +708,13 @@ export default {
   border-color: #ff7875;
 }
 
-/* 7. Sticky Sidebar Logic */
 .sticky-side {
   top: 70px;
-  /* Offset from header */
 }
 
-/* 📱 Mobile Responsive Tweaks 📱 */
 @media (max-width: 992px) {
   .sticky-side {
     position: static;
-    /* เลิก Sticky บน Tablet/Mobile */
   }
 }
 
