@@ -1,9 +1,9 @@
-const Server = require("../models/server"); // ✅ 1. เปลี่ยนชื่อ Model เป็นตัวใหญ่ (Server) เพื่อไม่ให้ชื่อชนกับตัวแปรด้านล่าง
+const Server = require("../models/server");
 const { saveLog } = require("../services/logger");
 
 exports.getAllServers = async (req, res) => {
   try {
-    const servers = await Server.find(); // ใช้ Server (Model)
+    const servers = await Server.find();
     res.status(200).json(servers);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -18,6 +18,8 @@ exports.CreateServer = async (req, res) => {
     }
 
     const newServer = await Server.create(req.body);
+
+    saveLog(req, user, "CREATE_SERVER", `Created server: ${newServer.name}`);
     res.status(201).json(newServer);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -51,6 +53,11 @@ exports.DeleteServer = async (req, res) => {
       return res.status(404).json({ error: "Server not found" });
     }
 
+    saveLog(req, user, "DELETE_SERVER", `Deleted server: ${server.name}`, {
+      server_id: server._id,
+      server_name: server.name,
+    });
+
     res
       .status(200)
       .json({ message: "Server deleted successfully", data: server });
@@ -69,6 +76,11 @@ exports.UpdateServer = async (req, res) => {
     const server = await Server.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
+    });
+
+    saveLog(req, user, "UPDATE_SERVER", `Updated server: ${server.name}`, {
+      server_id: server._id,
+      server_name: server.name,
     });
 
     if (!server) {
