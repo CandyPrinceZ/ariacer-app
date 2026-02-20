@@ -380,7 +380,7 @@ export default {
           await this.fetchProfile();
           if (!this.user) throw new Error('User not authenticated');
         }
-        if (issue.status?.code === 'reported') {
+        if (issue.status?.code === 'reported' || issue.status?.code === 'rejected') {
           const token = localStorage.getItem('token');
           const config = { headers: { Authorization: `Bearer ${token}` } };
           const statusResponse = await axios.get(import.meta.env.VITE_API_URL + `/items/statuses`, config);

@@ -61,7 +61,7 @@
                   <div v-if="issue.tester" class="alert-meta">
                     <a-avatar size="small" :src="issue.tester.avatar" style="margin-right: 6px;">
                       <span v-if="!issue.tester.avatar">{{ issue.tester.user_name?.[0]?.toUpperCase()
-                      }}</span>
+                        }}</span>
                     </a-avatar>
                     ตรวจสอบโดย: <strong>{{ issue.tester.user_name }}</strong>
                     <span class="divider">|</span>
@@ -118,14 +118,14 @@
               <a-divider style="margin: 24px 0;" />
 
               <div class="card-section">
-                <div class="flex-between">
-                  <h3 class="section-title" style="margin-bottom:0">
+                <div class="flex-between" style="margin-bottom: 16px;">
+                  <h3 class="section-title" style="margin-bottom: 0;">
                     <TeamOutlined /> Co-Developers
                   </h3>
 
                   <a-tooltip :title="!issue.assignee ? 'ต้องกดรับงาน (Claim Task) ก่อน' : ''">
                     <span>
-                      <a-button type="dashed" @click="openCoDevModal"
+                      <a-button type="dashed" size="small" @click="openCoDevModal"
                         :disabled="!issue.assignee || authProfile._id !== issue.assignee._id">
                         <PlusOutlined /> จัดการผู้ร่วมงาน
                       </a-button>
@@ -133,7 +133,8 @@
                   </a-tooltip>
                 </div>
 
-                <div class="co-dev-list" v-if="issue.co_assignee && issue.co_assignee.length > 0">
+                <div v-if="issue.co_assignee && issue.co_assignee.length > 0" class="co-dev-list"
+                  style="display: flex; align-items: center; gap: 12px;">
                   <a-avatar-group :max-count="5" size="large">
                     <a-tooltip v-for="dev in issue.co_assignee" :key="dev._id" :title="dev.user_name">
                       <a-avatar :src="dev.avatar"
@@ -142,8 +143,13 @@
                       </a-avatar>
                     </a-tooltip>
                   </a-avatar-group>
+
+                  <div style="font-size: 13px; color: #666;">
+                    {{issue.co_assignee.map(d => d.user_name).join(', ')}}
+                  </div>
                 </div>
-                <div v-else class="empty-text-small">
+
+                <div v-else class="empty-text-small" style="color: #bfbfbf; font-style: italic;">
                   ยังไม่มีผู้พัฒนาร่วม
                 </div>
               </div>

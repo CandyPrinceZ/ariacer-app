@@ -716,7 +716,6 @@ export default {
 
 /* 7. Sticky Sidebar Logic */
 .sticky-side {
-  position: sticky;
   top: 70px;
   /* Offset from header */
 }
